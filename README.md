@@ -1,3 +1,3 @@
-# Another Round Repository
-
-Christopher Morris
+# Another-Round-Repository
+Repository for Another Round
+Andre Anders
