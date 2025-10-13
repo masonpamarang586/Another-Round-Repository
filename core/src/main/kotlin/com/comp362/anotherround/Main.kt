@@ -39,18 +39,92 @@ class GameScreen(val game: Main) : KtxScreen {
     private val attackTexture = Texture("menu/attack.png")
     private val itemsTexture = Texture("menu/items.png")
 
+    // UI parts
+    private val skin by lazy { com.badlogic.gdx.scenes.scene2d.ui.Skin(Gdx.files.internal("skin/uiskin.json")) }
+    private val hudStage by lazy { com.badlogic.gdx.scenes.scene2d.Stage(com.badlogic.gdx.utils.viewport.ScreenViewport()) }
+    private var paused = false
+
+    // Pause overlay
+    private val pauseOverlay by lazy {
+        PauseScreen(
+            skin = skin,
+            onResume = {
+                paused = false
+                Gdx.input.inputProcessor = hudStage
+            },
+            onNewGame = { /* TODO: */ },
+            onSave = { /* TODO: */ }
+        )
+    }
+
+    override fun show() {
+        hudStage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
+        pauseOverlay.stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
+
+        // create pause button
+        val pauseBtn = com.badlogic.gdx.scenes.scene2d.ui.TextButton("Pause", skin)
+        val hudRoot = com.badlogic.gdx.scenes.scene2d.ui.Table().apply {
+            setFillParent(true)
+            top().right().pad(12f)
+            add(pauseBtn).width(640f).height(256f)
+            touchable = com.badlogic.gdx.scenes.scene2d.Touchable.childrenOnly
+        }
+        hudStage.addActor(hudRoot)
+
+        // hud then overlay
+        val mux = com.badlogic.gdx.InputMultiplexer(hudStage, pauseOverlay.stage)
+        Gdx.input.inputProcessor = mux
+
+        // start with hidden overlay
+        pauseOverlay.stage.root.isVisible = false
+        pauseOverlay.stage.root.touchable = com.badlogic.gdx.scenes.scene2d.Touchable.disabled
+
+        // allow overlay input
+        pauseBtn.addListener(object : com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
+            override fun changed(event: com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent?, actor: com.badlogic.gdx.scenes.scene2d.Actor?) {
+                Gdx.app.log("UI", "Pause clicked")
+                paused = true
+                pauseOverlay.stage.root.isVisible = true
+                pauseOverlay.stage.root.touchable = com.badlogic.gdx.scenes.scene2d.Touchable.enabled
+            }
+        })
+
+        // debug to see hitboxes
+        //hudStage.setDebugAll(true)
+        // pauseOverlay.stage.setDebugAll(true)
+    }
+
+
     override fun render(delta: Float) {
         input()
-        logic()
+        if (!paused) {
+            logic()
+        }
         draw()
+
+        // hud on top
+        hudStage.act(delta)
+        hudStage.draw()
+
+        // pause overlay on top
+        if (paused) {
+            pauseOverlay.render(delta)
+        }
     }
 
     override fun resize(width: Int, height: Int) {
         game.viewport.update(width, height, true)
+        hudStage.viewport.update(width, height, true)
+        pauseOverlay.resize(width, height)
     }
 
     override fun dispose() {
-
+        hudStage.dispose()
+        pauseOverlay.dispose()
+        skin.dispose()
+        backgroundTexture.dispose()
+        attackTexture.dispose()
+        itemsTexture.dispose()
     }
 
     fun input() {
