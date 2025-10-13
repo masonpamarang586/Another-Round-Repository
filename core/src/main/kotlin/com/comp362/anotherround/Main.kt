@@ -1,38 +1,115 @@
 package com.comp362.anotherround
 
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.Texture.TextureFilter.Linear
+import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.utils.viewport.FitViewport
 import ktx.app.KtxGame
 import ktx.app.KtxScreen
-import ktx.app.clearScreen
 import ktx.assets.disposeSafely
-import ktx.assets.toInternalFile
 import ktx.async.KtxAsync
-import ktx.graphics.use
 
 class Main : KtxGame<KtxScreen>() {
+    val batch by lazy { SpriteBatch() }
+    val viewport by lazy {
+        FitViewport(10f, 20f) }
+    val shape by lazy { ShapeRenderer() }
+
     override fun create() {
         KtxAsync.initiate()
 
-        addScreen(FirstScreen())
-        setScreen<FirstScreen>()
-    }
-}
-
-class FirstScreen : KtxScreen {
-    private val image = Texture("logo.png".toInternalFile(), true).apply { setFilter(Linear, Linear) }
-    private val batch = SpriteBatch()
-
-    override fun render(delta: Float) {
-        clearScreen(red = 0.7f, green = 0.7f, blue = 0.7f)
-        batch.use {
-            it.draw(image, 100f, 160f)
-        }
+        addScreen(GameScreen(this))
+        setScreen<GameScreen>()
     }
 
     override fun dispose() {
-        image.disposeSafely()
-        batch.disposeSafely()
+        batch.dispose()
+        shape.dispose()
+    }
+}
+
+class GameScreen(val game: Main) : KtxScreen {
+    private val backgroundTexture = Texture("background.jpg")
+    private val attackTexture = Texture("menu/attack.png")
+    private val itemsTexture = Texture("menu/items.png")
+
+    override fun render(delta: Float) {
+        input()
+        logic()
+        draw()
+    }
+
+    override fun resize(width: Int, height: Int) {
+        game.viewport.update(width, height, true)
+    }
+
+    override fun dispose() {
+
+    }
+
+    fun input() {
+        if (Gdx.input.isTouched) {
+            // TODO: handle input
+        }
+    }
+
+    fun logic() {
+
+    }
+
+    fun draw() {
+        // Applies viewport to the (uncentered) camera
+        game.viewport.apply()
+
+        // Necessary to get sprites to draw correctly
+        game.batch.projectionMatrix = game.viewport.camera.combined
+
+        // Combines draw calls together for performance
+        game.batch.begin()
+
+        val worldWidth = game.viewport.worldWidth
+        val worldHeight = game.viewport.worldHeight
+
+        game.batch.draw(backgroundTexture, 0f, 0f, worldWidth, worldHeight)
+
+        game.batch.end()
+
+        // TODO: draw sprites
+        drawMenu()
+        drawSprites()
+    }
+
+    fun drawMenu() {
+        val worldWidth = game.viewport.worldWidth
+        val worldHeight = game.viewport.worldHeight
+
+        game.shape.projectionMatrix = game.viewport.camera.combined
+
+        // Outer rectangle
+        game.shape.begin(ShapeRenderer.ShapeType.Filled)
+        game.shape.color = Color.BLACK
+        game.shape.rect(1f, 1f, 8f, 5f)
+        game.shape.end()
+
+        // Inner rectangle
+        game.shape.begin(ShapeRenderer.ShapeType.Filled)
+        game.shape.color = Color.WHITE
+        game.shape.rect(1f + 0.25f, 1f + 0.25f, 8f - 0.5f, 5f - 0.5f)
+        game.shape.end()
+
+        game.batch.begin()
+        game.batch.draw(attackTexture, 1.5f, 4f, 2f, 1f)
+        game.batch.draw(itemsTexture, 6f, 4f, 2f, 1f)
+        game.batch.end()
+    }
+
+    fun drawSprites() {
+
     }
 }
