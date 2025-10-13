@@ -1,5 +1,8 @@
 package com.comp362.anotherround
 
+
+
+
 import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
@@ -17,64 +20,63 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.comp362.anotherround.screen.GameScreen
 import ktx.assets.getAsset
 import ktx.assets.load
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.utils.viewport.FitViewport
+import ktx.assets.disposeSafely
 
 
-enum class TextureAtlasAssets(val path: String) {
-    Game("images/game.atlas")
-}
 
-inline fun AssetManager.load(asset: TextureAtlasAssets) = load<TextureAtlas>(asset.path)
-inline operator fun AssetManager.get(asset: TextureAtlasAssets) = getAsset<TextureAtlas>(asset.path)
+
+
+
 
 
 class AnotherRound : KtxGame<KtxScreen>() {
-
     val batch by lazy { SpriteBatch() }
-    //val font by lazy { BitmapFont() }
-    val assets = AssetManager()
 
-    @Override
+
+
+
+    val assets = AssetManager()
+    val viewport by lazy {
+        FitViewport(10f, 20f) }
+    val shape by lazy { ShapeRenderer() }
+
+
+
+
     override fun create() {
         Gdx.app.logLevel = Application.LOG_DEBUG
         KtxAsync.initiate()
 
+
+
+
         addScreen(GameScreen())
         setScreen<GameScreen>()
-        super.create()
 
+
+
+
+        super.create()
     }
+
+
+
 
     override fun dispose() {
         batch.dispose()
-        //font.dispose()
+        shape.dispose()
         assets.dispose()
         super.dispose()
     }
 }
 
-class FirstScreen : KtxScreen {
-
-    private val image = Texture("logo.png".toInternalFile(), true).apply { setFilter(Linear, Linear) }
-    private val batch = SpriteBatch();
-
-    private val playerTexture = Texture("assets/player_spritesheet.png")
 
 
 
-    override fun render(delta: Float) {
 
-        clearScreen(red = 0.7f, green = 0.7f, blue = 0.7f)
-        batch.use {
-            it.draw(image, 100f, 160f)
-        }
-    }
-
-    override fun show() {
-    }
-
-    override fun dispose() {
-        image.disposeSafely()
-        playerTexture.disposeSafely()
-        batch.disposeSafely()
-    }
-}
