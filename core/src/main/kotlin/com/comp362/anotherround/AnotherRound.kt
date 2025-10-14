@@ -49,6 +49,8 @@ class AnotherRound : KtxGame<KtxScreen>() {
 
 
 
+
+
     override fun create() {
         Gdx.app.logLevel = Application.LOG_DEBUG
         KtxAsync.initiate()
@@ -56,7 +58,7 @@ class AnotherRound : KtxGame<KtxScreen>() {
 
 
 
-        addScreen(GameScreen())
+        addScreen(GameScreen(this))
         setScreen<GameScreen>()
 
 
