@@ -3,21 +3,14 @@ package com.comp362.anotherround.screen
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Gdx.input
 import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.Image
-import com.badlogic.gdx.utils.Scaling
 import com.badlogic.gdx.utils.viewport.ExtendViewport
 import com.comp362.anotherround.AnotherRound
-import com.comp362.anotherround.PauseScreen
-import ktx.actors.stage
 import ktx.app.KtxScreen
 import ktx.assets.disposeSafely
-import ktx.graphics.use
 import ktx.log.logger
-import java.awt.Color
 
 class GameScreen(val game: AnotherRound) : KtxScreen{
     private val stage : Stage = Stage(ExtendViewport(16f, 9f))
@@ -40,7 +33,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
             skin = skin,
             onResume = {
                 paused = false
-                Gdx.input.inputProcessor = hudStage
+                input.inputProcessor = hudStage
             },
             onNewGame = { /* TODO: */ },
             onSave = { /* TODO: */ }
