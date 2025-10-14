@@ -1,4 +1,4 @@
-package com.comp362.anotherround
+package com.comp362.anotherround.screen
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input

@@ -1,40 +1,23 @@
-package com.comp362.anotherround
+package com.comp362.anotherround.screen
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.Gdx.input
 import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.g2d.TextureAtlas
-import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
-import com.badlogic.gdx.scenes.scene2d.ui.Label
-import com.badlogic.gdx.utils.viewport.FitViewport
-import ktx.app.KtxGame
+import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.utils.viewport.ExtendViewport
+import com.comp362.anotherround.AnotherRound
 import ktx.app.KtxScreen
 import ktx.assets.disposeSafely
-import ktx.async.KtxAsync
+import ktx.log.logger
 
-class Main : KtxGame<KtxScreen>() {
-    val batch by lazy { SpriteBatch() }
-    val viewport by lazy {
-        FitViewport(10f, 20f) }
-    val shape by lazy { ShapeRenderer() }
+class GameScreen(val game: AnotherRound) : KtxScreen{
+    private val stage : Stage = Stage(ExtendViewport(16f, 9f))
+    private val playerTexture: Texture = Texture("assets/player_spritesheet.png")
 
-    override fun create() {
-        KtxAsync.initiate()
+    private val batch = SpriteBatch();
 
-        addScreen(GameScreen(this))
-        setScreen<GameScreen>()
-    }
-
-    override fun dispose() {
-        batch.dispose()
-        shape.dispose()
-    }
-}
-
-class GameScreen(val game: Main) : KtxScreen {
     private val backgroundTexture = Texture("background.jpg")
     private val attackTexture = Texture("menu/attack.png")
     private val itemsTexture = Texture("menu/items.png")
@@ -50,7 +33,7 @@ class GameScreen(val game: Main) : KtxScreen {
             skin = skin,
             onResume = {
                 paused = false
-                Gdx.input.inputProcessor = hudStage
+                input.inputProcessor = hudStage
             },
             onNewGame = { /* TODO: */ },
             onSave = { /* TODO: */ }
@@ -88,19 +71,23 @@ class GameScreen(val game: Main) : KtxScreen {
                 pauseOverlay.stage.root.touchable = com.badlogic.gdx.scenes.scene2d.Touchable.enabled
             }
         })
-
-        // debug to see hitboxes
-        //hudStage.setDebugAll(true)
-        // pauseOverlay.stage.setDebugAll(true)
     }
 
+    override fun resize(width: Int, height: Int){
+        game.viewport.update(width, height, true)
+        hudStage.viewport.update(width, height, true)
+        pauseOverlay.resize(width, height)
+    }
 
     override fun render(delta: Float) {
         input()
         if (!paused) {
             logic()
         }
-        draw()
+        with(stage){
+            act(delta)
+            draw()
+        }
 
         // hud on top
         hudStage.act(delta)
@@ -110,21 +97,7 @@ class GameScreen(val game: Main) : KtxScreen {
         if (paused) {
             pauseOverlay.render(delta)
         }
-    }
 
-    override fun resize(width: Int, height: Int) {
-        game.viewport.update(width, height, true)
-        hudStage.viewport.update(width, height, true)
-        pauseOverlay.resize(width, height)
-    }
-
-    override fun dispose() {
-        hudStage.dispose()
-        pauseOverlay.dispose()
-        skin.dispose()
-        backgroundTexture.dispose()
-        attackTexture.dispose()
-        itemsTexture.dispose()
     }
 
     fun input() {
@@ -133,8 +106,20 @@ class GameScreen(val game: Main) : KtxScreen {
         }
     }
 
-    fun logic() {
 
+    override fun dispose(){
+        stage.disposeSafely()
+        playerTexture.disposeSafely()
+        batch.disposeSafely()
+        hudStage.dispose()
+        pauseOverlay.dispose()
+        skin.dispose()
+        backgroundTexture.dispose()
+        attackTexture.dispose()
+        itemsTexture.dispose()
+    }
+
+    fun logic() {
     }
 
     fun draw() {
@@ -167,13 +152,13 @@ class GameScreen(val game: Main) : KtxScreen {
 
         // Outer rectangle
         game.shape.begin(ShapeRenderer.ShapeType.Filled)
-        game.shape.color = Color.BLACK
+        game.shape.color = com.badlogic.gdx.graphics.Color.BLACK
         game.shape.rect(1f, 1f, 8f, 5f)
         game.shape.end()
 
         // Inner rectangle
         game.shape.begin(ShapeRenderer.ShapeType.Filled)
-        game.shape.color = Color.WHITE
+        game.shape.color = com.badlogic.gdx.graphics.Color.WHITE
         game.shape.rect(1f + 0.25f, 1f + 0.25f, 8f - 0.5f, 5f - 0.5f)
         game.shape.end()
 
@@ -183,7 +168,20 @@ class GameScreen(val game: Main) : KtxScreen {
         game.batch.end()
     }
 
+
+
+
     fun drawSprites() {
 
+
+
+
+    }
+
+
+
+
+    companion object{
+        private val log = logger<GameScreen>()
     }
 }
