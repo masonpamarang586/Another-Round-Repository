@@ -126,9 +126,12 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
     }
 
     override fun render(delta: Float) {
+
+
         input()
         if (!paused) {
             logic()
+            draw()
         }
         world.update(delta)
 
@@ -165,6 +168,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
 
     fun logic() {
     }
+
 
     fun draw() {
         // Applies viewport to the (uncentered) camera
