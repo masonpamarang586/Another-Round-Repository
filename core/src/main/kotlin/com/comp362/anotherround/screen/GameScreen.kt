@@ -2,10 +2,14 @@ package com.comp362.anotherround.screen
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputMultiplexer
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.GL32
 import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Image
@@ -19,6 +23,9 @@ import com.github.quillraven.fleks.World
 import com.comp362.anotherround.system.RenderSystem
 import com.github.quillraven.fleks.world
 import com.comp362.anotherround.component.ImageComponent.Companion.ImageComponentListener
+import com.comp362.anotherround.entity.Enemy
+import com.comp362.anotherround.entity.Player
+import org.w3c.dom.Text
 
 class GameScreen(val game: AnotherRound) : KtxScreen {
     private val stage: Stage = Stage(ExtendViewport(16f, 9f))
@@ -39,8 +46,25 @@ class GameScreen(val game: AnotherRound) : KtxScreen {
     private val backgroundTexture = Texture("background.jpg")
     private val attackTexture = Texture("menu/attack.png")
     private val itemsTexture = Texture("menu/items.png")
+//    private val font: BitmapFont by lazy {
+//        val generator = FreeTypeFontGenerator(Gdx.files.internal("5x5.ttf"))
+//        val parameter = FreeTypeFontGenerator.FreeTypeFontParameter()
+//        parameter.size = 8
+//        val res = generator.generateFont(parameter)
+//        res.data.scale(0.05f)
+//        generator.dispose()
+//        res
+//        val texture = Texture(Gdx.files.internal("test.png"))
+//        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+//        val res = BitmapFont(Gdx.files.internal("test.fnt"), TextureRegion(texture))
+//        res.data.scale(0.05f)
+//        res
+//    }
+
     private val attackButtonSprite = Sprite(attackTexture)
     private val itemsButtonSprite = Sprite(itemsTexture)
+    private val player = Player()
+    private val enemy = Enemy()
 
     // UI
     private val skin by lazy { com.badlogic.gdx.scenes.scene2d.ui.Skin(Gdx.files.internal("skin/uiskin.json")) }
@@ -182,6 +206,10 @@ class GameScreen(val game: AnotherRound) : KtxScreen {
         val worldHeight = game.viewport.worldHeight
 
         game.batch.draw(backgroundTexture, 0f, 0f, worldWidth, worldHeight)
+
+        // TODO: Draw font
+//        game.batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+//        font.draw(game.batch, "${player.health}", 0.5f, (worldHeight / 2f) + 6f)
 
         game.batch.end()
 
