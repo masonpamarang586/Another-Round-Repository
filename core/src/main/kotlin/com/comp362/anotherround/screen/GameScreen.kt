@@ -28,7 +28,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
     private val stage : Stage = Stage(ExtendViewport(16f, 9f))
 
     // Texture for the player's sprites
-    private val playerTexture: Texture = Texture("assets/player_spritesheet.png")
+    private val playerTexture: Texture = Texture("player_spritesheet.png")
 
     @WorldCfgMarker
     private val world = world {
@@ -126,9 +126,12 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
     }
 
     override fun render(delta: Float) {
+
+
         input()
         if (!paused) {
             logic()
+            draw()
         }
         world.update(delta)
 
@@ -165,6 +168,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
 
     fun logic() {
     }
+
 
     fun draw() {
         // Applies viewport to the (uncentered) camera
