@@ -1,6 +1,5 @@
 package com.comp362.anotherround.screen
 
-
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Gdx.input
 import com.badlogic.gdx.graphics.Texture
@@ -21,14 +20,11 @@ import com.github.quillraven.fleks.ComponentListener
 import com.github.quillraven.fleks.*
 import com.comp362.anotherround.component.ImageComponent.Companion.ImageComponentListener
 
-
-
-
 class GameScreen(val game: AnotherRound) : KtxScreen{
     private val stage : Stage = Stage(ExtendViewport(16f, 9f))
 
     // Texture for the player's sprites
-    private val playerTexture: Texture = Texture("assets/player_spritesheet.png")
+    private val playerTexture: Texture = Texture("player_spritesheet.png")
 
     @WorldCfgMarker
     private val world = world {
@@ -129,6 +125,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         input()
         if (!paused) {
             logic()
+            draw()
         }
         world.update(delta)
 
