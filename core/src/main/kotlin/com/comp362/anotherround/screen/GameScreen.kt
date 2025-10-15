@@ -4,9 +4,11 @@ package com.comp362.anotherround.screen
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Gdx.input
 import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.utils.viewport.ExtendViewport
@@ -57,6 +59,8 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
     private val backgroundTexture = Texture("background.jpg")
     private val attackTexture = Texture("menu/attack.png")
     private val itemsTexture = Texture("menu/items.png")
+    private val attackButtonSprite = Sprite(attackTexture)
+    private val itemsButtonSprite = Sprite(itemsTexture)
 
     // UI parts
     private val skin by lazy { com.badlogic.gdx.scenes.scene2d.ui.Skin(Gdx.files.internal("skin/uiskin.json")) }
@@ -84,8 +88,8 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         world.entity{
             add<ImageComponent>{
                 image = Image(TextureRegion(playerTexture, 16, 16)).apply {
-                    setSize(2f,2f)
-                    setPosition(5.2f, 3.8f)
+                    setSize(5f,5f)
+                    setPosition(2f, 15f)
                 }
             }
         }
@@ -94,8 +98,8 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         world.entity{
             add<ImageComponent>{
                 image = Image(TextureRegion(enemyTexture, 16, 16)).apply {
-                    setSize(2f,2f)
-                    setPosition(8.5f, 3.8f)
+                    setSize(5f,5f)
+                    setPosition(8f, 15f)
                 }
             }
         }
@@ -141,8 +145,8 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
     override fun render(delta: Float) {
 
 
-        input()
         if (!paused) {
+            input()
             logic()
             draw()
         }
