@@ -109,7 +109,6 @@ class PauseScreen(
 
     fun resize(width: Int, height: Int) = stage.viewport.update(width, height, true)
     fun dispose() = stage.dispose()
-    // add this import:
 
     fun showToast(message: String, seconds: Float = 2f) {
         val bg = skin.newDrawable("white", Color(0f, 0f, 0f, 0.85f))
