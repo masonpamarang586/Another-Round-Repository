@@ -1,23 +1,57 @@
 package com.comp362.anotherround.screen
 
+
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Gdx.input
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.utils.viewport.ExtendViewport
 import com.comp362.anotherround.AnotherRound
+import com.comp362.anotherround.component.ImageComponent
 import ktx.app.KtxScreen
 import ktx.assets.disposeSafely
 import ktx.log.logger
+import com.github.quillraven.fleks.World
+import com.comp362.anotherround.system.RenderSystem
+import com.github.quillraven.fleks.world
+import com.github.quillraven.fleks.ComponentListener
+import com.github.quillraven.fleks.*
+import com.comp362.anotherround.component.ImageComponent.Companion.ImageComponentListener
+
+
+
 
 class GameScreen(val game: AnotherRound) : KtxScreen{
     private val stage : Stage = Stage(ExtendViewport(16f, 9f))
+
+    // Texture for the player's sprites
     private val playerTexture: Texture = Texture("assets/player_spritesheet.png")
+
+    @WorldCfgMarker
+    private val world = world {
+        entityCapacity = 64;
+
+        injectables{
+            add(stage)
+        }
+
+        systems{
+            add<RenderSystem>()
+        }
+
+        components{
+            add<ImageComponentListener>()
+
+        }
+        //componentListener<ImageComponent.Companion.ImageComponentListener>()
+    }
 
     private val batch = SpriteBatch();
 
+    // Textures
     private val backgroundTexture = Texture("background.jpg")
     private val attackTexture = Texture("menu/attack.png")
     private val itemsTexture = Texture("menu/items.png")
@@ -41,6 +75,18 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
     }
 
     override fun show() {
+
+        log.debug{ "GameScreen gets shown" }
+
+        // Creates an entity for the player
+        world.entity{
+            add<ImageComponent>{
+                image = Image(playerTexture).apply {
+                    setSize(4f,4f)
+                }
+            }
+        }
+
         hudStage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
         pauseOverlay.stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
 
@@ -84,10 +130,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         if (!paused) {
             logic()
         }
-        with(stage){
-            act(delta)
-            draw()
-        }
+        world.update(delta)
 
         // hud on top
         hudStage.act(delta)
@@ -117,6 +160,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         backgroundTexture.dispose()
         attackTexture.dispose()
         itemsTexture.dispose()
+        world.dispose()
     }
 
     fun logic() {
