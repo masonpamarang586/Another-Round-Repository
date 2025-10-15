@@ -1,9 +1,11 @@
 package com.comp362.anotherround.screen
 
+
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Gdx.input
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Image
@@ -20,11 +22,15 @@ import com.github.quillraven.fleks.ComponentListener
 import com.github.quillraven.fleks.*
 import com.comp362.anotherround.component.ImageComponent.Companion.ImageComponentListener
 
+
+
+
 class GameScreen(val game: AnotherRound) : KtxScreen{
     private val stage : Stage = Stage(ExtendViewport(16f, 9f))
 
     // Texture for the player's sprites
     private val playerTexture: Texture = Texture("player_spritesheet.png")
+    private val enemyTexture: Texture = Texture("enemy_slime_spritesheet.png")
 
     @WorldCfgMarker
     private val world = world {
@@ -77,8 +83,19 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         // Creates an entity for the player
         world.entity{
             add<ImageComponent>{
-                image = Image(playerTexture).apply {
-                    setSize(4f,4f)
+                image = Image(TextureRegion(playerTexture, 16, 16)).apply {
+                    setSize(2f,2f)
+                    setPosition(5.2f, 3.8f)
+                }
+            }
+        }
+
+        // Creates an entity for the enemy
+        world.entity{
+            add<ImageComponent>{
+                image = Image(TextureRegion(enemyTexture, 16, 16)).apply {
+                    setSize(2f,2f)
+                    setPosition(8.5f, 3.8f)
                 }
             }
         }
@@ -122,6 +139,8 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
     }
 
     override fun render(delta: Float) {
+
+
         input()
         if (!paused) {
             logic()
@@ -150,6 +169,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
     override fun dispose(){
         stage.disposeSafely()
         playerTexture.disposeSafely()
+        enemyTexture.disposeSafely()
         batch.disposeSafely()
         hudStage.dispose()
         pauseOverlay.dispose()
@@ -162,6 +182,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
 
     fun logic() {
     }
+
 
     fun draw() {
         // Applies viewport to the (uncentered) camera

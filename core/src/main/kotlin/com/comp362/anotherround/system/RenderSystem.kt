@@ -11,6 +11,7 @@ class RenderSystem(
     private val imageCmps:ComponentMapper<ImageComponent>
 
 
+
 ) : IteratingSystem(
     // Compares two entities by their image position
     comparator = compareEntity{e1, e2 -> imageCmps[e1].compareTo(imageCmps[e2]) }
@@ -20,9 +21,9 @@ class RenderSystem(
         super.onTick()
 
         with(stage){
-            viewport.apply()
-            act(deltaTime)
-            draw()
+            stage.viewport.apply()
+            stage.act(deltaTime)
+            stage.draw()
         }
     }
 
