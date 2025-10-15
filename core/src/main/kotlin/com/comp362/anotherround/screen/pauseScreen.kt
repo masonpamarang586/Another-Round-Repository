@@ -11,6 +11,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.utils.Align
 
 /**
  * A self-contained pause overlay.
@@ -54,7 +56,10 @@ class PauseScreen(
             }
             val save = TextButton("Save", skin).apply {
                 addListener(object : ClickListener() {
-                    override fun clicked(e: InputEvent?, x: Float, y: Float) = onSave()
+                    override fun clicked(e: InputEvent?, x: Float, y: Float) {
+                        onSave()
+                        showToast("Game Saved")
+                    }
                 })
             }
             val settings = TextButton("Settings", skin).apply {
@@ -104,4 +109,39 @@ class PauseScreen(
 
     fun resize(width: Int, height: Int) = stage.viewport.update(width, height, true)
     fun dispose() = stage.dispose()
+    // add this import:
+
+    fun showToast(message: String, seconds: Float = 2f) {
+        val bg = skin.newDrawable("white", Color(0f, 0f, 0f, 0.85f))
+
+        val label = Label(message, skin).apply {
+            setAlignment(Align.center)
+            color = Color.WHITE
+        }
+
+        // Wrap label so we can pad + give it a background "pill"
+        val bubble = Container(label).apply {
+            background = bg
+            pad(16f, 24f, 16f, 24f)  // <-- padding works on Container
+        }
+
+        val toastTable = Table().apply {
+            setFillParent(true)
+            add(bubble).center()
+            bottom().padBottom(64f)
+        }
+
+        toastTable.color.a = 0f
+        toastTable.addAction(
+            Actions.sequence(
+                Actions.fadeIn(0.2f),
+                Actions.delay(seconds),
+                Actions.fadeOut(0.25f),
+                Actions.run { toastTable.remove() }
+            )
+        )
+
+        stage.addActor(toastTable)
+    }
+
 }
