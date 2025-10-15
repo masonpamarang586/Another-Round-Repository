@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Gdx.input
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Image
@@ -29,6 +30,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
 
     // Texture for the player's sprites
     private val playerTexture: Texture = Texture("player_spritesheet.png")
+    private val enemyTexture: Texture = Texture("enemy_slime_spritesheet.png")
 
     @WorldCfgMarker
     private val world = world {
@@ -81,8 +83,18 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         // Creates an entity for the player
         world.entity{
             add<ImageComponent>{
-                image = Image(playerTexture).apply {
+                image = Image(TextureRegion(playerTexture, 16, 16)).apply {
                     setSize(4f,4f)
+                }
+            }
+        }
+
+        // Creates an entity for the enemy
+        world.entity{
+            add<ImageComponent>{
+                image = Image(TextureRegion(enemyTexture, 16, 16)).apply {
+                    setSize(4f,4f)
+                    setPosition(12f, 0f)
                 }
             }
         }
@@ -156,6 +168,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
     override fun dispose(){
         stage.disposeSafely()
         playerTexture.disposeSafely()
+        enemyTexture.disposeSafely()
         batch.disposeSafely()
         hudStage.dispose()
         pauseOverlay.dispose()
