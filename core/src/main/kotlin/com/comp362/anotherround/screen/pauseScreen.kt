@@ -4,16 +4,17 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener // <-- Add this line
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.viewport.ScreenViewport
+import com.badlogic.gdx.scenes.scene2d.Touchable
 
 /**
- * Usage from GameScreen:
- *   val pauseOverlay = PauseScreen(skin, onResume = { ... })
- *   pauseOverlay.takeInput() // to open
- *   pauseOverlay.render(delta) // when paused
+ * A self-contained pause overlay.
+ * GameScreen is responsible for calling show()/hide() and render()/resize()/dispose().
  */
 class PauseScreen(
     private val skin: Skin,
@@ -24,14 +25,21 @@ class PauseScreen(
     val stage = Stage(ScreenViewport())
 
     init {
-        // Dim background
-        val dim = Image(skin.newDrawable("white", Color(0f, 0f, 0f, 0.6f))).apply { setFillParent(true) }
+        // Dim background (modal scrim) that consumes clicks so they don't leak to HUD
+        val dim: Image = Image(skin.newDrawable("white", Color(0f, 0f, 0f, 0.6f))).apply {
+            setFillParent(true)
+            addListener(object : InputListener() {
+                override fun touchDown(
+                    event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int
+                ): Boolean = true // consume
+            })
+        }
         stage.addActor(dim)
 
         // Centered panel with buttons
         val panel = Table(skin).apply {
             pad(48f)
-            defaults().pad(20f).width(640f) // button width in pixels
+            defaults().pad(20f).width(640f)
             add(Label("Paused", skin)).padBottom(32f).row()
 
             val resume = TextButton("Resume", skin).apply {
@@ -52,30 +60,37 @@ class PauseScreen(
             val settings = TextButton("Settings", skin).apply {
                 addListener(object : ClickListener() {
                     override fun clicked(e: InputEvent?, x: Float, y: Float) {
-                        // Simple built‑in dialog you can replace later
-                        Dialog("Settings", skin).apply {
-                            button("Close")
-                        }.show(stage)
+                        Dialog("Settings", skin).apply { button("Close") }.show(stage)
                     }
                 })
             }
 
-            add(resume).height(144f).row()         // taller buttons (pixels)
+            add(resume).height(144f).row()
             add(newGame).height(144f).row()
             add(save).height(144f).row()
             add(settings).height(144f).row()
         }
 
-        // Root table anchors the panel in the center
-        val root = Table().apply {
+        // Root container centers the panel
+        val container = Table().apply {
             setFillParent(true)
             add(panel)
         }
-        stage.addActor(root)
+        stage.addActor(container)
+
+        // Start hidden
+        hide()
     }
 
-    /** Route input to the pause UI (call when opening the pause menu). */
-    fun takeInput() { Gdx.input.inputProcessor = stage }
+    fun show() {
+        stage.root.isVisible = true
+        stage.root.touchable = Touchable.enabled
+    }
+
+    fun hide() {
+        stage.root.isVisible = false
+        stage.root.touchable = Touchable.disabled
+    }
 
     /** Draw/update the overlay each frame while paused. */
     fun render(delta: Float) {
