@@ -18,7 +18,8 @@ import com.github.quillraven.fleks.World
 import com.comp362.anotherround.system.RenderSystem
 import com.github.quillraven.fleks.world
 import com.comp362.anotherround.component.ImageComponent.Companion.ImageComponentListener
-
+import com.comp362.anotherround.save.FileSaveManager
+import com.comp362.anotherround.save.GameState
 class GameScreen(val game: AnotherRound) : KtxScreen {
     private val stage: Stage = Stage(ExtendViewport(16f, 9f))
 
@@ -56,7 +57,17 @@ class GameScreen(val game: AnotherRound) : KtxScreen {
                 pauseOverlay.hide()      // hide overlay here (no inputProcessor swapping!)
             },
             onNewGame = { /* TODO */ },
-            onSave = { /* TODO */ }
+            onSave = {
+                val ok = FileSaveManager.save(
+                    GameState(
+                        level = 1,
+                        playerHp = 100,
+                        enemyHp = 100,
+                        score = 0
+                    )
+                )
+                if (!ok) Gdx.app.log("SAVE", "Save failed")
+            }
         )
     }
 
