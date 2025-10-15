@@ -1,8 +1,7 @@
 package com.comp362.anotherround.screen
 
-
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Gdx.input
+import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
@@ -18,83 +17,65 @@ import ktx.log.logger
 import com.github.quillraven.fleks.World
 import com.comp362.anotherround.system.RenderSystem
 import com.github.quillraven.fleks.world
-import com.github.quillraven.fleks.ComponentListener
-import com.github.quillraven.fleks.*
 import com.comp362.anotherround.component.ImageComponent.Companion.ImageComponentListener
 
+class GameScreen(val game: AnotherRound) : KtxScreen {
+    private val stage: Stage = Stage(ExtendViewport(16f, 9f))
 
-
-
-class GameScreen(val game: AnotherRound) : KtxScreen{
-    private val stage : Stage = Stage(ExtendViewport(16f, 9f))
-
-    // Texture for the player's sprites
     private val playerTexture: Texture = Texture("player_spritesheet.png")
     private val enemyTexture: Texture = Texture("enemy_slime_spritesheet.png")
 
-    @WorldCfgMarker
+    @com.github.quillraven.fleks.WorldCfgMarker
     private val world = world {
-        entityCapacity = 64;
-
-        injectables{
-            add(stage)
-        }
-
-        systems{
-            add<RenderSystem>()
-        }
-
-        components{
-            add<ImageComponentListener>()
-
-        }
-        //componentListener<ImageComponent.Companion.ImageComponentListener>()
+        entityCapacity = 64
+        injectables { add(stage) }
+        systems { add<RenderSystem>() }
+        components { add<ImageComponentListener>() }
     }
 
-    private val batch = SpriteBatch();
+    private val batch = SpriteBatch()
 
-    // Textures
     private val backgroundTexture = Texture("background.jpg")
     private val attackTexture = Texture("menu/attack.png")
     private val itemsTexture = Texture("menu/items.png")
 
-    // UI parts
+    // UI
     private val skin by lazy { com.badlogic.gdx.scenes.scene2d.ui.Skin(Gdx.files.internal("skin/uiskin.json")) }
     private val hudStage by lazy { com.badlogic.gdx.scenes.scene2d.Stage(com.badlogic.gdx.utils.viewport.ScreenViewport()) }
     private var paused = false
 
+    // Keep this multiplexer for the entire lifetime of the screen
+    private lateinit var inputMux: InputMultiplexer
+
     // Pause overlay
-    private val pauseOverlay by lazy {
+    private val pauseOverlay: PauseScreen by lazy {
         PauseScreen(
             skin = skin,
             onResume = {
                 paused = false
-                input.inputProcessor = hudStage
+                pauseOverlay.hide()      // hide overlay here (no inputProcessor swapping!)
             },
-            onNewGame = { /* TODO: */ },
-            onSave = { /* TODO: */ }
+            onNewGame = { /* TODO */ },
+            onSave = { /* TODO */ }
         )
     }
 
     override fun show() {
+        log.debug { "GameScreen gets shown" }
 
-        log.debug{ "GameScreen gets shown" }
-
-        // Creates an entity for the player
-        world.entity{
-            add<ImageComponent>{
+        // Sample entities
+        world.entity {
+            add<ImageComponent> {
                 image = Image(TextureRegion(playerTexture, 16, 16)).apply {
-                    setSize(2f,2f)
+                    setSize(2f, 2f)
                     setPosition(5.2f, 3.8f)
                 }
             }
         }
-
-        // Creates an entity for the enemy
-        world.entity{
-            add<ImageComponent>{
+        world.entity {
+            add<ImageComponent> {
                 image = Image(TextureRegion(enemyTexture, 16, 16)).apply {
-                    setSize(2f,2f)
+                    setSize(2f, 2f)
                     setPosition(8.5f, 3.8f)
                 }
             }
@@ -103,7 +84,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         hudStage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
         pauseOverlay.stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
 
-        // create pause button
+        // Pause button
         val pauseBtn = com.badlogic.gdx.scenes.scene2d.ui.TextButton("Pause", skin)
         val hudRoot = com.badlogic.gdx.scenes.scene2d.ui.Table().apply {
             setFillParent(true)
@@ -113,60 +94,60 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         }
         hudStage.addActor(hudRoot)
 
-        // hud then overlay
-        val mux = com.badlogic.gdx.InputMultiplexer(hudStage, pauseOverlay.stage)
-        Gdx.input.inputProcessor = mux
+        // Always route input through a single multiplexer (overlay FIRST so it has priority)
+        inputMux = InputMultiplexer(pauseOverlay.stage, hudStage)
+        Gdx.input.inputProcessor = inputMux
 
-        // start with hidden overlay
-        pauseOverlay.stage.root.isVisible = false
-        pauseOverlay.stage.root.touchable = com.badlogic.gdx.scenes.scene2d.Touchable.disabled
+        // Start with overlay hidden
+        pauseOverlay.hide()
 
-        // allow overlay input
         pauseBtn.addListener(object : com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
-            override fun changed(event: com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent?, actor: com.badlogic.gdx.scenes.scene2d.Actor?) {
+            override fun changed(
+                event: com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent?,
+                actor: com.badlogic.gdx.scenes.scene2d.Actor?
+            ) {
                 Gdx.app.log("UI", "Pause clicked")
                 paused = true
-                pauseOverlay.stage.root.isVisible = true
-                pauseOverlay.stage.root.touchable = com.badlogic.gdx.scenes.scene2d.Touchable.enabled
+                pauseOverlay.show()
             }
         })
     }
 
-    override fun resize(width: Int, height: Int){
+    override fun resize(width: Int, height: Int) {
         game.viewport.update(width, height, true)
         hudStage.viewport.update(width, height, true)
         pauseOverlay.resize(width, height)
     }
 
     override fun render(delta: Float) {
-
-
         input()
-        if (!paused) {
-            logic()
-            draw()
-        }
-        world.update(delta)
 
-        // hud on top
+        // Freeze time for ECS while paused (still renders, doesn't advance)
+        val ecsDelta = if (paused) 0f else delta
+
+        // Always draw the world/background so the screen doesn't go black
+        draw()
+
+        // Let ECS render (and only animate when not paused)
+        world.update(ecsDelta)
+
+        // HUD on top
         hudStage.act(delta)
         hudStage.draw()
 
-        // pause overlay on top
+        // Pause overlay on top when active
         if (paused) {
             pauseOverlay.render(delta)
         }
-
     }
 
     fun input() {
         if (Gdx.input.isTouched) {
-            // TODO: handle input
+            // TODO: gameplay input
         }
     }
 
-
-    override fun dispose(){
+    override fun dispose() {
         stage.disposeSafely()
         playerTexture.disposeSafely()
         enemyTexture.disposeSafely()
@@ -180,36 +161,21 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         world.dispose()
     }
 
-    fun logic() {
-    }
-
+    fun logic() { /* gameplay update */ }
 
     fun draw() {
-        // Applies viewport to the (uncentered) camera
+        // Background
         game.viewport.apply()
-
-        // Necessary to get sprites to draw correctly
         game.batch.projectionMatrix = game.viewport.camera.combined
-
-        // Combines draw calls together for performance
         game.batch.begin()
-
-        val worldWidth = game.viewport.worldWidth
-        val worldHeight = game.viewport.worldHeight
-
-        game.batch.draw(backgroundTexture, 0f, 0f, worldWidth, worldHeight)
-
+        game.batch.draw(backgroundTexture, 0f, 0f, game.viewport.worldWidth, game.viewport.worldHeight)
         game.batch.end()
 
-        // TODO: draw sprites
+        // Menu frame + icons (optional while paused; fine to keep)
         drawMenu()
-        drawSprites()
     }
 
     fun drawMenu() {
-        val worldWidth = game.viewport.worldWidth
-        val worldHeight = game.viewport.worldHeight
-
         game.shape.projectionMatrix = game.viewport.camera.combined
 
         // Outer rectangle
@@ -221,7 +187,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         // Inner rectangle
         game.shape.begin(ShapeRenderer.ShapeType.Filled)
         game.shape.color = com.badlogic.gdx.graphics.Color.WHITE
-        game.shape.rect(1f + 0.25f, 1f + 0.25f, 8f - 0.5f, 5f - 0.5f)
+        game.shape.rect(1.25f, 1.25f, 7.5f, 4.5f)
         game.shape.end()
 
         game.batch.begin()
@@ -230,20 +196,7 @@ class GameScreen(val game: AnotherRound) : KtxScreen{
         game.batch.end()
     }
 
-
-
-
-    fun drawSprites() {
-
-
-
-
-    }
-
-
-
-
-    companion object{
+    companion object {
         private val log = logger<GameScreen>()
     }
 }
