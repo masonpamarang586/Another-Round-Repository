@@ -1,0 +1,10 @@
+{
+  com.badlogic.gdx.scenes.scene2d.ui.TextButton$TextButtonStyle: {
+    default: {
+      up: button-normal
+      down: button-normal-pressed
+      over: button-normal-over
+      focused: button-normal-over
+    }
+  }
+}
