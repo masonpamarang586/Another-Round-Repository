@@ -67,16 +67,16 @@ class GameScreen(val game: AnotherRound) : KtxScreen {
         world.entity {
             add<ImageComponent> {
                 image = Image(TextureRegion(playerTexture, 16, 16)).apply {
-                    setSize(2f, 2f)
-                    setPosition(5.2f, 3.8f)
+                    setSize(4f, 4f)
+                    setPosition(1.2f, 11.8f)
                 }
             }
         }
         world.entity {
             add<ImageComponent> {
                 image = Image(TextureRegion(enemyTexture, 16, 16)).apply {
-                    setSize(2f, 2f)
-                    setPosition(8.5f, 3.8f)
+                    setSize(4f, 4f)
+                    setPosition(10.5f, 11.8f)
                 }
             }
         }
