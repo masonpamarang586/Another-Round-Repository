@@ -1,10 +1,10 @@
-package com.test.android
+package com.anotherround.android
 
 import android.os.Bundle
 
 import com.badlogic.gdx.backends.android.AndroidApplication
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
-import com.test.Main
+import com.anotherround.Main
 
 /** Launches the Android application. */
 class AndroidLauncher : AndroidApplication() {

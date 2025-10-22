@@ -1,10 +1,10 @@
 @file:JvmName("Lwjgl3Launcher")
 
-package com.test.lwjgl3
+package com.anotherround.lwjgl3
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
-import com.test.Main
+import com.anotherround.Main
 
 /** Launches the desktop (LWJGL3) application. */
 fun main() {
