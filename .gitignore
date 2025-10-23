@@ -1,6 +1,9 @@
 ## Gradle:
 .gradle/
 gradle-app.setting
+gradle-app.properties
+gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 /build/
 /android/build/
 /core/build/
@@ -21,6 +24,7 @@ gradle-app.setting
 hs_err_pid*
 .attach_pid*
 
+A
 ## Android:
 /android/libs/armeabi-v7a/
 /android/libs/arm64-v8a/
