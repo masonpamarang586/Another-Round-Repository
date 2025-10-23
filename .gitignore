@@ -1,9 +1,9 @@
 ## Gradle:
 .gradle/
-gradle-app.setting
-gradle-app.properties
-gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
+!gradle/wrapper/gradle-wrapper.jar
+!gradlew
+!gradlew.bat
 /build/
 /android/build/
 /core/build/
