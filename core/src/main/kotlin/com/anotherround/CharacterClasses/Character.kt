@@ -8,9 +8,7 @@ interface Character {
     var defenseStat: Int
     var attackStat: Int
     // functions
-    fun defend(incomingDamage: Int) { // this could have some flaws
-        health -= (defenseStat - incomingDamage)
-    }
+    // shouldn't need a defend function, defending may just use the defenseStat attribute
     fun attack(target: Character) {
         target.takeDamage(attackStat)
         println("$name attacks ${target.name} for $attackStat damage!")
