@@ -64,6 +64,8 @@ class FirstScreen(val game: Main) : KtxScreen {
     var font = BitmapFont()
     val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/monogram.ttf"))
 
+    
+
     private val tiledMap by lazy {
         val mapLoader = TmxMapLoader()
         mapLoader.load("world/test.tmx")
