@@ -7,7 +7,6 @@ interface Character {
     var health: Int
     var defenseStat: Int
     var attackStat: Int
-
     // functions
     fun defend(incomingDamage: Int) { // this could have some flaws
         health -= (defenseStat - incomingDamage)
