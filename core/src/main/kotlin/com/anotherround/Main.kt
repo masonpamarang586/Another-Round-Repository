@@ -6,7 +6,9 @@
  *
  */
 
+
 package com.anotherround
+
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
@@ -29,25 +31,33 @@ import ktx.async.KtxAsync
 import ktx.graphics.use
 import ktx.style.addStyle
 
+
 class Main : KtxGame<KtxScreen>() {
     companion object {
         // 1/16 because tiles are 16x16
         const val UNIT_SCALE = 1f / 16f
     }
 
+
     val batch by lazy { SpriteBatch() }
     val camera by lazy { OrthographicCamera() }
     val worldViewport by lazy { FitViewport(10f, 20f, camera) }
     val uiViewport by lazy { ScreenViewport() }
 
+
     override fun create() {
+
+
         KtxAsync.initiate()
+
 
         addScreen(FirstScreen(this))
         setScreen<FirstScreen>()
 
+
         super.create()
     }
+
 
     override fun dispose() {
         batch.dispose()
@@ -55,16 +65,22 @@ class Main : KtxGame<KtxScreen>() {
     }
 }
 
+
 class FirstScreen(val game: Main) : KtxScreen {
     // TODO: Use this.
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
     private val uiStage = Stage(game.uiViewport)
 
+
     var font = BitmapFont()
     val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/monogram.ttf"))
 
-    
+
+    var batch = SpriteBatch();
+    var playerSprites = Texture("player_spritesheet.png")
+    var slimeSprites = Texture("enemy_slime_spritesheet.png")
+
 
     private val tiledMap by lazy {
         val mapLoader = TmxMapLoader()
@@ -73,13 +89,16 @@ class FirstScreen(val game: Main) : KtxScreen {
     private val tiledMapCamera = OrthographicCamera()
     private val tiledMapRenderer = OrthogonalTiledMapRenderer(tiledMap, Main.UNIT_SCALE)
 
+
     // TODO:
     //  Add event/onClick listeners for the buttons.
     //  Add textures for button being hovered and being pressed.
     private val table by lazy {
         val table = Table()
 
+
         val skin = Skin(Gdx.files.internal("atlas/ui.json"))
+
 
         val style = TextButton.TextButtonStyle()
         style.font = font
@@ -89,19 +108,25 @@ class FirstScreen(val game: Main) : KtxScreen {
         style.over = skin.getDrawable("button-normal-over")
         skin.addStyle("default", style)
 
+
         val attackButton = TextButton("Attack", skin)
         table.add(attackButton).width(400f).height(200f)
         table.row()
 
+
         val itemsButton = TextButton("Items", skin)
         table.add(itemsButton).pad(100f).width(400f).height(200f)
+
 
         table
     }
 
+
     override fun show() {
 
+
     }
+
 
     override fun resize(width: Int, height: Int) {
         val parameter = FreeTypeFontGenerator.FreeTypeFontParameter()
@@ -109,9 +134,11 @@ class FirstScreen(val game: Main) : KtxScreen {
         parameter.minFilter = Texture.TextureFilter.Nearest
         parameter.magFilter = Texture.TextureFilter.Nearest
 
+
         val font = generator.generateFont(parameter)
         font.color = Color.BLACK
         this.font = font
+
 
         game.worldViewport.update(width, height, true)
         game.worldViewport.camera.update()
@@ -119,25 +146,31 @@ class FirstScreen(val game: Main) : KtxScreen {
         game.uiViewport.camera.update()
     }
 
+
     override fun render(delta: Float) {
         input()
         logic()
         draw()
     }
 
+
     /**
      * TODO: Handles the user's input.
      */
     fun input() {
 
+
     }
+
 
     /**
      * TODO: Handles the game logic.
      */
     fun logic() {
 
+
     }
+
 
     /**
      * Draws everything.
@@ -147,12 +180,14 @@ class FirstScreen(val game: Main) : KtxScreen {
         drawUI()
     }
 
+
     /**
      * Draws the game.
      */
     fun drawGame() {
         game.worldViewport.apply()
         game.batch.projectionMatrix = game.worldViewport.camera.combined
+
 
         game.batch.use {
             // Draw the world
@@ -161,9 +196,19 @@ class FirstScreen(val game: Main) : KtxScreen {
             tiledMapRenderer.setView(tiledMapCamera)
             tiledMapRenderer.render()
 
-            // TODO: Draw the sprites
+
+            // Draw the sprites
+            batch.begin()
+            batch.draw(playerSprites, 0f, 0f, 16f, 16f)
+            batch.draw(slimeSprites, 10f, 10f, 16f, 16f)
+            batch.end()
+
+
+
+
         }
     }
+
 
     /**
      * Draws the UI.
@@ -172,6 +217,7 @@ class FirstScreen(val game: Main) : KtxScreen {
         game.uiViewport.apply()
         game.batch.projectionMatrix = game.uiViewport.camera.combined
 
+
         game.batch.use {
 //            // Why this has to be done: https://gamedev.stackexchange.com/questions/73688/why-is-my-text-is-too-large-even-when-scaled-to-05f-in-libgdx
 //            val originalMatrix = it.projectionMatrix.cpy()
@@ -179,7 +225,9 @@ class FirstScreen(val game: Main) : KtxScreen {
 //            game.font.draw(it, "Hello World", 0f * getWidthInPixels(), game.worldViewport.screenHeight / 2f)
 //            it.projectionMatrix = originalMatrix
 
+
             // TODO: Draw the pause button.
+
 
             // Draw the action menu.
             table.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f * 0.1f)
@@ -188,12 +236,14 @@ class FirstScreen(val game: Main) : KtxScreen {
         }
     }
 
+
     /**
      * Gets the pixel ratio width.
      */
     fun getWidthInPixels(): Float {
         return game.worldViewport.worldWidth / game.worldViewport.screenWidth
     }
+
 
     /**
      * Gets the pixel ratio height.
@@ -202,6 +252,7 @@ class FirstScreen(val game: Main) : KtxScreen {
         return game.worldViewport.worldHeight / game.worldViewport.screenHeight
     }
 
+
     override fun dispose() {
         font.dispose()
         generator.dispose()
@@ -209,5 +260,7 @@ class FirstScreen(val game: Main) : KtxScreen {
         uiStage.dispose()
         tiledMap.dispose()
         tiledMapRenderer.dispose()
+        batch.dispose()
     }
 }
+

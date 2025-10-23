@@ -3,6 +3,8 @@ atlas/ui.json
 atlas/ui.png
 com/badlogic/gdx/utils/lsans-15.fnt
 com/badlogic/gdx/utils/lsans-15.png
+entities/enemy_slime_spritesheet.png
+entities/player_spritesheet.png
 fonts/monogram.ttf
 test.tpproj
 ui/font-list.fnt
@@ -18,5 +20,3 @@ world/Vegetation.png
 world/floor.tsx
 world/test.tmx
 world/vegetation.tsx
-entities/enemy_slime_spritesheet.png
-entities/player_spritesheet.png
