@@ -21,6 +21,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import ktx.app.KtxGame
@@ -28,6 +29,7 @@ import ktx.app.KtxScreen
 import ktx.async.KtxAsync
 import ktx.graphics.use
 import ktx.style.addStyle
+import com.anotherround.PauseScreenUI
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -60,6 +62,9 @@ class FirstScreen(val game: Main) : KtxScreen {
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
     private val uiStage = Stage(game.uiViewport)
+
+    //ui
+    private val pauseUI by lazy { PauseScreenUI(game.uiViewport) }
 
     var font = BitmapFont()
     val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/monogram.ttf"))
@@ -115,6 +120,11 @@ class FirstScreen(val game: Main) : KtxScreen {
         game.worldViewport.camera.update()
         game.uiViewport.update(width, height, true)
         game.uiViewport.camera.update()
+
+        //ui
+        pauseUI.updateFont(this.font)
+        //pauseUI.pauseButtonHeightFraction = 0.10f
+        pauseUI.onResize()
     }
 
     override fun render(delta: Float) {
@@ -178,6 +188,7 @@ class FirstScreen(val game: Main) : KtxScreen {
 //            it.projectionMatrix = originalMatrix
 
             // TODO: Draw the pause button.
+            pauseUI.drawAndHandleInput(game.batch)
 
             // Draw the action menu.
             table.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f * 0.1f)
@@ -207,5 +218,6 @@ class FirstScreen(val game: Main) : KtxScreen {
         uiStage.dispose()
         tiledMap.dispose()
         tiledMapRenderer.dispose()
+        pauseUI.dispose()
     }
 }
