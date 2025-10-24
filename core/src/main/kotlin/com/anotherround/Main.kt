@@ -77,9 +77,9 @@ class FirstScreen(val game: Main) : KtxScreen {
     val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/monogram.ttf"))
 
 
-    var batch = SpriteBatch();
-    var playerSprites = Texture("player_spritesheet.png")
-    var slimeSprites = Texture("enemy_slime_spritesheet.png")
+    var batch = SpriteBatch()
+    var playerSprites = Texture(Gdx.files.internal("entities/player_spritesheet.png"))
+    var slimeSprites = Texture(Gdx.files.internal("entities/enemy_slime_spritesheet.png"))
 
 
     private val tiledMap by lazy {
