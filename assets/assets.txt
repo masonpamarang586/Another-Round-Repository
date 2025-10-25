@@ -1,3 +1,4 @@
+atlas/player_spritesheet.atlas
 atlas/ui.atlas
 atlas/ui.json
 atlas/ui.png
