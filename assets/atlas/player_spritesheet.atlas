@@ -1,8 +1,0 @@
-player_spritesheet.png
-size: 64, 64
-format: RGBA8888
-filter: Linear, Linear
-repeat: none
-pma: false
-player_spritesheet
-  bounds: 0, 0, 64, 64

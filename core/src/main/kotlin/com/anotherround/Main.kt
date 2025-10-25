@@ -30,6 +30,7 @@ import ktx.app.KtxScreen
 import ktx.async.KtxAsync
 import ktx.graphics.use
 import ktx.style.addStyle
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 
 
 class Main : KtxGame<KtxScreen>() {
@@ -80,6 +81,11 @@ class FirstScreen(val game: Main) : KtxScreen {
     var batch = SpriteBatch()
     var playerSprites = Texture(Gdx.files.internal("entities/player_spritesheet.png"))
     var slimeSprites = Texture(Gdx.files.internal("entities/enemy_slime_spritesheet.png"))
+
+    // Using an atlas
+    var playertextureAtlas = TextureAtlas(Gdx.files.internal("entities/player_spritesheet.atlas"))
+
+    var playerSprite = playertextureAtlas.createSprite("player_sprite_idle")
 
 
     private val tiledMap by lazy {
@@ -199,8 +205,11 @@ class FirstScreen(val game: Main) : KtxScreen {
 
             // Draw the sprites
             batch.begin()
-            batch.draw(playerSprites, 0f, 0f, 16f, 16f)
-            batch.draw(slimeSprites, 10f, 10f, 16f, 16f)
+            playerSprite.draw(batch)
+            //batch.draw(playerSprites, 0f, 0f, 16f, 16f)
+            //batch.draw(slimeSprites, 10f, 10f, 16f, 16f)
+
+
             batch.end()
 
 

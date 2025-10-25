@@ -1,10 +1,10 @@
-atlas/player_spritesheet.atlas
 atlas/ui.atlas
 atlas/ui.json
 atlas/ui.png
 com/badlogic/gdx/utils/lsans-15.fnt
 com/badlogic/gdx/utils/lsans-15.png
 entities/enemy_slime_spritesheet.png
+entities/player_spritesheet.atlas
 entities/player_spritesheet.png
 fonts/monogram.ttf
 test.tpproj
