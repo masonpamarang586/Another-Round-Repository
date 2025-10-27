@@ -111,7 +111,7 @@ class FirstScreen(val game: Main) : KtxScreen {
         val textToButtonHeight = 0.65f
 
         val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
-            size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt() // ADDED
+            size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt()
             minFilter = Texture.TextureFilter.Nearest
             magFilter = Texture.TextureFilter.Nearest
         }
