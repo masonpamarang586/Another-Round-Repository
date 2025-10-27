@@ -107,11 +107,16 @@ class FirstScreen(val game: Main) : KtxScreen {
     }
 
     override fun resize(width: Int, height: Int) {
-        val parameter = FreeTypeFontGenerator.FreeTypeFontParameter()
-        parameter.size = (Gdx.graphics.height * 0.05).toInt()
-        parameter.minFilter = Texture.TextureFilter.Nearest
-        parameter.magFilter = Texture.TextureFilter.Nearest
+        val buttonHeightFraction = 0.08f
+        val textToButtonHeight = 0.65f
 
+        val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
+            size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt()
+            minFilter = Texture.TextureFilter.Nearest
+            magFilter = Texture.TextureFilter.Nearest
+        }
+
+        font.dispose()
         val font = generator.generateFont(parameter)
         font.color = Color.BLACK
         this.font = font
@@ -170,6 +175,14 @@ class FirstScreen(val game: Main) : KtxScreen {
             tiledMapRenderer.render()
 
             // TODO: Draw the sprites
+
+            //TODO: Draw health bar
+            /*health = new NinePatch(gradient, 0, 0, 0, 0)
+            width = currentHealth / totalHealth * totalBarWidth;
+            container = new NinePatch(containerRegion, 5, 5, 2, 2);
+            container.draw(batch, 5, 8, totalBarWidth + 10, 8);
+            health.draw(batch, 10, 10, width, 4)
+            */
         }
     }
 
