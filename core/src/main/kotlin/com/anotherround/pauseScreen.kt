@@ -77,6 +77,16 @@ class PauseScreenUI(private val uiViewport: Viewport) {
     /** Keep the pause UI font in sync with your main UI font (call from FirstScreen.resize). */
     fun updateFont(newFont: BitmapFont) {
         style.font = newFont
+        style.fontColor = Color.BLACK
+
+        resumeButton.style = style
+        newGameButton.style = style
+        saveGameButton.style = style
+        settingsButton.style = style
+
+        listOf(resumeButton, newGameButton, saveGameButton, settingsButton).forEach {
+            it.invalidateHierarchy()
+        }
     }
 
     /** Recompute positions/sizes after any viewport change (call from FirstScreen.resize). */

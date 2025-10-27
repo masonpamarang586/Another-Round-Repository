@@ -108,7 +108,7 @@ class FirstScreen(val game: Main) : KtxScreen {
 
     override fun resize(width: Int, height: Int) {
         val buttonHeightFraction = 0.08f
-        val textToButtonHeight = 0.62f
+        val textToButtonHeight = 0.65f
 
         val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
             size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt() // ADDED
