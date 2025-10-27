@@ -14,8 +14,9 @@ interface Character {
         println("$name attacks ${target.name} for $attackStat damage!")
     }
     fun takeDamage(incomingDamage: Int) {
-        health -= incomingDamage
-        println("$name takes $incomingDamage damage. Remaining health: $health")
+        val dmg = (incomingDamage - defenseStat).coerceAtLeast(0)
+        health -= dmg
+        println("$name takes $dmg damage. Remaining health: $health")
     }
     fun heal(amount: Int) {
         health += amount
