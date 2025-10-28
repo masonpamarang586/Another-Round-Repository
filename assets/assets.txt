@@ -14,6 +14,7 @@ generic_char_v0.2/png/green/char_green_2.png
 generic_char_v0.2/png/purple/char_purple_1.png
 generic_char_v0.2/png/purple/char_purple_2.png
 generic_char_v0.2/png/red/char_red_1.png
+generic_char_v0.2/png/red/char_red_1_index10.png
 generic_char_v0.2/png/red/char_red_2.png
 generic_char_v0.2/readme.TXT
 test.tpproj
