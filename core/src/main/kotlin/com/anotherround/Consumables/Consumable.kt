@@ -1,4 +1,4 @@
-package com.anotherround
+package com.anotherround.Consumables
 
 data class Consumable(val consumableID: String,
                       val name: String,
@@ -22,6 +22,7 @@ data class Consumable(val consumableID: String,
 
     fun use() {
         // ADD HEAL TO PLAYER HP
+        //Player.health
     }
 
 

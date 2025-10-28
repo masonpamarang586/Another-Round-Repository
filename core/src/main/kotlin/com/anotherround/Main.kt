@@ -10,6 +10,7 @@
 package com.anotherround
 
 
+import com.anotherround.Consumables.ConsumablesInventory
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.OrthographicCamera
@@ -177,6 +178,9 @@ class FirstScreen(val game: Main) : KtxScreen {
      * TODO: Handles the game logic.
      */
     fun logic() {
+
+        //Add apple to the inventory automatically
+        //ConsumablesInventory.addConsumable()
 
     }
 
