@@ -8,6 +8,8 @@
 
 package com.anotherround
 
+import com.anotherround.CharacterClasses.Enemy
+import com.anotherround.CharacterClasses.Player
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.OrthographicCamera
@@ -30,6 +32,8 @@ import ktx.async.KtxAsync
 import ktx.graphics.use
 import ktx.style.addStyle
 import com.anotherround.PauseScreenUI
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -59,6 +63,8 @@ class Main : KtxGame<KtxScreen>() {
 
 class FirstScreen(val game: Main) : KtxScreen {
     // TODO: Use this.
+    private lateinit var playerSprite: com.anotherround.render.PlayerSprite
+
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
     private val uiStage = Stage(game.uiViewport)
@@ -96,13 +102,16 @@ class FirstScreen(val game: Main) : KtxScreen {
         table.add(attackButton).width(400f).height(200f)
         table.row()
 
+
         val itemsButton = TextButton("Items", skin)
         table.add(itemsButton).pad(100f).width(400f).height(200f)
 
         table
     }
 
+
     override fun show() {
+        playerSprite = com.anotherround.render.PlayerSprite(game.worldViewport)
 
     }
 
@@ -175,7 +184,7 @@ class FirstScreen(val game: Main) : KtxScreen {
             tiledMapRenderer.render()
 
             // TODO: Draw the sprites
-
+            playerSprite.draw(it)
             //TODO: Draw health bar
             /*health = new NinePatch(gradient, 0, 0, 0, 0)
             width = currentHealth / totalHealth * totalBarWidth;
@@ -232,5 +241,6 @@ class FirstScreen(val game: Main) : KtxScreen {
         tiledMap.dispose()
         tiledMapRenderer.dispose()
         pauseUI.dispose()
+        playerSprite.dispose()
     }
 }
