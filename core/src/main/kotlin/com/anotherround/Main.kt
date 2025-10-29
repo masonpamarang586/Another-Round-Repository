@@ -39,6 +39,12 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import ktx.actors.onTouchDown
+import com.anotherround.render.EnemySprite
+import kotlin.math.max
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
+import com.badlogic.gdx.audio.Music
+import com.badlogic.gdx.audio.Sound
+
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -50,8 +56,6 @@ class Main : KtxGame<KtxScreen>() {
     val camera by lazy { OrthographicCamera() }
     val worldViewport by lazy { FitViewport(10f, 20f, camera) }
     val uiViewport by lazy { ScreenViewport() }
-    val player by lazy { Player(name = "Player") }
-    val enemy by lazy { Enemy(name = "Slime") }
 
     override fun create() {
         KtxAsync.initiate()
@@ -69,7 +73,26 @@ class Main : KtxGame<KtxScreen>() {
 }
 
 class BattleScreen(val game: Main) : KtxScreen {
+    // TODO: using this for save game
+    private var toastText: String? = null
+    private var toastTimer = 0f
+    private val toastLayout by lazy { com.badlogic.gdx.graphics.g2d.GlyphLayout()}
+    private fun showToast(text: String, seconds: Float = 1.5f) {
+        toastText = text
+        toastTimer = seconds
+    }
     // TODO: Use this.
+    private lateinit var playerSprite: com.anotherround.render.PlayerSprite
+    private lateinit var enemySprite: EnemySprite
+    // TODO: for background music
+    private lateinit var backgroundMusic: Music
+    private lateinit var attackSound: Sound
+    private lateinit var sfxPlayerAttack: Sound
+    private lateinit var sfxEnemyAttack: Sound
+    private lateinit var sfxPlayerHurt: Sound
+    private lateinit var sfxEnemyHurt: Sound
+    private lateinit var sfxEnemyDeath: Sound
+
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
     private val uiStage = Stage(game.uiViewport)
@@ -86,6 +109,11 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
     private val tiledMapCamera = OrthographicCamera()
     private val tiledMapRenderer = OrthogonalTiledMapRenderer(tiledMap, Main.UNIT_SCALE)
+
+    // fields
+    private val player = Player(name = "Hero")
+    private val enemy  = Enemy(name = "Meany")
+    private lateinit var combat: com.anotherround.combat.CombatManager
 
     // TODO:
     //  Add event/onClick listeners for the buttons.
@@ -106,6 +134,12 @@ class BattleScreen(val game: Main) : KtxScreen {
         skin.addStyle("default", style)
 
         val attackButton = TextButton("Attack", skin)
+        attackButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                val accepted = combat.requestPlayerAttack()
+                Gdx.app.log("UI", if (accepted) "Player queued Attack" else "Attack ignored (not your turn?)")
+            }
+        })
         this.attackButton = attackButton
         table.add(attackButton).width(400f).height(200f)
         table.row()
@@ -148,6 +182,86 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     override fun show() {
+        playerSprite = com.anotherround.render.PlayerSprite(
+            game.worldViewport,
+            idlePath = "generic_char_v0.2/png/blue/char_blue_1_index00.png",
+            attackRowPath = "generic_char_v0.2/png/blue/blue_attack1.png"
+        )
+        enemySprite = com.anotherround.render.EnemySprite(game.worldViewport)
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/battle-fighting-warrior-drums-372078.mp3"))
+        backgroundMusic.isLooping = true
+        backgroundMusic.volume = 1.5f
+        backgroundMusic.play()
+        sfxPlayerAttack = Gdx.audio.newSound(Gdx.files.internal("audio/violent-sword-slice-393839.mp3"))
+        sfxEnemyAttack  = Gdx.audio.newSound(Gdx.files.internal("audio/magical-hit-45356.mp3"))
+        sfxPlayerHurt   = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
+        sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
+        sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
+        combat = com.anotherround.combat.CombatManager(
+            player, enemy,
+            onLog = { msg -> Gdx.app.log("COMBAT", msg) },
+            onActionStart = { action ->
+                when (action) {
+                    is com.anotherround.combat.Action.Attack -> {
+                        if (action.attacker === player) {
+                            playerSprite.playAttack()
+                            combat.resolveDelay = playerSprite.attackDuration()
+                        } else if (action.attacker === enemy) {
+                            enemySprite.playAttack()
+                            combat.resolveDelay = enemySprite.attackDuration()   // <- NEW
+                        }
+                    }
+                }
+            },
+            onActionEnd   = { action ->
+                when (action) {
+                    is com.anotherround.combat.Action.Attack -> {
+                        if (action.attacker === player) {
+                            if (enemy.isAlive()) {
+                                enemySprite.playHurt()
+                                combat.pauseNextTurnFor(max(1.5f,enemySprite.hurtDuration())) // little hit-pause
+                            } else {
+                                enemySprite.playDeath()
+                                combat.pauseNextTurnFor(enemySprite.deathDuration())
+                            }
+                        } else if (action.attacker === enemy) {
+                            playerSprite.playHurt()
+                            combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
+                        }
+                        }
+                }
+            },
+            onSfx = { e ->
+                when (e) {
+                    com.anotherround.combat.SfxEvent.PlayerAttack -> sfxPlayerAttack.play(0.9f)
+                    com.anotherround.combat.SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
+                    com.anotherround.combat.SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
+                    com.anotherround.combat.SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
+                    com.anotherround.combat.SfxEvent.PlayerDeath  -> { /* add later if you have it */ }
+                    com.anotherround.combat.SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
+                }
+            },
+            resolveDelay = 0f
+        )
+
+        pauseUI.updateFont(font)
+        pauseUI.onResize()
+
+        pauseUI.onSaveRequested = {
+            try {
+                com.anotherround.SaveLoad.SaveGame.save(player, enemy)
+                Gdx.app.log("SAVE", "Game saved")
+                showToast("Game Saved", 1.5f)   // <-- top-center
+            } catch (t: Throwable) {
+                Gdx.app.error("SAVE", "Failed to save", t)
+                showToast("Save Failed", 1.5f)
+            }
+        }
+
+        // Enable input for UI
+        Gdx.input.inputProcessor = uiStage
+        uiStage.addActor(menuTable)
+
         GameLogic.screen = this
     }
 
@@ -224,7 +338,13 @@ class BattleScreen(val game: Main) : KtxScreen {
      * TODO: Handles the game logic.
      */
     fun logic(delta: Float) {
-        GameLogic.accumulator += delta
+        combat.update(Gdx.graphics.deltaTime)
+        playerSprite.update(Gdx.graphics.deltaTime)
+        enemySprite.update(Gdx.graphics.deltaTime)
+        if (toastTimer > 0f) {
+            toastTimer -= Gdx.graphics.deltaTime
+            if (toastTimer <= 0f) toastText = null
+        }
     }
 
     /**
@@ -250,6 +370,8 @@ class BattleScreen(val game: Main) : KtxScreen {
             tiledMapRenderer.render()
 
             // TODO: Draw the sprites
+            playerSprite.draw(it)
+            enemySprite.draw(it)
 
             //TODO: Draw health bar
             /*health = new NinePatch(gradient, 0, 0, 0, 0)
@@ -265,6 +387,7 @@ class BattleScreen(val game: Main) : KtxScreen {
      * Draws the UI.
      */
     fun drawUI(delta: Float) {
+        uiStage.act(Gdx.graphics.deltaTime)
         game.uiViewport.apply()
         game.batch.projectionMatrix = game.uiViewport.camera.combined
 
@@ -275,7 +398,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 //            game.font.draw(it, "Hello World", 0f * getWidthInPixels(), game.worldViewport.screenHeight / 2f)
 //            it.projectionMatrix = originalMatrix
 
-            // TODO: Use the font from the FirstScreen class
+            // TODO: Use the font from the BattleScreen class
             pauseUI.drawAndHandleInput(game.batch)
 
             if (!pauseUI.isPaused) {
@@ -287,6 +410,20 @@ class BattleScreen(val game: Main) : KtxScreen {
                     menuTable.bottom()
                     menuTable.draw(game.batch, 1f)
                 }
+            }
+
+            toastText?.let { msg ->
+                // subtle fade-out during the last 0.3s
+                val alpha = if (toastTimer < 0.3f) toastTimer / 0.3f else 1f
+                val oldColor = game.batch.color.cpy()
+                game.batch.setColor(1f, 1f, 1f, alpha)
+
+                toastLayout.setText(font, msg)
+                val x = (Gdx.graphics.width  - toastLayout.width)  / 2f
+                val y = (Gdx.graphics.height - 144f)
+                font.draw(game.batch, toastLayout, x, y)
+
+                game.batch.color = oldColor
             }
         }
     }
@@ -305,6 +442,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         return game.worldViewport.worldHeight / game.worldViewport.screenHeight
     }
 
+    override fun hide() {
+        backgroundMusic.stop()
+    }
+
     override fun dispose() {
         font.dispose()
         generator.dispose()
@@ -313,5 +454,14 @@ class BattleScreen(val game: Main) : KtxScreen {
         tiledMap.dispose()
         tiledMapRenderer.dispose()
         pauseUI.dispose()
+        playerSprite.dispose()
+        enemySprite.dispose()
+        backgroundMusic.dispose()
+        sfxPlayerAttack.dispose()
+        sfxEnemyAttack.dispose()
+        sfxPlayerHurt.dispose()
+        sfxEnemyHurt.dispose()
+        sfxEnemyDeath.dispose()
+        super.dispose()
     }
 }
