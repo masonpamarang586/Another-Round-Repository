@@ -23,7 +23,6 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
-import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import ktx.app.KtxGame
@@ -31,19 +30,16 @@ import ktx.app.KtxScreen
 import ktx.async.KtxAsync
 import ktx.graphics.use
 import ktx.style.addStyle
-import com.anotherround.PauseScreenUI
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Image
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
-import ktx.actors.onTouchDown
 import com.anotherround.render.EnemySprite
 import kotlin.math.max
-import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
+import com.badlogic.gdx.math.Rectangle
 
 
 class Main : KtxGame<KtxScreen>() {
@@ -118,8 +114,8 @@ class BattleScreen(val game: Main) : KtxScreen {
     // TODO:
     //  Add event/onClick listeners for the buttons.
     //  Add textures for button being hovered and being pressed.
-    var attackButton: TextButton? = null
-    var itemsButton: TextButton? = null
+    lateinit var attackButton: TextButton
+    lateinit var itemsButton: TextButton
     private val menuTable by lazy {
         val table = Table()
 
@@ -146,12 +142,19 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         val itemsButton = TextButton("Items", skin)
         this.itemsButton = itemsButton
+        itemsButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                if (!isShowingItems) {
+                    isShowingItems = true
+                }
+            }
+        })
         table.add(itemsButton).pad(100f).width(400f).height(200f)
 
         table
     }
 
-    private val isViewingItems = true
+    private var isShowingItems = false
 
     private val potionTexture by lazy {
         val texture = Texture(Gdx.files.internal("items/potions.png"))
@@ -159,6 +162,8 @@ class BattleScreen(val game: Main) : KtxScreen {
         region
     }
 
+    private var potions = 1
+    lateinit var useButton: TextButton
     private val itemsTable by lazy {
         val table = Table()
 
@@ -175,13 +180,27 @@ class BattleScreen(val game: Main) : KtxScreen {
         val potionImage = Image(potionTexture)
         table.add(potionImage).width(100f).height(100f)
 
-        val buyButton = TextButton("Use (NaN)", skin)
-        table.add(buyButton).width(400f).height(200f)
+        val useButton = TextButton("Use ($potions)", skin)
+        this.useButton = useButton
+        useButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                println("Healing player")
+                if (potions != 0) {
+                    potions -= 1
+                    player.health += 10
+                }
+                if (isShowingItems) {
+                    isShowingItems = false
+                }
+            }
+        })
+        table.add(useButton).width(400f).height(200f)
 
         table
     }
 
     override fun show() {
+        itemsTable.center()
         playerSprite = com.anotherround.render.PlayerSprite(
             game.worldViewport,
             idlePath = "generic_char_v0.2/png/blue/char_blue_1_index00.png",
@@ -261,6 +280,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         // Enable input for UI
         Gdx.input.inputProcessor = uiStage
         uiStage.addActor(menuTable)
+        uiStage.addActor(itemsTable)
 
         GameLogic.screen = this
     }
@@ -276,7 +296,6 @@ class BattleScreen(val game: Main) : KtxScreen {
             magFilter = Texture.TextureFilter.Nearest
         }
 
-        font.dispose()
         val font = generator.generateFont(parameter)
         font.color = Color.BLACK
         this.font = font
@@ -292,7 +311,6 @@ class BattleScreen(val game: Main) : KtxScreen {
             magFilter = Texture.TextureFilter.Nearest
         }
 
-        font.dispose()
         val font = generator.generateFont(parameter)
         font.color = Color.BLACK
         this.font = font
@@ -318,20 +336,7 @@ class BattleScreen(val game: Main) : KtxScreen {
      * TODO: Handles the user's input.
      */
     fun input(delta: Float) {
-        if (pauseUI.isPaused) {
-            return
-        }
 
-        val touchInput: Vector2? = if (Gdx.input.isTouched) Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat()) else null
-        if (touchInput == null) {
-            return
-        }
-
-        if (isViewingItems) {
-
-        } else {
-
-        }
     }
 
     /**
@@ -402,7 +407,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             pauseUI.drawAndHandleInput(game.batch)
 
             if (!pauseUI.isPaused) {
-                if (isViewingItems) {
+                if (isShowingItems) {
                     itemsTable.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f)
                     itemsTable.draw(game.batch, 1f)
                 } else {

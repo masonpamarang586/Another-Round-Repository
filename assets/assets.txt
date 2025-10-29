@@ -12,7 +12,6 @@ entities/enemy_slime_spritesheet.png
 entities/player_spritesheet.atlas
 entities/player_spritesheet.png
 fonts/monogram.ttf
-items/potions.png
 generic_char_v0.2/guide.png
 generic_char_v0.2/guide_2.png
 generic_char_v0.2/png/blue/blue_attack1.png
@@ -31,6 +30,7 @@ generic_char_v0.2/png/red/char_red_1_death.png
 generic_char_v0.2/png/red/char_red_1_index10.png
 generic_char_v0.2/png/red/char_red_2.png
 generic_char_v0.2/readme.TXT
+items/potions.png
 test.tpproj
 ui/font-list.fnt
 ui/font-subtitle.fnt
