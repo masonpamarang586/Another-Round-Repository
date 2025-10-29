@@ -8,10 +8,6 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.Viewport
 
-/**
- * Displays an enemy sprite (flipped horizontally) centered-right of the screen.
- * Default path: assets/generic_char_v0.2/png/blue/char_blue_enemy.png
- */
 class EnemySprite(
     private val viewport: Viewport,
     val enemy: Enemy = Enemy(name = "Enemy"),

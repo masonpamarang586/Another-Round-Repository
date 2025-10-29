@@ -65,7 +65,7 @@ class Main : KtxGame<KtxScreen>() {
 class FirstScreen(val game: Main) : KtxScreen {
     // TODO: Use this.
     private lateinit var playerSprite: com.anotherround.render.PlayerSprite
-    private lateinit var enemySprite: com.anotherround.render.EnemySprite
+    private lateinit var enemySprite: EnemySprite
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
     private val uiStage = Stage(game.uiViewport)
@@ -82,6 +82,11 @@ class FirstScreen(val game: Main) : KtxScreen {
     }
     private val tiledMapCamera = OrthographicCamera()
     private val tiledMapRenderer = OrthogonalTiledMapRenderer(tiledMap, Main.UNIT_SCALE)
+
+    // fields
+    private val player = Player(name = "Hero")
+    private val enemy  = Enemy(name = "Meany")
+    private lateinit var combat: com.anotherround.combat.CombatManager
 
     // TODO:
     //  Add event/onClick listeners for the buttons.
@@ -100,6 +105,12 @@ class FirstScreen(val game: Main) : KtxScreen {
         skin.addStyle("default", style)
 
         val attackButton = TextButton("Attack", skin)
+        attackButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                val accepted = combat.requestPlayerAttack()
+                Gdx.app.log("UI", if (accepted) "Player queued Attack" else "Attack ignored (not your turn?)")
+            }
+        })
         table.add(attackButton).width(400f).height(200f)
         table.row()
 
@@ -114,6 +125,18 @@ class FirstScreen(val game: Main) : KtxScreen {
     override fun show() {
         playerSprite = com.anotherround.render.PlayerSprite(game.worldViewport)
         enemySprite = com.anotherround.render.EnemySprite(game.worldViewport)
+
+        combat = com.anotherround.combat.CombatManager(
+            player, enemy,
+            onLog = { msg -> Gdx.app.log("COMBAT", msg) },
+            onActionStart = { /* trigger attack animation later */ },
+            onActionEnd   = { /* return to idle later */ },
+            resolveDelay  = 0f   // set to e.g. 0.35f when you add animations
+        )
+
+        // Enable input for UI
+        Gdx.input.inputProcessor = uiStage
+        uiStage.addActor(table)            // put your table into the stage
     }
 
     override fun resize(width: Int, height: Int) {
@@ -159,6 +182,7 @@ class FirstScreen(val game: Main) : KtxScreen {
      * TODO: Handles the game logic.
      */
     fun logic() {
+        combat.update(Gdx.graphics.deltaTime)
 
     }
 
@@ -201,6 +225,7 @@ class FirstScreen(val game: Main) : KtxScreen {
      * Draws the UI.
      */
     fun drawUI() {
+        uiStage.act(Gdx.graphics.deltaTime)
         game.uiViewport.apply()
         game.batch.projectionMatrix = game.uiViewport.camera.combined
 
