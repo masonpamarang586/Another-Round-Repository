@@ -60,11 +60,10 @@ class CombatManager(
 
         if (timer == 0f) {
             onActionStart(action)
-            // for visible wind-up animation, set resolveDelay > 0.
             // We use timer to wait before applying damage.
             timer = max(0f, resolveDelay)
             if (timer == 0f) {
-                resolve(action)             // instant resolution path
+                resolve(action)
                 finishAndAdvance(action)
             }
             return
@@ -85,7 +84,6 @@ class CombatManager(
 
         if (isOver()) { turn = Turn.OVER; return }
 
-        // Alternate turns based on who just acted
         turn = when (action) {
             is Action.Attack ->
                 if (action.attacker === player) Turn.ENEMY else Turn.PLAYER

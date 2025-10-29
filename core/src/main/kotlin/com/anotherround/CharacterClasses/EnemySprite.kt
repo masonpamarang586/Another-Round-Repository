@@ -52,7 +52,6 @@ class EnemySprite(
         Animation(1f / deathFps, *ordered).apply { playMode = Animation.PlayMode.NORMAL }
     }
 
-    // ---- attack ----
     private val attackTex = Texture(Gdx.files.internal(attackRowPath)).also {
         it.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
     }
@@ -108,8 +107,7 @@ class EnemySprite(
                 if (stateTime >= endTime) { state = State.Idle; stateTime = 0f }
             }
             State.Dead -> {
-                // stay on last frame forever (no transition)
-                // no-op: stateTime keeps advancing, draw() clamps to last frame
+
             }
             else -> {}
         }
