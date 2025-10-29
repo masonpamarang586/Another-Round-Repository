@@ -6,6 +6,7 @@
  *
  */
 
+
 package com.anotherround
 
 import com.anotherround.CharacterClasses.Enemy
@@ -42,16 +43,21 @@ class Main : KtxGame<KtxScreen>() {
         const val UNIT_SCALE = 1f / 16f
     }
 
+
     val batch by lazy { SpriteBatch() }
     val camera by lazy { OrthographicCamera() }
     val worldViewport by lazy { FitViewport(10f, 20f, camera) }
     val uiViewport by lazy { ScreenViewport() }
 
+
     override fun create() {
+
+
         KtxAsync.initiate()
 
         addScreen(FirstScreen(this))
         setScreen<FirstScreen>()
+
 
         super.create()
     }
@@ -61,6 +67,7 @@ class Main : KtxGame<KtxScreen>() {
         super.dispose()
     }
 }
+
 
 class FirstScreen(val game: Main) : KtxScreen {
     // TODO: Use this.
@@ -73,8 +80,13 @@ class FirstScreen(val game: Main) : KtxScreen {
     //ui
     private val pauseUI by lazy { PauseScreenUI(game.uiViewport) }
 
+
     var font = BitmapFont()
     val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/monogram.ttf"))
+
+
+    var batch = SpriteBatch()
+
 
     private val tiledMap by lazy {
         val mapLoader = TmxMapLoader()
@@ -94,7 +106,9 @@ class FirstScreen(val game: Main) : KtxScreen {
     private val table by lazy {
         val table = Table()
 
+
         val skin = Skin(Gdx.files.internal("atlas/ui.json"))
+
 
         val style = TextButton.TextButtonStyle()
         style.font = font
@@ -103,6 +117,7 @@ class FirstScreen(val game: Main) : KtxScreen {
         style.down = skin.getDrawable("button-normal-pressed")
         style.over = skin.getDrawable("button-normal-over")
         skin.addStyle("default", style)
+
 
         val attackButton = TextButton("Attack", skin)
         attackButton.addListener(object : ClickListener() {
@@ -117,6 +132,7 @@ class FirstScreen(val game: Main) : KtxScreen {
 
         val itemsButton = TextButton("Items", skin)
         table.add(itemsButton).pad(100f).width(400f).height(200f)
+
 
         table
     }
@@ -139,6 +155,7 @@ class FirstScreen(val game: Main) : KtxScreen {
         uiStage.addActor(table)            // put your table into the stage
     }
 
+
     override fun resize(width: Int, height: Int) {
         val buttonHeightFraction = 0.08f
         val textToButtonHeight = 0.65f
@@ -150,9 +167,11 @@ class FirstScreen(val game: Main) : KtxScreen {
         }
 
         font.dispose()
+
         val font = generator.generateFont(parameter)
         font.color = Color.BLACK
         this.font = font
+
 
         game.worldViewport.update(width, height, true)
         game.worldViewport.camera.update()
@@ -165,24 +184,31 @@ class FirstScreen(val game: Main) : KtxScreen {
         pauseUI.onResize()
     }
 
+
     override fun render(delta: Float) {
         input()
         logic()
         draw()
     }
 
+
     /**
      * TODO: Handles the user's input.
      */
     fun input() {
 
+
     }
+
 
     /**
      * TODO: Handles the game logic.
      */
     fun logic() {
         combat.update(Gdx.graphics.deltaTime)
+
+        //Add apple to the inventory automatically
+        //ConsumablesInventory.addConsumable()
 
     }
 
@@ -218,6 +244,9 @@ class FirstScreen(val game: Main) : KtxScreen {
             container.draw(batch, 5, 8, totalBarWidth + 10, 8);
             health.draw(batch, 10, 10, width, 4)
             */
+
+
+
         }
     }
 
@@ -267,6 +296,7 @@ class FirstScreen(val game: Main) : KtxScreen {
         uiStage.dispose()
         tiledMap.dispose()
         tiledMapRenderer.dispose()
+        batch.dispose()
         pauseUI.dispose()
         playerSprite.dispose()
         enemySprite.dispose()
