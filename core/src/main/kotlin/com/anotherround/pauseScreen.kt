@@ -14,7 +14,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.utils.viewport.Viewport
 
 class PauseScreenUI(private val uiViewport: Viewport) {
-
+    // added by mason for save feature
+    var onSaveRequested: (() -> Unit)? = null
     /** Scales the pause icon by a fraction of screen height (e.g., 0.10f = 10%). */
     var pauseButtonHeightFraction: Float = 0.05f
         set(value) {
@@ -193,6 +194,10 @@ class PauseScreenUI(private val uiViewport: Viewport) {
 
     private fun onResumeClicked() { isPaused = false }
     private fun onNewGameClicked() { Gdx.app.log("Pause", "New Game clicked") }
-    private fun onSaveGameClicked() { Gdx.app.log("Pause", "Save Game clicked") }
+    private fun onSaveGameClicked() {  // edited by mason for save
+        Gdx.app.log("Pause", "Save Game clicked")
+        onSaveRequested?.invoke()
+        isPaused = false
+    }
     private fun onSettingsClicked() { Gdx.app.log("Pause", "Settings clicked") }
 }
