@@ -41,12 +41,19 @@ class CombatManager(
         postDelay = max(postDelay, seconds)
     }
 
+    fun canOpenMenu(): Boolean {
+        if (turn != Turn.PLAYER || isOver()) return false
+        if (pending != null) return false
+        return true
+    }
+
     fun requestPlayerAttack(): Boolean {
         if (turn != Turn.PLAYER || isOver()) return false
         if (pending != null) return false
         pending = Action.Attack(player, enemy)
         return true
     }
+
     fun update(delta: Float) {
         if (isOver()) {
             turn = Turn.OVER
