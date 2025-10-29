@@ -127,6 +127,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         style.up = skin.getDrawable("button-normal")
         style.down = skin.getDrawable("button-normal-pressed")
         style.over = skin.getDrawable("button-normal-over")
+        style.font.data.setScale(3.0f)
         skin.addStyle("default", style)
 
         val attackButton = TextButton("Attack", skin)
@@ -144,7 +145,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.itemsButton = itemsButton
         itemsButton.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                if (!isShowingItems) {
+                if (combat.canOpenMenu() && !isShowingItems) {
                     isShowingItems = true
                 }
             }
@@ -175,6 +176,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         style.up = skin.getDrawable("button-normal")
         style.down = skin.getDrawable("button-normal-pressed")
         style.over = skin.getDrawable("button-normal-over")
+        style.font.data.setScale(3.0f)
         skin.addStyle("default", style)
 
         val potionImage = Image(potionTexture)
@@ -184,10 +186,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.useButton = useButton
         useButton.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                println("Healing player")
                 if (potions != 0) {
                     potions -= 1
                     player.health += 10
+                    useButton.setText("Use $potions")
+                    showToast("Healed for 10 health")
+                } else {
+                    showToast("No potions available")
                 }
                 if (isShowingItems) {
                     isShowingItems = false
@@ -307,6 +312,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
             size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt()
+            println(size)
             minFilter = Texture.TextureFilter.Nearest
             magFilter = Texture.TextureFilter.Nearest
         }
@@ -407,6 +413,8 @@ class BattleScreen(val game: Main) : KtxScreen {
             pauseUI.drawAndHandleInput(game.batch)
 
             if (!pauseUI.isPaused) {
+                menuTable.isVisible = !isShowingItems
+                itemsTable.isVisible = isShowingItems
                 if (isShowingItems) {
                     itemsTable.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f)
                     itemsTable.draw(game.batch, 1f)
