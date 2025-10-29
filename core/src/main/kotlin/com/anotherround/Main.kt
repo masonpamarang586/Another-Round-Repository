@@ -36,6 +36,7 @@ import com.anotherround.render.EnemySprite
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import kotlin.math.max
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -64,6 +65,14 @@ class Main : KtxGame<KtxScreen>() {
 }
 
 class FirstScreen(val game: Main) : KtxScreen {
+    // TODO: using this for save game
+    private var toastText: String? = null
+    private var toastTimer = 0f
+    private val toastLayout by lazy { com.badlogic.gdx.graphics.g2d.GlyphLayout()}
+    private fun showToast(text: String, seconds: Float = 1.5f) {
+        toastText = text
+        toastTimer = seconds
+    }
     // TODO: Use this.
     private lateinit var playerSprite: com.anotherround.render.PlayerSprite
     private lateinit var enemySprite: EnemySprite
@@ -165,12 +174,26 @@ class FirstScreen(val game: Main) : KtxScreen {
                         }
                 }
             },
-            resolveDelay  = 0f   // set to e.g. 0.35f when you add animations
+            resolveDelay  = 0f
         )
+
+        pauseUI.updateFont(font)
+        pauseUI.onResize()
+
+        pauseUI.onSaveRequested = {
+            try {
+                com.anotherround.SaveLoad.SaveGame.save(player, enemy)
+                Gdx.app.log("SAVE", "Game saved")
+                showToast("Game Saved", 1.5f)   // <-- top-center
+            } catch (t: Throwable) {
+                Gdx.app.error("SAVE", "Failed to save", t)
+                showToast("Save Failed", 1.5f)
+            }
+        }
 
         // Enable input for UI
         Gdx.input.inputProcessor = uiStage
-        uiStage.addActor(table)            // put your table into the stage
+        uiStage.addActor(table)
     }
 
     override fun resize(width: Int, height: Int) {
@@ -219,6 +242,10 @@ class FirstScreen(val game: Main) : KtxScreen {
         combat.update(Gdx.graphics.deltaTime)
         playerSprite.update(Gdx.graphics.deltaTime)
         enemySprite.update(Gdx.graphics.deltaTime)
+        if (toastTimer > 0f) {
+            toastTimer -= Gdx.graphics.deltaTime
+            if (toastTimer <= 0f) toastText = null
+        }
     }
 
     /**
@@ -278,6 +305,20 @@ class FirstScreen(val game: Main) : KtxScreen {
             table.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f * 0.1f)
             table.center().bottom()
             table.draw(game.batch, 1f)
+
+            toastText?.let { msg ->
+                // subtle fade-out during the last 0.3s
+                val alpha = if (toastTimer < 0.3f) toastTimer / 0.3f else 1f
+                val oldColor = game.batch.color.cpy()
+                game.batch.setColor(1f, 1f, 1f, alpha)
+
+                toastLayout.setText(font, msg)
+                val x = (Gdx.graphics.width  - toastLayout.width)  / 2f
+                val y = (Gdx.graphics.height - 144f)
+                font.draw(game.batch, toastLayout, x, y)
+
+                game.batch.color = oldColor
+            }
         }
     }
 
