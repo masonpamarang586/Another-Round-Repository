@@ -5,6 +5,11 @@ import com.anotherround.CharacterClasses.Player
 import com.anotherround.CharacterClasses.Enemy
 import kotlin.math.max
 enum class Turn { PLAYER, ENEMY, OVER }
+enum class SfxEvent {
+    PlayerAttack, EnemyAttack,
+    PlayerHurt, EnemyHurt,
+    PlayerDeath, EnemyDeath
+}
 
 
 sealed class Action {
@@ -20,6 +25,8 @@ class CombatManager(
     private val onActionStart: (Action) -> Unit = {},
 
     private val onActionEnd: (Action) -> Unit = {},
+
+    private val onSfx: (SfxEvent) -> Unit = {},
 
     var resolveDelay: Float = 5.0f
 ) {
@@ -60,7 +67,13 @@ class CombatManager(
 
         if (timer == 0f) {
             onActionStart(action)
-            // We use timer to wait before applying damage.
+            if (action is Action.Attack) {
+                if (action.attacker === player) {
+                    onSfx(SfxEvent.PlayerAttack)
+                } else {
+                    onSfx(SfxEvent.EnemyAttack)
+                }
+            }
             timer = max(0f, resolveDelay)
             if (timer == 0f) {
                 resolve(action)
@@ -69,10 +82,9 @@ class CombatManager(
             return
         }
 
-        // Waiting for the action to resolve (for animations)
         timer -= delta
         if (timer <= 0f) {
-            resolve(action)                 // apply damage now
+            resolve(action)
             finishAndAdvance(action)
         }
     }
@@ -84,6 +96,7 @@ class CombatManager(
 
         if (isOver()) { turn = Turn.OVER; return }
 
+        // Alternate turns based on who just acted
         turn = when (action) {
             is Action.Attack ->
                 if (action.attacker === player) Turn.ENEMY else Turn.PLAYER
@@ -98,9 +111,12 @@ class CombatManager(
                 action.defender.health = (action.defender.health - dealt).coerceAtLeast(0)
                 onLog("${action.attacker.name} attacks ${action.defender.name} for $dealt. " +
                     "${action.defender.name} HP=${action.defender.health}")
-
+                val defenderIsPlayer = (action.defender === player)
                 if (!action.defender.isAlive()) {
                     onLog("${action.defender.name} is defeated!")
+                    onSfx(if (defenderIsPlayer) SfxEvent.PlayerDeath else SfxEvent.EnemyDeath)
+                } else {
+                    onSfx(if (defenderIsPlayer) SfxEvent.PlayerHurt else SfxEvent.EnemyHurt)
                 }
             }
         }
