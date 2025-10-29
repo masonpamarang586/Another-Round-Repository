@@ -53,8 +53,13 @@ class PlayerSprite(
     val player: Player = Player(name = "Hero"),
     idlePath: String = "generic_char_v0.2/png/blue/char_blue_1.png",
     attackRowPath: String = "generic_char_v0.2/png/blue/blue_attack1.png", // change to your real path
+    damageRowPath: String = "generic_char_v0.2/png/blue/char_blue_1_damage.png",
     private val drawWidth: Float = 3f,
-    private val drawHeight: Float = 3f
+    private val drawHeight: Float = 3f,
+    private val frameSize: Int = 60,
+    private val attackFps: Float = 10f,
+    private val hurtFps: Float = 12f,
+    private val damageFramesAreReversed: Boolean = false
 ) : Disposable {
 
     companion object {
@@ -81,14 +86,28 @@ class PlayerSprite(
         }
     }
 
-    enum class State { Idle, Attacking }
+    private val hurtTex = Texture(Gdx.files.internal(damageRowPath)).also {
+        it.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+    }
+    private val hurtAnim: Animation<TextureRegion> = run {
+        val cols = max(1, hurtTex.width / frameSize)
+        val row = TextureRegion.split(hurtTex, frameSize, frameSize)[0]
+        val frames = Array(cols) { i -> row[i] }
+        val ordered = if (damageFramesAreReversed) frames.reversedArray() else frames
+        Animation(1f / hurtFps, *ordered).apply { playMode = Animation.PlayMode.NORMAL }
+    }
+    private val endHoldHurt = (1f / hurtFps) * 0.5f
+    fun hurtDuration(): Float = hurtAnim.animationDuration + endHoldHurt
+
+    enum class State { Idle, Attacking, Hurt }
     private var state = State.Idle
     private var stateTime = 0f
 
-    /** Duration of the whole attack animation (useful for CombatManager.resolveDelay). */
     fun attackDuration(): Float = attackAnim.animationDuration + END_HOLD
-
-    /** Trigger from onActionStart */
+    fun playHurt() {
+        state = State.Hurt;
+        stateTime = 0f
+    }
     fun playAttack() {
         state = State.Attacking
         stateTime = 0f
@@ -96,12 +115,16 @@ class PlayerSprite(
 
     fun update(delta: Float) {
         stateTime += delta
-        if (state == State.Attacking) {
-            val endTime = attackAnim.animationDuration + END_HOLD
-            if (stateTime >= endTime) {
-                state = State.Idle
-                stateTime = 0f
+        when (state) {
+            State.Attacking -> {
+                val end = attackAnim.animationDuration + (1f / attackFps) * 0.5f
+                if (stateTime >= end) { state = State.Idle; stateTime = 0f }
             }
+            State.Hurt -> {
+                val end = hurtAnim.animationDuration + endHoldHurt
+                if (stateTime >= end) { state = State.Idle; stateTime = 0f }
+            }
+            else -> Unit
         }
     }
 
@@ -114,7 +137,16 @@ class PlayerSprite(
 
         val region = when (state) {
             State.Idle -> idleRegion
-            State.Attacking -> attackFrameAt(stateTime)
+            State.Attacking -> {
+                val frames = attackAnim.keyFrames
+                val idx = minOf(attackAnim.getKeyFrameIndex(stateTime), frames.size - 1)
+                frames[idx]
+            }
+            State.Hurt -> {
+                val frames = hurtAnim.keyFrames
+                val idx = minOf(hurtAnim.getKeyFrameIndex(stateTime), frames.size - 1)
+                frames[idx]
+            }
         }
         batch.draw(region, drawX, drawY, drawWidth, drawHeight)
     }
@@ -122,10 +154,11 @@ class PlayerSprite(
     override fun dispose() {
         idleTex.dispose()
         attackTex.dispose()
+        hurtTex.dispose()
     }
-    private fun attackFrameAt(stateTime: Float): TextureRegion {
-        val frames = attackAnim.keyFrames
-        val idx = minOf(attackAnim.getKeyFrameIndex(stateTime), frames.size - 1)
-        return frames[idx]
-    }
+//    private fun attackFrameAt(stateTime: Float): TextureRegion {
+//        val frames = attackAnim.keyFrames
+//        val idx = minOf(attackAnim.getKeyFrameIndex(stateTime), frames.size - 1)
+//        return frames[idx]
+//    }
 }

@@ -35,6 +35,7 @@ import com.anotherround.PauseScreenUI
 import com.anotherround.render.EnemySprite
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import kotlin.math.max
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -134,14 +135,34 @@ class FirstScreen(val game: Main) : KtxScreen {
             player, enemy,
             onLog = { msg -> Gdx.app.log("COMBAT", msg) },
             onActionStart = { action ->
-                if (action is com.anotherround.combat.Action.Attack && action.attacker === player) {
-                    playerSprite.playAttack()
-                    combat.resolveDelay = playerSprite.attackDuration()
+                when (action) {
+                    is com.anotherround.combat.Action.Attack -> {
+                        if (action.attacker === player) {
+                            playerSprite.playAttack()
+                            combat.resolveDelay = playerSprite.attackDuration()
+                        } else if (action.attacker === enemy) {
+                            enemySprite.playAttack()
+                            combat.resolveDelay = enemySprite.attackDuration()   // <- NEW
+                        }
+                    }
                 }
             },
             onActionEnd   = { action ->
-                if (action is com.anotherround.combat.Action.Attack && action.attacker === player) {
-                    enemySprite.playHurt()
+                when (action) {
+                    is com.anotherround.combat.Action.Attack -> {
+                        if (action.attacker === player) {
+                            if (enemy.isAlive()) {
+                                enemySprite.playHurt()
+                                combat.pauseNextTurnFor(max(1.5f,enemySprite.hurtDuration())) // little hit-pause
+                            } else {
+                                enemySprite.playDeath()
+                                combat.pauseNextTurnFor(enemySprite.deathDuration())
+                            }
+                        } else if (action.attacker === enemy) {
+                            playerSprite.playHurt()
+                            combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
+                        }
+                        }
                 }
             },
             resolveDelay  = 0f   // set to e.g. 0.35f when you add animations

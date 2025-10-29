@@ -17,7 +17,6 @@ class CombatManager(
 
     private val onLog: (String) -> Unit = {},
 
-
     private val onActionStart: (Action) -> Unit = {},
 
     private val onActionEnd: (Action) -> Unit = {},
@@ -29,6 +28,11 @@ class CombatManager(
 
     private var pending: Action? = null
     private var timer = 0f
+    private var postDelay = 0f
+
+    fun pauseNextTurnFor(seconds: Float) {
+        postDelay = max(postDelay, seconds)
+    }
 
     fun requestPlayerAttack(): Boolean {
         if (turn != Turn.PLAYER || isOver()) return false
@@ -39,6 +43,11 @@ class CombatManager(
     fun update(delta: Float) {
         if (isOver()) {
             turn = Turn.OVER
+            return
+        }
+
+        if (postDelay > 0f) {
+            postDelay -= delta
             return
         }
 
