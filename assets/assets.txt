@@ -4,6 +4,7 @@ atlas/ui.png
 com/badlogic/gdx/utils/lsans-15.fnt
 com/badlogic/gdx/utils/lsans-15.png
 fonts/monogram.ttf
+items/potions.png
 test.tpproj
 ui/font-list.fnt
 ui/font-subtitle.fnt
