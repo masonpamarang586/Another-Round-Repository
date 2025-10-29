@@ -6,11 +6,10 @@
  *
  */
 
-
 package com.anotherround
 
-
-import com.anotherround.Consumables.ConsumablesInventory
+import com.anotherround.CharacterClasses.Enemy
+import com.anotherround.CharacterClasses.Player
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.OrthographicCamera
@@ -33,6 +32,10 @@ import ktx.async.KtxAsync
 import ktx.graphics.use
 import ktx.style.addStyle
 import com.anotherround.PauseScreenUI
+import com.anotherround.render.EnemySprite
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import kotlin.math.max
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -40,21 +43,16 @@ class Main : KtxGame<KtxScreen>() {
         const val UNIT_SCALE = 1f / 16f
     }
 
-
     val batch by lazy { SpriteBatch() }
     val camera by lazy { OrthographicCamera() }
     val worldViewport by lazy { FitViewport(10f, 20f, camera) }
     val uiViewport by lazy { ScreenViewport() }
 
-
     override fun create() {
-
-
         KtxAsync.initiate()
 
         addScreen(FirstScreen(this))
         setScreen<FirstScreen>()
-
 
         super.create()
     }
@@ -65,9 +63,10 @@ class Main : KtxGame<KtxScreen>() {
     }
 }
 
-
 class FirstScreen(val game: Main) : KtxScreen {
     // TODO: Use this.
+    private lateinit var playerSprite: com.anotherround.render.PlayerSprite
+    private lateinit var enemySprite: EnemySprite
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
     private val uiStage = Stage(game.uiViewport)
@@ -75,13 +74,8 @@ class FirstScreen(val game: Main) : KtxScreen {
     //ui
     private val pauseUI by lazy { PauseScreenUI(game.uiViewport) }
 
-
     var font = BitmapFont()
     val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/monogram.ttf"))
-
-
-    var batch = SpriteBatch()
-
 
     private val tiledMap by lazy {
         val mapLoader = TmxMapLoader()
@@ -90,6 +84,10 @@ class FirstScreen(val game: Main) : KtxScreen {
     private val tiledMapCamera = OrthographicCamera()
     private val tiledMapRenderer = OrthogonalTiledMapRenderer(tiledMap, Main.UNIT_SCALE)
 
+    // fields
+    private val player = Player(name = "Hero")
+    private val enemy  = Enemy(name = "Meany")
+    private lateinit var combat: com.anotherround.combat.CombatManager
 
     // TODO:
     //  Add event/onClick listeners for the buttons.
@@ -97,9 +95,7 @@ class FirstScreen(val game: Main) : KtxScreen {
     private val table by lazy {
         val table = Table()
 
-
         val skin = Skin(Gdx.files.internal("atlas/ui.json"))
-
 
         val style = TextButton.TextButtonStyle()
         style.font = font
@@ -109,8 +105,13 @@ class FirstScreen(val game: Main) : KtxScreen {
         style.over = skin.getDrawable("button-normal-over")
         skin.addStyle("default", style)
 
-
         val attackButton = TextButton("Attack", skin)
+        attackButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                val accepted = combat.requestPlayerAttack()
+                Gdx.app.log("UI", if (accepted) "Player queued Attack" else "Attack ignored (not your turn?)")
+            }
+        })
         table.add(attackButton).width(400f).height(200f)
         table.row()
 
@@ -118,16 +119,59 @@ class FirstScreen(val game: Main) : KtxScreen {
         val itemsButton = TextButton("Items", skin)
         table.add(itemsButton).pad(100f).width(400f).height(200f)
 
-
         table
     }
 
 
     override fun show() {
+        playerSprite = com.anotherround.render.PlayerSprite(
+            game.worldViewport,
+            idlePath = "generic_char_v0.2/png/blue/char_blue_1_index00.png",
+            attackRowPath = "generic_char_v0.2/png/blue/blue_attack1.png"
+        )
+        enemySprite = com.anotherround.render.EnemySprite(game.worldViewport)
 
+        combat = com.anotherround.combat.CombatManager(
+            player, enemy,
+            onLog = { msg -> Gdx.app.log("COMBAT", msg) },
+            onActionStart = { action ->
+                when (action) {
+                    is com.anotherround.combat.Action.Attack -> {
+                        if (action.attacker === player) {
+                            playerSprite.playAttack()
+                            combat.resolveDelay = playerSprite.attackDuration()
+                        } else if (action.attacker === enemy) {
+                            enemySprite.playAttack()
+                            combat.resolveDelay = enemySprite.attackDuration()   // <- NEW
+                        }
+                    }
+                }
+            },
+            onActionEnd   = { action ->
+                when (action) {
+                    is com.anotherround.combat.Action.Attack -> {
+                        if (action.attacker === player) {
+                            if (enemy.isAlive()) {
+                                enemySprite.playHurt()
+                                combat.pauseNextTurnFor(max(1.5f,enemySprite.hurtDuration())) // little hit-pause
+                            } else {
+                                enemySprite.playDeath()
+                                combat.pauseNextTurnFor(enemySprite.deathDuration())
+                            }
+                        } else if (action.attacker === enemy) {
+                            playerSprite.playHurt()
+                            combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
+                        }
+                        }
+                }
+            },
+            resolveDelay  = 0f   // set to e.g. 0.35f when you add animations
+        )
 
+        // Enable input for UI
+        Gdx.input.inputProcessor = uiStage
+        uiStage.addActor(table)            // put your table into the stage
     }
-
 
     override fun resize(width: Int, height: Int) {
         val buttonHeightFraction = 0.08f
@@ -140,11 +184,9 @@ class FirstScreen(val game: Main) : KtxScreen {
         }
 
         font.dispose()
-
         val font = generator.generateFont(parameter)
         font.color = Color.BLACK
         this.font = font
-
 
         game.worldViewport.update(width, height, true)
         game.worldViewport.camera.update()
@@ -157,31 +199,26 @@ class FirstScreen(val game: Main) : KtxScreen {
         pauseUI.onResize()
     }
 
-
     override fun render(delta: Float) {
         input()
         logic()
         draw()
     }
 
-
     /**
      * TODO: Handles the user's input.
      */
     fun input() {
 
-
     }
-
 
     /**
      * TODO: Handles the game logic.
      */
     fun logic() {
-
-        //Add apple to the inventory automatically
-        //ConsumablesInventory.addConsumable()
-
+        combat.update(Gdx.graphics.deltaTime)
+        playerSprite.update(Gdx.graphics.deltaTime)
+        enemySprite.update(Gdx.graphics.deltaTime)
     }
 
     /**
@@ -207,7 +244,8 @@ class FirstScreen(val game: Main) : KtxScreen {
             tiledMapRenderer.render()
 
             // TODO: Draw the sprites
-
+            playerSprite.draw(it)
+            enemySprite.draw(it)
             //TODO: Draw health bar
             /*health = new NinePatch(gradient, 0, 0, 0, 0)
             width = currentHealth / totalHealth * totalBarWidth;
@@ -215,9 +253,6 @@ class FirstScreen(val game: Main) : KtxScreen {
             container.draw(batch, 5, 8, totalBarWidth + 10, 8);
             health.draw(batch, 10, 10, width, 4)
             */
-
-
-
         }
     }
 
@@ -225,6 +260,7 @@ class FirstScreen(val game: Main) : KtxScreen {
      * Draws the UI.
      */
     fun drawUI() {
+        uiStage.act(Gdx.graphics.deltaTime)
         game.uiViewport.apply()
         game.batch.projectionMatrix = game.uiViewport.camera.combined
 
@@ -266,7 +302,8 @@ class FirstScreen(val game: Main) : KtxScreen {
         uiStage.dispose()
         tiledMap.dispose()
         tiledMapRenderer.dispose()
-        batch.dispose()
         pauseUI.dispose()
+        playerSprite.dispose()
+        enemySprite.dispose()
     }
 }
