@@ -37,6 +37,9 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import kotlin.math.max
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
+import com.badlogic.gdx.audio.Music
+import com.badlogic.gdx.audio.Sound
+
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -76,6 +79,15 @@ class FirstScreen(val game: Main) : KtxScreen {
     // TODO: Use this.
     private lateinit var playerSprite: com.anotherround.render.PlayerSprite
     private lateinit var enemySprite: EnemySprite
+    // TODO: for background music
+    private lateinit var backgroundMusic: Music
+    private lateinit var attackSound: Sound
+    private lateinit var sfxPlayerAttack: Sound
+    private lateinit var sfxEnemyAttack: Sound
+    private lateinit var sfxPlayerHurt: Sound
+    private lateinit var sfxEnemyHurt: Sound
+    private lateinit var sfxEnemyDeath: Sound
+
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
     private val uiStage = Stage(game.uiViewport)
@@ -139,7 +151,15 @@ class FirstScreen(val game: Main) : KtxScreen {
             attackRowPath = "generic_char_v0.2/png/blue/blue_attack1.png"
         )
         enemySprite = com.anotherround.render.EnemySprite(game.worldViewport)
-
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/battle-fighting-warrior-drums-372078.mp3"))
+        backgroundMusic.isLooping = true
+        backgroundMusic.volume = 1.5f
+        backgroundMusic.play()
+        sfxPlayerAttack = Gdx.audio.newSound(Gdx.files.internal("audio/violent-sword-slice-393839.mp3"))
+        sfxEnemyAttack  = Gdx.audio.newSound(Gdx.files.internal("audio/magical-hit-45356.mp3"))
+        sfxPlayerHurt   = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
+        sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
+        sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
         combat = com.anotherround.combat.CombatManager(
             player, enemy,
             onLog = { msg -> Gdx.app.log("COMBAT", msg) },
@@ -174,7 +194,17 @@ class FirstScreen(val game: Main) : KtxScreen {
                         }
                 }
             },
-            resolveDelay  = 0f
+            onSfx = { e ->
+                when (e) {
+                    com.anotherround.combat.SfxEvent.PlayerAttack -> sfxPlayerAttack.play(0.9f)
+                    com.anotherround.combat.SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
+                    com.anotherround.combat.SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
+                    com.anotherround.combat.SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
+                    com.anotherround.combat.SfxEvent.PlayerDeath  -> { /* add later if you have it */ }
+                    com.anotherround.combat.SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
+                }
+            },
+            resolveDelay = 0f
         )
 
         pauseUI.updateFont(font)
@@ -336,6 +366,10 @@ class FirstScreen(val game: Main) : KtxScreen {
         return game.worldViewport.worldHeight / game.worldViewport.screenHeight
     }
 
+    override fun hide() {
+        backgroundMusic.stop()
+    }
+
     override fun dispose() {
         font.dispose()
         generator.dispose()
@@ -346,5 +380,12 @@ class FirstScreen(val game: Main) : KtxScreen {
         pauseUI.dispose()
         playerSprite.dispose()
         enemySprite.dispose()
+        backgroundMusic.dispose()
+        sfxPlayerAttack.dispose()
+        sfxEnemyAttack.dispose()
+        sfxPlayerHurt.dispose()
+        sfxEnemyHurt.dispose()
+        sfxEnemyDeath.dispose()
+        super.dispose()
     }
 }
