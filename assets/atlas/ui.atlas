@@ -1,0 +1,46 @@
+
+ui.png
+size:256,256
+repeat:none
+button-normal
+    rotate: false
+    xy: 0, 0
+    size: 64, 32
+    orig: 64, 32
+    offset: 0, 0
+    index: -1
+button-normal-over
+    rotate: false
+    xy: 0, 0
+    size: 64, 32
+    orig: 64, 32
+    offset: 0, 0
+    index: -1
+button-normal-pressed
+    rotate: false
+    xy: 0, 0
+    size: 64, 32
+    orig: 64, 32
+    offset: 0, 0
+    index: -1
+button-pause
+    rotate: false
+    xy: 64, 0
+    size: 32, 32
+    orig: 32, 32
+    offset: 0, 0
+    index: -1
+button-pause-over
+    rotate: false
+    xy: 64, 0
+    size: 32, 32
+    orig: 32, 32
+    offset: 0, 0
+    index: -1
+button-pause-pressed
+    rotate: false
+    xy: 64, 0
+    size: 32, 32
+    orig: 32, 32
+    offset: 0, 0
+    index: -1
