@@ -5,7 +5,7 @@
       down: button-normal-pressed
       over: button-normal-over
       focused: button-normal-over
-      slot: item-slot
+      slot: item-slot,
     }
   }
 }

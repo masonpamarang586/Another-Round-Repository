@@ -46,4 +46,9 @@ button-pause-pressed
     index: -1
 item-slot
     rotate: false
-    xy:
+    xy: 112, 0
+    size: 32, 32
+    orig: 32, 32
+    offset: 0, 0
+    index: -1
+
