@@ -10,6 +10,8 @@ package com.anotherround
 
 import com.anotherround.CharacterClasses.Enemy
 import com.anotherround.CharacterClasses.Player
+import com.anotherround.Consumables.Consumable
+import com.anotherround.Consumables.ConsumablesInventory
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.OrthographicCamera
@@ -40,6 +42,8 @@ import kotlin.math.max
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.math.Rectangle
+import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.utils.Align
 
 
 class Main : KtxGame<KtxScreen>() {
@@ -164,25 +168,55 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     private var potions = 1
-    lateinit var useButton: TextButton
     private val itemsTable by lazy {
-        val table = Table()
+        val table = Table().align(Align.center)
+
+        val ConsumablesInventory = ConsumablesInventory()
+        val Consumables =
 
         val skin = Skin(Gdx.files.internal("atlas/ui.json"))
 
-        val style = TextButton.TextButtonStyle()
-        style.font = font
-        style.fontColor = Color.BLACK
-        style.up = skin.getDrawable("button-normal")
-        style.down = skin.getDrawable("button-normal-pressed")
-        style.over = skin.getDrawable("button-normal-over")
-        style.font.data.setScale(3.0f)
-        skin.addStyle("default", style)
+        ConsumablesInventory.addConsumable()
 
+        val group = Group()
+
+        // Add viewable item slot
+        val itemSlot = Image(skin.getDrawable("item-slot"))
+        itemSlot.setSize(200f, 200f)
+        //table.add(itemSlot).width(148f).height(148f)
+
+        // Add item
         val potionImage = Image(potionTexture)
-        table.add(potionImage).width(100f).height(100f)
+        potionImage.setSize(116f, 116f)
+        //table.add(potionImage).width(100f).height(100f)
 
-        val useButton = TextButton("Use ($potions)", skin)
+
+        // Group the slot and item together
+        group.addActor(itemSlot)
+        group.addActor(potionImage)
+        potionImage.toFront()
+        potionImage.moveBy(40f,40f)
+        table.add(group)
+
+        group.addListener(object: ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y:Float) {
+                if (potions != 0) {
+                    potions -= 1
+                    player.health += 10
+                    potionImage.remove()
+                    showToast("Healed for 5 health")
+                } else {
+                    showToast("No potions available")
+                }
+                if (isShowingItems) {
+                    isShowingItems = false
+                }
+            }
+        })
+
+
+
+        /*val useButton = TextButton("Use ($potions)", skin)
         this.useButton = useButton
         useButton.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
@@ -199,7 +233,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                 }
             }
         })
-        table.add(useButton).width(400f).height(200f)
+        table.add(useButton).width(400f).height(200f)*/
 
         table
     }

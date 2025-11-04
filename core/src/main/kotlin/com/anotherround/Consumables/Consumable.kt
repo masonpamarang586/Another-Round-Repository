@@ -11,13 +11,13 @@ data class Consumable(val consumableID: String,
 
     fun loadConsumables() {
         // Test consumable item
-        val apple = Consumable(
-            consumableID = "consum_apple",
-            name = "Apple",
-            description = "Freshly picked apple; Heals 5 HP",
+        val healthPotion = Consumable(
+            consumableID = "consum_healthpotion",
+            name = "Health Potion",
+            description = "Basic health potion",
             healingAmount = 5,
         )
-        consumableList[apple.consumableID] = apple
+        consumableList[healthPotion.consumableID] = healthPotion
     }
 
     fun use() {
