@@ -43,6 +43,7 @@ import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.utils.Align
 
 
@@ -169,14 +170,27 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     private var potions = 1
     private val itemsTable by lazy {
-        val table = Table().align(Align.center)
+
+
+        val table = Table()
+
+
+
+        table.align(Align.center)
+
 
         val ConsumablesInventory = ConsumablesInventory()
-        val Consumables =
 
         val skin = Skin(Gdx.files.internal("atlas/ui.json"))
 
-        ConsumablesInventory.addConsumable()
+        val style = TextButton.TextButtonStyle()
+        style.font = font
+        style.fontColor = Color.BLACK
+        style.up = skin.getDrawable("button-normal")
+        style.down = skin.getDrawable("button-normal-pressed")
+        style.over = skin.getDrawable("button-normal-over")
+        style.font.data.setScale(3.0f)
+        skin.addStyle("default", style)
 
         val group = Group()
 
@@ -197,6 +211,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         potionImage.toFront()
         potionImage.moveBy(40f,40f)
         table.add(group)
+        table.row()
 
         group.addListener(object: ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y:Float) {
@@ -214,26 +229,17 @@ class BattleScreen(val game: Main) : KtxScreen {
             }
         })
 
-
-
-        /*val useButton = TextButton("Use ($potions)", skin)
-        this.useButton = useButton
-        useButton.addListener(object : ClickListener() {
+        val backButton = TextButton("Return", skin, "default")
+        backButton.addListener(object: ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                if (potions != 0) {
-                    potions -= 1
-                    player.health += 10
-                    useButton.setText("Use $potions")
-                    showToast("Healed for 10 health")
-                } else {
-                    showToast("No potions available")
-                }
                 if (isShowingItems) {
                     isShowingItems = false
                 }
             }
         })
-        table.add(useButton).width(400f).height(200f)*/
+
+        table.add(backButton).width(400f).height(200f)
+
 
         table
     }
