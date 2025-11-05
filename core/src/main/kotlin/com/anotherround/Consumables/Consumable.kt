@@ -1,23 +1,22 @@
 package com.anotherround.Consumables
 
-data class Consumable(val consumableID: String,
-                      val name: String,
-                 val description: String,
-                 val healingAmount: Int = 0) {
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.utils.Json
 
-    //Contains all types of consumables
-    val consumableList: MutableMap<String,Consumable> = mutableMapOf<String, Consumable>()
+class Consumable {
 
 
-    fun loadConsumables() {
+    fun loadConsumables(): MutableList<Consumable> {
         // Test consumable item
-        val healthPotion = Consumable(
-            consumableID = "consum_healthpotion",
-            name = "Health Potion",
-            description = "Basic health potion",
-            healingAmount = 5,
-        )
-        consumableList[healthPotion.consumableID] = healthPotion
+        val json = Json()
+
+        json.addClassTag("consumable", Consumable::class.java)
+
+        val jsonString = Gdx.files.internal("items/items.json").readString()
+
+        val consumables = json.fromJson(MutableList::class.java, Consumable::class.java, jsonString) as MutableList<Consumable>
+
+        return consumables
     }
 
     fun use() {
