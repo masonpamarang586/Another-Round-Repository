@@ -57,6 +57,7 @@ class Main : KtxGame<KtxScreen>() {
         KtxAsync.initiate()
 
         addScreen(BattleScreen(this))
+        addScreen(MainMenuScreen(this))
         setScreen<BattleScreen>()
 
         super.create()
@@ -280,6 +281,11 @@ class BattleScreen(val game: Main) : KtxScreen {
                 Gdx.app.error("SAVE", "Failed to save", t)
                 showToast("Save Failed", 1.5f)
             }
+        }
+
+        pauseUI.onMainMenuRequested = {
+            // Option A (recommended): register the screen once in Main.create() and just switch here
+            game.setScreen<MainMenuScreen>()
         }
 
         // Enable input for UI

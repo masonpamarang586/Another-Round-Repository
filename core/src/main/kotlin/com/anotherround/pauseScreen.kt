@@ -16,6 +16,8 @@ import com.badlogic.gdx.utils.viewport.Viewport
 class PauseScreenUI(private val uiViewport: Viewport) {
     // added by mason for save feature
     var onSaveRequested: (() -> Unit)? = null
+    var onMainMenuRequested: (() -> Unit)? = null
+
     /** Scales the pause icon by a fraction of screen height (e.g., 0.10f = 10%). */
     var pauseButtonHeightFraction: Float = 0.05f
         set(value) {
@@ -59,7 +61,7 @@ class PauseScreenUI(private val uiViewport: Viewport) {
     private val resumeButton   = TextButton("Resume", style)
     private val newGameButton  = TextButton("New Game", style)
     private val saveGameButton = TextButton("Save Game", style)
-    private val settingsButton = TextButton("Settings", style)
+    private val mainMenuButton = TextButton("Main Menu", style)
 
     private val pauseButtonBounds = Rectangle()
     private val panelBounds = Rectangle()
@@ -83,9 +85,9 @@ class PauseScreenUI(private val uiViewport: Viewport) {
         resumeButton.style = style
         newGameButton.style = style
         saveGameButton.style = style
-        settingsButton.style = style
+        mainMenuButton.style = style
 
-        listOf(resumeButton, newGameButton, saveGameButton, settingsButton).forEach {
+        listOf(resumeButton, newGameButton, saveGameButton, mainMenuButton).forEach {
             it.invalidateHierarchy()
         }
     }
@@ -126,14 +128,14 @@ class PauseScreenUI(private val uiViewport: Viewport) {
         resumeButton.draw(batch, 1f)
         newGameButton.draw(batch, 1f)
         saveGameButton.draw(batch, 1f)
-        settingsButton.draw(batch, 1f)
+        mainMenuButton.draw(batch, 1f)
 
         if (touch != null) {
             when {
                 boundsOf(resumeButton).contains(touch.x, touch.y)   -> onResumeClicked()
                 boundsOf(newGameButton).contains(touch.x, touch.y)  -> onNewGameClicked()
                 boundsOf(saveGameButton).contains(touch.x, touch.y) -> onSaveGameClicked()
-                boundsOf(settingsButton).contains(touch.x, touch.y) -> onSettingsClicked()
+                boundsOf(mainMenuButton).contains(touch.x, touch.y) -> onMainMenuClicked()
             }
         }
     }
@@ -181,7 +183,7 @@ class PauseScreenUI(private val uiViewport: Viewport) {
         place(resumeButton)
         place(newGameButton)
         place(saveGameButton)
-        place(settingsButton)
+        place(mainMenuButton)
     }
 
     private fun uiToWorld(screenX: Int, screenY: Int): Vector3 {
@@ -199,5 +201,8 @@ class PauseScreenUI(private val uiViewport: Viewport) {
         onSaveRequested?.invoke()
         isPaused = false
     }
-    private fun onSettingsClicked() { Gdx.app.log("Pause", "Settings clicked") }
+    private fun onMainMenuClicked() {
+        onMainMenuRequested?.invoke()
+        isPaused = false
+    }
 }
