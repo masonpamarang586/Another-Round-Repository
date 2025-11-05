@@ -174,9 +174,8 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         val table = Table()
 
-
-
         table.align(Align.center)
+
 
 
         val ConsumablesInventory = ConsumablesInventory()
@@ -210,7 +209,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         group.addActor(potionImage)
         potionImage.toFront()
         potionImage.moveBy(40f,40f)
-        table.add(group)
+        table.add(group).left()
         table.row()
 
         group.addListener(object: ClickListener() {
