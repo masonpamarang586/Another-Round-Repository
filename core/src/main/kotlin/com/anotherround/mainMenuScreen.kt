@@ -123,7 +123,6 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
             up = skin.getDrawable("button-normal")
             down = skin.getDrawable("button-normal-pressed")
             over = skin.getDrawable("button-normal-over")
-            font.data.setScale(3.0f)
         }
         val s = styleFor(font)
         if (this::newGameBtn.isInitialized) newGameBtn.style = s
@@ -144,7 +143,6 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
             up = skin.getDrawable("button-normal")
             down = skin.getDrawable("button-normal-pressed")
             over = skin.getDrawable("button-normal-over")
-            font.data.setScale(3.0f)
         }
 
         newGameBtn = TextButton("New Game", style)
@@ -156,11 +154,11 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         settingsBtn.addListener(click { Gdx.app.log("Menu", "Settings clicked") })
 
         val table = Table()
-        table.add(newGameBtn).width(400f).height(200f)
+        table.add(newGameBtn).width(600f).height(200f)
         table.row()
-        table.add(loadGameBtn).padTop(40f).width(400f).height(200f)
+        table.add(loadGameBtn).padTop(40f).width(600f).height(200f)
         table.row()
-        table.add(settingsBtn).padTop(40f).width(400f).height(200f)
+        table.add(settingsBtn).padTop(40f).width(600f).height(200f)
         stage.addActor(table)
         table.name = "bottomMenu"
     }
@@ -252,15 +250,15 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         inner.row()
         inner.add(slot2).padTop(24f).width(400f).height(200f)
         inner.row()
-        inner.add(slot3).padTop(24f).width(400f).height(200f)
+        inner.add(slot3).padTop(36f).width(400f).height(200f)
         inner.row()
-        inner.add(nameField).padTop(24f).width(400f).height(100f)
+        inner.add(nameField).padTop(36f).width(600f).height(100f)
         inner.row()
 
         val actions = Table()
-        actions.add(confirmBtn).width(250f).height(160f)
+        actions.add(confirmBtn).width(400f).height(160f)
         actions.add().width(30f)
-        actions.add(backBtn).width(250f).height(160f)
+        actions.add(backBtn).width(400f).height(160f)
         inner.add(actions).padTop(24f)
 
         val panel = Table()
@@ -274,9 +272,9 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         mode = m
         selectedSlot = -1
         if (m == Submenu.NEW) {
-            titleLabel.setText("New Game - Choose a Slot & Name")
+            titleLabel.setText("New Game")
         } else {
-            titleLabel.setText("Load Game - Choose a Slot")
+            titleLabel.setText("Load Game")
         }
         nameField.isVisible = (m == Submenu.NEW)
         updateSlotLabels()
@@ -296,7 +294,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     }
 
     private fun updateSlotLabels() {
-        fun tag(i: Int) = if (selectedSlot == i) " [selected]" else ""
+        fun tag(i: Int) = if (selectedSlot == i) " ^" else ""
         slot1.setText("Game 1" + tag(1))
         slot2.setText("Game 2" + tag(2))
         slot3.setText("Game 3" + tag(3))
