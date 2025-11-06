@@ -2,7 +2,6 @@ package com.anotherround
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
@@ -11,8 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
-import com.badlogic.gdx.graphics.g2d.NinePatch
+import com.badlogic.gdx.utils.viewport.ScreenViewport
 import ktx.app.KtxScreen
 import ktx.graphics.use
 
@@ -22,11 +20,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     private lateinit var bgTexture: Texture
 
     // UI
-    // --- FIX 1: Use the game's UI viewport and batch ---
-    // The stage MUST use the *exact same* viewport and batch instances
-    // from the Main class. Your original code created a *new* ScreenViewport
-    // which conflicted with Main's FitViewport, causing the crash.
-    private val stage = Stage(game.uiViewport, game.batch)
+    private val stage = Stage(ScreenViewport(game.uiViewport.camera))
     private lateinit var skin: Skin
 
     private lateinit var newGameBtn: TextButton
@@ -45,167 +39,235 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     private var mode: Submenu = Submenu.NONE
     private var selectedSlot = -1
 
+    private var font: BitmapFont = BitmapFont()
+    private val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/monogram.ttf"))
+
     private enum class Submenu { NONE, NEW, LOAD }
 
     override fun show() {
-        // --- FIX 2: Add the background as an Image actor to the stage ---
-        // This is much cleaner. The stage will now manage rendering the
-        // background using the correct viewport and batch.
-        bgTexture = Texture(Gdx.files.internal("ui/title_screen_bg.png"))
-        val bgImage = Image(bgTexture)
-        bgImage.setSize(game.uiViewport.worldWidth, game.uiViewport.worldHeight)
-        bgImage.setPosition(0f, 0f)
-        stage.addActor(bgImage)
-        bgImage.toBack() // Ensure it's drawn behind UI elements
-
-        // --- Font and Skin Setup (This is slow, but was in your original) ---
-        // This is okay for now, but for smoother loading, you should
-        // use an AssetManager in your Main class to load fonts/textures.
-        val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/NES-FC.ttf"))
-        val parameter = FreeTypeFontGenerator.FreeTypeFontParameter()
-        parameter.size = 32
-        parameter.color = Color.BLACK
-        val font = generator.generateFont(parameter)
-        generator.dispose()
-
-        skin = Skin()
-        skin.add("default-font", font)
-
-        // --- Use a 9-patch for resizable backgrounds ---
-        // This is better than a 1x1 pixel for window/panel backgrounds
-        val pixel = onePixel(Color(0.1f, 0.1f, 0.1f, 0.8f))
-        val patch = NinePatch(pixel, 4, 4, 4, 4)
-        skin.add("panel-bg", NinePatchDrawable(patch))
-        skin.add("pixel", pixel) // For button backgrounds
-
-        val btnStyle = TextButton.TextButtonStyle()
-        btnStyle.font = font
-        btnStyle.fontColor = Color.WHITE
-        btnStyle.overFontColor = Color.LIGHT_GRAY
-        btnStyle.downFontColor = Color.GREEN
-        // Use the 1x1 pixel as a drawable background
-        val pixelDrawable = TextureRegionDrawable(skin.getRegion("pixel"))
-        btnStyle.up = pixelDrawable.tint(Color(0.3f, 0.3f, 0.3f, 0.7f))
-        btnStyle.over = pixelDrawable.tint(Color(0.5f, 0.5f, 0.5f, 0.7f))
-        btnStyle.down = pixelDrawable.tint(Color(0.2f, 0.6f, 0.2f, 0.7f))
-        skin.add("default", btnStyle)
-
-        val labelStyle = Label.LabelStyle(font, Color.WHITE)
-        skin.add("default", labelStyle)
-
-        val fieldStyle = TextField.TextFieldStyle()
-        fieldStyle.font = font
-        fieldStyle.fontColor = Color.BLACK
-        fieldStyle.background = pixelDrawable.tint(Color(0.8f, 0.8f, 0.8f, 1.0f))
-        fieldStyle.cursor = pixelDrawable.tint(Color.BLUE)
-        fieldStyle.selection = pixelDrawable.tint(Color(0.5f, 0.5f, 1f, 0.5f))
-        skin.add("default", fieldStyle)
-
-        // --- Main Buttons ---
-        val mainButtonTable = Table()
-        mainButtonTable.setFillParent(true)
-        mainButtonTable.center().bottom() // Position at bottom-center
-
-        newGameBtn = TextButton("New Game", skin)
-        loadGameBtn = TextButton("Load Game", skin)
-        settingsBtn = TextButton("Settings", skin)
-
-        val buttonWidth = 400f
-        val buttonHeight = 80f
-        val buttonSpacing = 20f
-
-        mainButtonTable.add(newGameBtn).width(buttonWidth).height(buttonHeight).space(buttonSpacing)
-        mainButtonTable.row()
-        mainButtonTable.add(loadGameBtn).width(buttonWidth).height(buttonHeight).space(buttonSpacing)
-        mainButtonTable.row()
-        mainButtonTable.add(settingsBtn).width(buttonWidth).height(buttonHeight).space(buttonSpacing)
-        mainButtonTable.padBottom(100f) // Add padding from the bottom edge
-
-        stage.addActor(mainButtonTable)
-
-        // --- Overlay for New/Load ---
-        overlayRoot = Table()
-        overlayRoot.setFillParent(true)
-        overlayRoot.setBackground(skin.getDrawable("panel-bg")) // Use the 9-patch
-        overlayRoot.isVisible = false
-        stage.addActor(overlayRoot)
-
-        titleLabel = Label("Slots", skin)
-        slot1 = TextButton("Game 1", skin)
-        slot2 = TextButton("Game 2", skin)
-        slot3 = TextButton("Game 3", skin)
-        nameField = TextField("", skin)
-        confirmBtn = TextButton("Start", skin)
-        backBtn = TextButton("Back", skin)
-
-        overlayRoot.add(titleLabel).colspan(2).pad(20f)
-        overlayRoot.row()
-        overlayRoot.add(slot1).width(300f).height(60f).pad(10f).colspan(2)
-        overlayRoot.row()
-        overlayRoot.add(slot2).width(300f).height(60f).pad(10f).colspan(2)
-        overlayRoot.row()
-        overlayRoot.add(slot3).width(300f).height(60f).pad(10f).colspan(2)
-        overlayRoot.row()
-        overlayRoot.add(Label("Name:", skin)).right().pad(10f)
-        overlayRoot.add(nameField).width(300f).height(60f).pad(10f).left()
-        overlayRoot.row()
-        overlayRoot.add(backBtn).width(200f).height(60f).pad(20f)
-        overlayRoot.add(confirmBtn).width(200f).height(60f).pad(20f)
-
-        // --- Add Listeners ---
-        newGameBtn.addListener(click { openSlots(Submenu.NEW) })
-        loadGameBtn.addListener(click { openSlots(Submenu.LOAD) })
-        settingsBtn.addListener(click {
-            // TODO: Open settings
-        })
-        backBtn.addListener(click { closeSlots() })
-        /*confirmBtn.addListener(click {
-            if (selectedSlot != -1) {
-                val slot = "game$selectedSlot.sav"
-                val name = if (mode == Submenu.NEW) nameField.text else "Player" // Get name if new game
-                game.addScreen(MainScreen(game, slot, name, mode == Submenu.NEW))
-                game.setScreen<MainScreen>()
-                // We dispose this screen *after* transitioning
-                this.dispose()
-            }
-        }) */
-        slot1.addListener(click { selectSlot(1) })
-        slot2.addListener(click { selectSlot(2) })
-        slot3.addListener(click { selectSlot(3) })
-
-        updateSlotLabels()
         Gdx.input.inputProcessor = stage
+        skin = Skin(Gdx.files.internal("atlas/ui.json"))
+        updateFont()
+
+        loadStaticBackground("backgrounds/mainmenu_sheet.png")
+
+        buildMainButtons()
+        buildSlotOverlay()
+
+        layoutBottomMenu()
+        stage.addActor(overlayRoot)
     }
 
     override fun render(delta: Float) {
-        Gdx.gl.glClearColor(0f, 0f, 0.2f, 1f)
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-
-        // --- FIX 3: Update viewport and let the stage draw everything ---
-        // We must update the viewport every frame in case of resize.
-        // The stage will now draw the background AND the UI
-        // using the correct batch and viewport.
         game.uiViewport.apply()
+        game.batch.projectionMatrix = game.uiViewport.camera.combined
+
+        // Draw static PNG full screen
+        game.batch.use {
+            it.draw(
+                bgTexture,
+                0f,
+                0f,
+                Gdx.graphics.width.toFloat(),
+                Gdx.graphics.height.toFloat()
+            )
+        }
+
+        layoutBottomMenu()
         stage.act(delta)
         stage.draw()
     }
 
-    // --- FIX 4: Add a resize method ---
-    // This tells the stage's viewport (game.uiViewport) how to update
-    // when the window size changes.
     override fun resize(width: Int, height: Int) {
         game.uiViewport.update(width, height, true)
+        stage.viewport.update(width, height, true)
+        updateFont()
+        refreshButtonFonts()
+        if (this::titleLabel.isInitialized) {
+            titleLabel.style = Label.LabelStyle(font, Color.WHITE)
+        }
     }
 
-    override fun hide() {
-        Gdx.input.inputProcessor = null
-    }
+    override fun hide() { }
 
     override fun dispose() {
-        // Dispose assets loaded by this screen
-        bgTexture.dispose()
         stage.dispose()
-        skin.dispose() // This will dispose the font and pixel texture
+        bgTexture.dispose()
+        font.dispose()
+        generator.dispose()
+    }
+
+    // ---- Helpers ----
+    private fun loadStaticBackground(path: String) {
+        bgTexture = Texture(Gdx.files.internal(path)).apply {
+            setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+        }
+    }
+
+    private fun updateFont() {
+        val buttonHeightFraction = 0.08f
+        val textToButtonHeight = 0.65f
+        val param = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
+            size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt()
+            minFilter = Texture.TextureFilter.Nearest
+            magFilter = Texture.TextureFilter.Nearest
+        }
+        font.disposeSafely()
+        font = generator.generateFont(param).apply { color = Color.BLACK }
+    }
+
+    private fun refreshButtonFonts() {
+        fun styleFor(f: BitmapFont) = TextButton.TextButtonStyle().apply {
+            font = f
+            fontColor = Color.BLACK
+            up = skin.getDrawable("button-normal")
+            down = skin.getDrawable("button-normal-pressed")
+            over = skin.getDrawable("button-normal-over")
+            font.data.setScale(3.0f)
+        }
+        val s = styleFor(font)
+        if (this::newGameBtn.isInitialized) newGameBtn.style = s
+        if (this::loadGameBtn.isInitialized) loadGameBtn.style = s
+        if (this::settingsBtn.isInitialized) settingsBtn.style = s
+        if (this::slot1.isInitialized) slot1.style = s
+        if (this::slot2.isInitialized) slot2.style = s
+        if (this::slot3.isInitialized) slot3.style = s
+        if (this::confirmBtn.isInitialized) confirmBtn.style = s
+        if (this::backBtn.isInitialized) backBtn.style = s
+        if (this::nameField.isInitialized) nameField.style.font = font
+    }
+
+    private fun buildMainButtons() {
+        val style = TextButton.TextButtonStyle().apply {
+            font = this@MainMenuScreen.font
+            fontColor = Color.BLACK
+            up = skin.getDrawable("button-normal")
+            down = skin.getDrawable("button-normal-pressed")
+            over = skin.getDrawable("button-normal-over")
+            font.data.setScale(3.0f)
+        }
+
+        newGameBtn = TextButton("New Game", style)
+        loadGameBtn = TextButton("Load Game", style)
+        settingsBtn = TextButton("Settings", style)
+
+        newGameBtn.addListener(click { openSlots(Submenu.NEW) })
+        loadGameBtn.addListener(click { openSlots(Submenu.LOAD) })
+        settingsBtn.addListener(click { Gdx.app.log("Menu", "Settings clicked") })
+
+        val table = Table()
+        table.add(newGameBtn).width(400f).height(200f)
+        table.row()
+        table.add(loadGameBtn).padTop(40f).width(400f).height(200f)
+        table.row()
+        table.add(settingsBtn).padTop(40f).width(400f).height(200f)
+        stage.addActor(table)
+        table.name = "bottomMenu"
+    }
+
+    private fun layoutBottomMenu() {
+        val table = stage.root.findActor<Table>("bottomMenu") ?: return
+        table.setPosition(
+            Gdx.graphics.width / 2f,
+            Gdx.graphics.height * 0.10f
+        )
+        table.bottom()
+    }
+
+    private fun buildSlotOverlay() {
+        overlayRoot = Table().apply {
+            setFillParent(true)
+            isVisible = false
+        }
+
+        val dimmer = Image(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.45f))))
+        dimmer.setFillParent(true)
+        overlayRoot.addActor(dimmer)
+
+        titleLabel = Label("Choose a Slot", Label.LabelStyle(font, Color.WHITE))
+
+        val s = TextButton.TextButtonStyle().apply {
+            font = this@MainMenuScreen.font
+            fontColor = Color.BLACK
+            up = skin.getDrawable("button-normal")
+            down = skin.getDrawable("button-normal-pressed")
+            over = skin.getDrawable("button-normal-over")
+            font.data.setScale(3.0f)
+        }
+
+        slot1 = TextButton("Game 1", s).apply { addListener(click { selectSlot(1) }) }
+        slot2 = TextButton("Game 2", s).apply { addListener(click { selectSlot(2) }) }
+        slot3 = TextButton("Game 3", s).apply { addListener(click { selectSlot(3) }) }
+
+        val textFieldStyle = TextField.TextFieldStyle().apply {
+            // Use the font that was loaded in the show() method
+            this.font = this@MainMenuScreen.font
+            this.fontColor = Color.BLACK
+
+            // Use your 'onePixel' helper to create drawables for the style
+            val bg = TextureRegionDrawable(onePixel(Color(0.8f, 0.8f, 0.8f, 1.0f)))
+            this.background = bg
+            this.cursor = TextureRegionDrawable(onePixel(Color.BLACK))
+            this.selection = TextureRegionDrawable(onePixel(Color(0.5f, 0.5f, 1f, 0.5f)))
+        }
+
+        // 2. Now, create the TextField by passing in the style *we just made*.
+        nameField = TextField("", textFieldStyle).apply {
+            messageText = "Enter name..."
+        }
+
+
+        confirmBtn = TextButton("Confirm", s).apply {
+            addListener(click {
+                when (mode) {
+                    Submenu.LOAD -> {
+                        if (selectedSlot != -1) {
+                            Gdx.app.log("Menu", "Loading Game $selectedSlot")
+                        } else {
+                            Gdx.app.log("Menu", "Pick a slot")
+                        }
+                    }
+                    Submenu.NEW -> {
+                        if (selectedSlot == -1) {
+                            Gdx.app.log("Menu", "Pick a slot")
+                        } else if (nameField.text.isBlank()) {
+                            Gdx.app.log("Menu", "Enter a name")
+                        } else {
+                            Gdx.app.log("Menu", "New Game $selectedSlot named ${nameField.text}")
+                        }
+                    }
+                    else -> { }
+                }
+            })
+        }
+
+        backBtn = TextButton("Back", s).apply {
+            addListener(click { closeSlots() })
+        }
+
+        val inner = Table()
+        inner.add(titleLabel).padBottom(24f)
+        inner.row()
+        inner.add(slot1).width(400f).height(200f)
+        inner.row()
+        inner.add(slot2).padTop(24f).width(400f).height(200f)
+        inner.row()
+        inner.add(slot3).padTop(24f).width(400f).height(200f)
+        inner.row()
+        inner.add(nameField).padTop(24f).width(400f).height(100f)
+        inner.row()
+
+        val actions = Table()
+        actions.add(confirmBtn).width(250f).height(160f)
+        actions.add().width(30f)
+        actions.add(backBtn).width(250f).height(160f)
+        inner.add(actions).padTop(24f)
+
+        val panel = Table()
+        panel.add(inner).pad(24f)
+
+        overlayRoot.add(panel)
+        stage.addActor(overlayRoot)
     }
 
     private fun openSlots(m: Submenu) {
@@ -244,15 +306,19 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         val pm = com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888)
         pm.setColor(color)
         pm.fill()
-        // The texture will be added to the skin, which manages its disposal
         val t = Texture(pm)
         pm.dispose()
         return com.badlogic.gdx.graphics.g2d.TextureRegion(t)
     }
 
     private fun click(block: () -> Unit) = object : ClickListener() {
-        override fun clicked(event: InputEvent?, x: Float, y: Float) {
-            block()
+        override fun clicked(event: InputEvent?, x: Float, y: Float) = block()
+    }
+
+    private fun BitmapFont?.disposeSafely() {
+        try {
+            this?.dispose()
+        } catch (_: Throwable) {
         }
     }
 }
