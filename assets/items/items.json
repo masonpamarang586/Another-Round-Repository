@@ -1,10 +1,6 @@
 {
-  "consumables": [
-    {
-      "name": "Healing Potion",
-      "description": "Most standard healing potion. Heals 5 HP.",
-      "image": "items/potions.png",
-      "healAmt": 5.0
-    }
-  ]
+  "name": "Healing Potion",
+  "description": "Most standard healing potion. Heals 5 HP.",
+  "image": "potions.png",
+  "healAmt": 5.0
 }

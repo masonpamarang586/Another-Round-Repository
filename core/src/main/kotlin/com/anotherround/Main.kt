@@ -121,6 +121,8 @@ class BattleScreen(val game: Main) : KtxScreen {
     //  Add textures for button being hovered and being pressed.
     lateinit var attackButton: TextButton
     lateinit var itemsButton: TextButton
+
+     lateinit var group: Group
     private val menuTable by lazy {
         val table = Table()
 
@@ -174,11 +176,6 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         val table = Table()
 
-        table.align(Align.center)
-
-
-
-        val ConsumablesInventory = ConsumablesInventory()
 
         val skin = Skin(Gdx.files.internal("atlas/ui.json"))
 
@@ -209,8 +206,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         group.addActor(potionImage)
         potionImage.toFront()
         potionImage.moveBy(40f,40f)
-        table.add(group).left()
-        table.row()
+        group.setPosition(25f, 25f)
+        table.add(group)
+
+
 
         group.addListener(object: ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y:Float) {
@@ -228,6 +227,9 @@ class BattleScreen(val game: Main) : KtxScreen {
             }
         })
 
+        table.row()
+
+
         val backButton = TextButton("Return", skin, "default")
         backButton.addListener(object: ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
@@ -237,7 +239,10 @@ class BattleScreen(val game: Main) : KtxScreen {
             }
         })
 
+
         table.add(backButton).width(400f).height(200f)
+        table.row()
+
 
 
         table
@@ -476,6 +481,8 @@ class BattleScreen(val game: Main) : KtxScreen {
                 font.draw(game.batch, toastLayout, x, y)
 
                 game.batch.color = oldColor
+
+
             }
         }
     }
