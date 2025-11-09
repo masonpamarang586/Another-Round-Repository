@@ -40,7 +40,10 @@ import kotlin.math.max
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.math.Rectangle
+import com.anotherround.SaveLoad.GameState
+import com.anotherround.SaveLoad.SaveGame
 
+data class GameSession(val slotId: Int, val playerName: String)
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -58,7 +61,7 @@ class Main : KtxGame<KtxScreen>() {
 
         addScreen(BattleScreen(this))
         addScreen(MainMenuScreen(this))
-        setScreen<BattleScreen>()
+        setScreen<MainMenuScreen>()
 
         super.create()
     }
@@ -70,6 +73,53 @@ class Main : KtxGame<KtxScreen>() {
 }
 
 class BattleScreen(val game: Main) : KtxScreen {
+
+    var currentSession: GameSession? = null
+
+    // --- NEW FUNCTION: Called by MainMenu to start a NEW game ---
+    fun startNewGame(session: GameSession) {
+        this.currentSession = session
+        Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
+
+        // Reset player/enemy stats to default for a new game
+        player.health = 100 // Or your default
+        player.level = 1
+        // TODO: Set player.name if you change it from 'val' to 'var'
+
+        enemy.health = 100 // Or your default
+        enemy.level = 1
+
+        potions = 1 // Default potions
+
+        showToast("New Game: ${session.playerName}!", 1.5f)
+    }
+
+    // --- NEW FUNCTION: Called by MainMenu to LOAD a saved game ---
+    fun loadSavedGame(state: GameState, slot: Int) {
+        // We re-create the session from the saved data
+        this.currentSession = GameSession(slot, state.player.name)
+        Gdx.app.log("BattleScreen", "Loading game for ${state.player.name} from slot $slot")
+
+        // Apply saved stats to the player
+        player.health = state.player.health
+        player.level = state.player.level
+        player.defenseStat = state.player.defenseStat
+        player.attackStat = state.player.attackStat
+        // TODO: Set player.name if you change it
+
+        // Apply saved stats to the enemy
+        enemy.health = state.enemy.health
+        enemy.level = state.enemy.level
+        enemy.defenseStat = state.enemy.defenseStat
+        enemy.attackStat = state.enemy.attackStat
+
+        // TODO: You should add 'potions' to your GameState in SaveGame.kt
+        // For now, it will just reset to 1 on load.
+        potions = 1
+
+        showToast("Loaded Game: ${state.player.name}", 1.5f)
+    }
+
     // TODO: using this for save game
     private var toastText: String? = null
     private var toastTimer = 0f
@@ -274,9 +324,10 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         pauseUI.onSaveRequested = {
             try {
-                com.anotherround.SaveLoad.SaveGame.save(player, enemy)
-                Gdx.app.log("SAVE", "Game saved")
-                showToast("Game Saved", 1.5f)   // <-- top-center
+                val slotToSave = currentSession?.slotId ?: 1 // Default to 1 if session is somehow null
+                SaveGame.save(player, enemy, slotToSave)
+                Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
+                showToast("Game Saved (Slot $slotToSave)", 1.5f)   // <-- top-center
             } catch (t: Throwable) {
                 Gdx.app.error("SAVE", "Failed to save", t)
                 showToast("Save Failed", 1.5f)
@@ -389,14 +440,6 @@ class BattleScreen(val game: Main) : KtxScreen {
             // TODO: Draw the sprites
             playerSprite.draw(it)
             enemySprite.draw(it)
-
-            //TODO: Draw health bar
-            /*health = new NinePatch(gradient, 0, 0, 0, 0)
-            width = currentHealth / totalHealth * totalBarWidth;
-            container = new NinePatch(containerRegion, 5, 5, 2, 2);
-            container.draw(batch, 5, 8, totalBarWidth + 10, 8);
-            health.draw(batch, 10, 10, width, 4)
-            */
         }
     }
 

@@ -55,11 +55,7 @@ object SaveGame {
 
     // Where to store saves depending on platform
     private fun storageRoot(): FileHandle {
-        return when (Gdx.app.type) {
-            Application.ApplicationType.Android,
-            Application.ApplicationType.Desktop -> Gdx.files.external(DIR)
-            else -> Gdx.files.local(DIR) // iOS, WebGL fallback to local
-        }
+        return Gdx.files.local(DIR)
     }
 
     private fun fileForSlot(slot: Int): FileHandle {

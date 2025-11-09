@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import ktx.app.KtxScreen
 import ktx.graphics.use
+import com.anotherround.SaveLoad.SaveGame
 
 class MainMenuScreen(private val game: Main) : KtxScreen {
 
@@ -20,6 +21,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     private lateinit var bgTexture: Texture
 
     // UI
+    private var isUiBuilt = false
     private val stage = Stage(ScreenViewport(game.uiViewport.camera))
     private lateinit var skin: Skin
 
@@ -48,14 +50,17 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         Gdx.input.inputProcessor = stage
         skin = Skin(Gdx.files.internal("atlas/ui.json"))
         updateFont()
-
         loadStaticBackground("backgrounds/mainmenu_sheet.png")
 
-        buildMainButtons()
-        buildSlotOverlay()
-
+        if (!isUiBuilt) {
+            buildMainButtons()
+            buildSlotOverlay()
+            isUiBuilt = true
+        } else {
+            refreshButtonFonts()
+        }
+        updateSlotLabels()
         layoutBottomMenu()
-        stage.addActor(overlayRoot)
     }
 
     override fun render(delta: Float) {
@@ -118,7 +123,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
 
     private fun refreshButtonFonts() {
         fun styleFor(f: BitmapFont) = TextButton.TextButtonStyle().apply {
-            font = f
+            font = this@MainMenuScreen.font
             fontColor = Color.BLACK
             up = skin.getDrawable("button-normal")
             down = skin.getDrawable("button-normal-pressed")
@@ -219,25 +224,50 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
 
         confirmBtn = TextButton("Confirm", s).apply {
             addListener(click {
-                when (mode) {
-                    Submenu.LOAD -> {
-                        if (selectedSlot != -1) {
-                            Gdx.app.log("Menu", "Loading Game $selectedSlot")
-                        } else {
-                            Gdx.app.log("Menu", "Pick a slot")
-                        }
-                    }
-                    Submenu.NEW -> {
-                        if (selectedSlot == -1) {
-                            Gdx.app.log("Menu", "Pick a slot")
-                        } else if (nameField.text.isBlank()) {
-                            Gdx.app.log("Menu", "Enter a name")
-                        } else {
-                            Gdx.app.log("Menu", "New Game $selectedSlot named ${nameField.text}")
-                        }
-                    }
-                    else -> { }
+                if (selectedSlot == -1) {
+                    Gdx.app.log("UI", "No slot selected")
+                    // TODO: show a toast "Please select a slot"
+                    return@click
                 }
+
+                if (mode == Submenu.NEW) {
+                    val playerName = nameField.text.trim()
+                    if (playerName.isBlank()) {
+                        Gdx.app.log("UI", "Name is blank")
+                        // TODO: show a toast "Please enter a name"
+                        return@click
+                    }
+
+                    // 1. Create the session object
+                    val newSession = GameSession(selectedSlot, playerName)
+
+                    // 2. Call the new function on BattleScreen
+                    game.getScreen<BattleScreen>().startNewGame(newSession)
+
+                    // 3. Switch screens
+                    game.setScreen<BattleScreen>()
+
+                    // --- ADD THIS ENTIRE BLOCK ---
+                } else if (mode == Submenu.LOAD) {
+                    // 1. Try to load the game from the selected slot
+                    val loadedState = SaveGame.loadOrNull(selectedSlot)
+
+                    if (loadedState != null) {
+                        // 2. Success! Call the other new function on BattleScreen
+                        game.getScreen<BattleScreen>().loadSavedGame(loadedState, selectedSlot)
+
+                        // 3. Switch screens
+                        game.setScreen<BattleScreen>()
+                    } else {
+                        // This shouldn't happen if we disable the button,
+                        // but it's good error handling.
+                        Gdx.app.log("UI", "Load failed! File for slot $selectedSlot might be corrupt or empty.")
+                        // TODO: show toast "LOAD FAILED"
+                    }
+                }
+                // --- END OF BLOCK TO ADD ---
+
+                closeSlots() // Close the overlay
             })
         }
 
@@ -291,15 +321,42 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     }
 
     private fun selectSlot(i: Int) {
+        if (mode == Submenu.LOAD && !SaveGame.exists(i)) {
+            Gdx.app.log("UI", "Slot $i is empty, cannot load.")
+            // TODO: show a toast "Slot is empty"
+            return // Don't select the slot
+        }
+
         selectedSlot = i
         updateSlotLabels()
     }
 
     private fun updateSlotLabels() {
         fun tag(i: Int) = if (selectedSlot == i) "!" else ""
-        slot1.setText("Game 1" + tag(1))
-        slot2.setText("Game 2" + tag(2))
-        slot3.setText("Game 3" + tag(3))
+
+        fun getLabel(slot: Int): String {
+            val base = "Game $slot"
+            // Check if a save file exists for this slot
+            return if (SaveGame.exists(slot)) "$base (Saved)" else "$base (Empty)"
+        }
+
+        if (this::slot1.isInitialized) {
+            slot1.setText(getLabel(1) + tag(1))
+        }
+        if (this::slot2.isInitialized) {
+            slot2.setText(getLabel(2) + tag(2))
+        }
+        if (this::slot3.isInitialized) {
+            slot3.setText(getLabel(3) + tag(3))
+        }
+
+        if (this::confirmBtn.isInitialized) {
+            if (mode == Submenu.LOAD) {
+                confirmBtn.isDisabled = selectedSlot == -1
+            } else {
+                confirmBtn.isDisabled = false
+            }
+        }
     }
 
     private fun onePixel(color: Color): com.badlogic.gdx.graphics.g2d.TextureRegion {
