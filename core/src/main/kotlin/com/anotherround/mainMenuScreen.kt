@@ -202,6 +202,9 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
             this.font = this@MainMenuScreen.font
             this.fontColor = Color.BLACK
 
+            this.messageFontColor = Color.BLACK
+            this.font.data.setScale(1.0f)
+
             // Use your 'onePixel' helper to create drawables for the style
             val bg = TextureRegionDrawable(onePixel(Color(0.8f, 0.8f, 0.8f, 1.0f)))
             this.background = bg
@@ -209,7 +212,6 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
             this.selection = TextureRegionDrawable(onePixel(Color(0.5f, 0.5f, 1f, 0.5f)))
         }
 
-        // 2. Now, create the TextField by passing in the style *we just made*.
         nameField = TextField("", textFieldStyle).apply {
             messageText = "Enter name..."
         }
@@ -252,7 +254,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         inner.row()
         inner.add(slot3).padTop(36f).width(400f).height(200f)
         inner.row()
-        inner.add(nameField).padTop(36f).width(600f).height(100f)
+        inner.add(nameField).padTop(50f).width(800f).height(100f)
         inner.row()
 
         val actions = Table()
@@ -294,7 +296,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     }
 
     private fun updateSlotLabels() {
-        fun tag(i: Int) = if (selectedSlot == i) " ^" else ""
+        fun tag(i: Int) = if (selectedSlot == i) "!" else ""
         slot1.setText("Game 1" + tag(1))
         slot2.setText("Game 2" + tag(2))
         slot3.setText("Game 3" + tag(3))
