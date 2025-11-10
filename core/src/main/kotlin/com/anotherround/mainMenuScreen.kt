@@ -23,6 +23,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     // UI
     private var isUiBuilt = false
     private val stage = Stage(ScreenViewport(game.uiViewport.camera))
+    private lateinit var titleTexture: Texture
     private lateinit var skin: Skin
 
     private lateinit var newGameBtn: TextButton
@@ -52,8 +53,11 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         updateFont()
         loadStaticBackground("backgrounds/mainmenu_sheet.png")
 
+        loadTitleImage("logo.png")
+
         if (!isUiBuilt) {
             buildMainButtons()
+            buildTitle()
             buildSlotOverlay()
             isUiBuilt = true
         } else {
@@ -79,6 +83,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         }
 
         layoutBottomMenu()
+        layoutTitle()
         stage.act(delta)
         stage.draw()
     }
@@ -100,12 +105,22 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         bgTexture.dispose()
         font.dispose()
         generator.dispose()
+        if(this::titleTexture.isInitialized) titleTexture.dispose()
     }
 
     // ---- Helpers ----
     private fun loadStaticBackground(path: String) {
         bgTexture = Texture(Gdx.files.internal(path)).apply {
             setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+        }
+    }
+
+    // --- ADD THIS ENTIRE FUNCTION ---
+    private fun loadTitleImage(path: String) {
+        if (!this::titleTexture.isInitialized) { // Prevents reloading
+            titleTexture = Texture(Gdx.files.internal(path)).apply {
+                setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+            }
         }
     }
 
@@ -142,6 +157,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     }
 
     private fun buildMainButtons() {
+        val titleImage = Image(titleTexture)
         val style = TextButton.TextButtonStyle().apply {
             font = this@MainMenuScreen.font
             fontColor = Color.BLACK
@@ -159,22 +175,47 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         settingsBtn.addListener(click { Gdx.app.log("Menu", "Settings clicked") })
 
         val table = Table()
-        table.add(newGameBtn).width(600f).height(200f)
+
+        table.add(newGameBtn).width(800f).height(250f)
         table.row()
-        table.add(loadGameBtn).padTop(40f).width(600f).height(200f)
+        table.add(loadGameBtn).padTop(40f).width(800f).height(250f)
         table.row()
-        table.add(settingsBtn).padTop(40f).width(600f).height(200f)
+        table.add(settingsBtn).padTop(40f).width(800f).height(250f)
         stage.addActor(table)
         table.name = "bottomMenu"
     }
 
+    private fun buildTitle() {
+        // 1. Create the Image widget
+        val titleImage = Image(titleTexture)
+
+        // 2. Give it a name so we can find it
+        titleImage.name = "titleImage"
+
+        // 3. Add it directly to the stage
+        stage.addActor(titleImage)
+    }
+
+    private fun layoutTitle() {
+        val titleImage = stage.root.findActor<Image>("titleImage") ?: return
+
+        val scale = 2.25f
+        titleImage.setScale(scale)
+
+        // 2. Position this table at the TOP-CENTER of the screen
+        titleImage.setPosition(
+            (Gdx.graphics.width / 2f) - (titleImage.width * scale / 2f),
+            Gdx.graphics.height * 0.75f - (titleImage.height * scale / 2f)
+        )
+    }
+
     private fun layoutBottomMenu() {
         val table = stage.root.findActor<Table>("bottomMenu") ?: return
+        table.pack()
         table.setPosition(
-            Gdx.graphics.width / 2f,
-            Gdx.graphics.height * 0.10f
+            (Gdx.graphics.width - table.width) / 2f,
+            Gdx.graphics.height * 0.1f
         )
-        table.bottom()
     }
 
     private fun buildSlotOverlay() {
@@ -231,7 +272,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
                 }
 
                 if (mode == Submenu.NEW) {
-                    val playerName = nameField.text.trim()
+                    var playerName = nameField.text.trim()
                     if (playerName.isBlank()) {
                         Gdx.app.log("UI", "Name is blank")
                         // TODO: show a toast "Please enter a name"
@@ -278,19 +319,19 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         val inner = Table()
         inner.add(titleLabel).padBottom(24f)
         inner.row()
-        inner.add(slot1).width(400f).height(200f)
+        inner.add(slot1).width(600f).height(200f)
         inner.row()
-        inner.add(slot2).padTop(24f).width(400f).height(200f)
+        inner.add(slot2).padTop(24f).width(600f).height(200f)
         inner.row()
-        inner.add(slot3).padTop(36f).width(400f).height(200f)
+        inner.add(slot3).padTop(36f).width(600f).height(200f)
         inner.row()
         inner.add(nameField).padTop(50f).width(800f).height(100f)
         inner.row()
 
         val actions = Table()
-        actions.add(confirmBtn).width(400f).height(160f)
+        actions.add(confirmBtn).width(600f).height(200f)
         actions.add().width(30f)
-        actions.add(backBtn).width(400f).height(160f)
+        actions.add(backBtn).width(600f).height(200f)
         inner.add(actions).padTop(24f)
 
         val panel = Table()
@@ -335,9 +376,14 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         fun tag(i: Int) = if (selectedSlot == i) "!" else ""
 
         fun getLabel(slot: Int): String {
-            val base = "Game $slot"
-            // Check if a save file exists for this slot
-            return if (SaveGame.exists(slot)) "$base (Saved)" else "$base (Empty)"
+            val state = SaveGame.loadOrNull(slot)
+
+            return if (state != null) {
+                val playerName = state.player.name.take(10)
+                "$playerName"
+            } else {
+                "Game $slot"
+            }
         }
 
         if (this::slot1.isInitialized) {

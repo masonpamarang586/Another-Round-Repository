@@ -43,7 +43,7 @@ import com.badlogic.gdx.math.Rectangle
 import com.anotherround.SaveLoad.GameState
 import com.anotherround.SaveLoad.SaveGame
 
-data class GameSession(val slotId: Int, val playerName: String)
+data class GameSession(val slotId: Int, var playerName: String)
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -82,6 +82,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
 
         // Reset player/enemy stats to default for a new game
+        player.name = session.playerName
         player.health = 100 // Or your default
         player.level = 1
         // TODO: Set player.name if you change it from 'val' to 'var'
@@ -101,6 +102,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         Gdx.app.log("BattleScreen", "Loading game for ${state.player.name} from slot $slot")
 
         // Apply saved stats to the player
+        player.name = state.player.name
         player.health = state.player.health
         player.level = state.player.level
         player.defenseStat = state.player.defenseStat
@@ -115,7 +117,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // TODO: You should add 'potions' to your GameState in SaveGame.kt
         // For now, it will just reset to 1 on load.
-        potions = 1
+        potions = state.potions
 
         showToast("Loaded Game: ${state.player.name}", 1.5f)
     }
@@ -325,7 +327,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         pauseUI.onSaveRequested = {
             try {
                 val slotToSave = currentSession?.slotId ?: 1 // Default to 1 if session is somehow null
-                SaveGame.save(player, enemy, slotToSave)
+                SaveGame.save(player, enemy, potions, slotToSave)
                 Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
                 showToast("Game Saved (Slot $slotToSave)", 1.5f)   // <-- top-center
             } catch (t: Throwable) {

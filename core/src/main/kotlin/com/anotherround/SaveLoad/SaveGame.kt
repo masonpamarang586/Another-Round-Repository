@@ -11,11 +11,11 @@ import com.badlogic.gdx.utils.JsonWriter
 import java.time.Instant
 
 data class CharacterSnapshot(
-    val name: String,
-    val level: Int,
-    val health: Int,
-    val defenseStat: Int,
-    val attackStat: Int
+    var name: String = "",
+    var level: Int = 1,
+    var health: Int = 0,
+    var defenseStat: Int = 0,
+    var attackStat: Int = 0
 ) {
     companion object {
         fun from(c: Character) = CharacterSnapshot(
@@ -29,10 +29,11 @@ data class CharacterSnapshot(
 }
 
 data class GameState(
-    val version: Int = 1,
-    val savedAtEpochSec: Long = Instant.now().epochSecond,
-    val player: CharacterSnapshot,
-    val enemy: CharacterSnapshot
+    var version: Int = 1,
+    var savedAtEpochSec: Long = 0L,
+    var player: CharacterSnapshot = CharacterSnapshot(),
+    var enemy: CharacterSnapshot = CharacterSnapshot(),
+    var potions: Int = 1
 )
 
 /**
@@ -66,11 +67,12 @@ object SaveGame {
 
     // Save current state to the given slot (default slot 1)
     @Synchronized
-    fun save(player: Player, enemy: Enemy, slot: Int = 1) {
+    fun save(player: Player, enemy: Enemy, potions: Int, slot: Int = 1) {
         val fh = fileForSlot(slot)
         val state = GameState(
             player = CharacterSnapshot.from(player),
-            enemy = CharacterSnapshot.from(enemy)
+            enemy = CharacterSnapshot.from(enemy),
+            potions = potions
         )
         val text = json.prettyPrint(state)
         fh.writeString(text, false, Charsets.UTF_8.name())

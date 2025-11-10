@@ -1,7 +1,7 @@
 package com.anotherround.CharacterClasses
 
 class Player (
-    override val name: String = "Hero",
+    override var name: String = "Hero",
     override var level: Int = 1,
     override var health: Int = 100,
     override var defenseStat: Int = 1,
