@@ -39,7 +39,6 @@ import com.anotherround.render.EnemySprite
 import kotlin.math.max
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
-import com.badlogic.gdx.math.Rectangle
 import com.anotherround.SaveLoad.GameState
 import com.anotherround.SaveLoad.SaveGame
 
@@ -285,7 +284,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             combat.resolveDelay = playerSprite.attackDuration()
                         } else if (action.attacker === enemy) {
                             enemySprite.playAttack()
-                            combat.resolveDelay = enemySprite.attackDuration()   // <- NEW
+                            combat.resolveDelay = enemySprite.attackDuration()
                         }
                     }
                 }
@@ -329,7 +328,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                 val slotToSave = currentSession?.slotId ?: 1 // Default to 1 if session is somehow null
                 SaveGame.save(player, enemy, potions, slotToSave)
                 Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
-                showToast("Game Saved (Slot $slotToSave)", 1.5f)   // <-- top-center
+                showToast("Game Saved (Slot $slotToSave)", 1.5f)
             } catch (t: Throwable) {
                 Gdx.app.error("SAVE", "Failed to save", t)
                 showToast("Save Failed", 1.5f)
@@ -387,7 +386,6 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         //ui
         pauseUI.updateFont(this.font)
-        //pauseUI.pauseButtonHeightFraction = 0.10f
         pauseUI.onResize()
     }
 

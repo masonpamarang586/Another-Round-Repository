@@ -184,13 +184,10 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     }
 
     private fun buildTitle() {
-        // 1. Create the Image widget
         val titleImage = Image(titleTexture)
 
-        // 2. Give it a name so we can find it
         titleImage.name = "titleImage"
 
-        // 3. Add it directly to the stage
         stage.addActor(titleImage)
     }
 
@@ -241,14 +238,12 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         slot3 = TextButton("Game 3", s).apply { addListener(click { selectSlot(3) }) }
 
         val textFieldStyle = TextField.TextFieldStyle().apply {
-            // Use the font that was loaded in the show() method
             this.font = this@MainMenuScreen.font
             this.fontColor = Color.BLACK
 
             this.messageFontColor = Color.BLACK
             this.font.data.setScale(1.0f)
 
-            // Use your 'onePixel' helper to create drawables for the style
             val bg = TextureRegionDrawable(onePixel(Color(0.8f, 0.8f, 0.8f, 1.0f)))
             this.background = bg
             this.cursor = TextureRegionDrawable(onePixel(Color.BLACK))
@@ -276,36 +271,28 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
                         return@click
                     }
 
-                    // 1. Create the session object
                     val newSession = GameSession(selectedSlot, playerName)
 
-                    // 2. Call the new function on BattleScreen
                     game.getScreen<BattleScreen>().startNewGame(newSession)
 
-                    // 3. Switch screens
+                    // Switch screens
                     game.setScreen<BattleScreen>()
 
-                    // --- ADD THIS ENTIRE BLOCK ---
                 } else if (mode == Submenu.LOAD) {
-                    // 1. Try to load the game from the selected slot
                     val loadedState = SaveGame.loadOrNull(selectedSlot)
 
                     if (loadedState != null) {
-                        // 2. Success! Call the other new function on BattleScreen
                         game.getScreen<BattleScreen>().loadSavedGame(loadedState, selectedSlot)
 
-                        // 3. Switch screens
+                        // Switch screens
                         game.setScreen<BattleScreen>()
                     } else {
-                        // This shouldn't happen if we disable the button,
-                        // but it's good error handling.
                         Gdx.app.log("UI", "Load failed! File for slot $selectedSlot might be corrupt or empty.")
                         // TODO: show toast "LOAD FAILED"
                     }
                 }
-                // --- END OF BLOCK TO ADD ---
 
-                closeSlots() // Close the overlay
+                closeSlots()
             })
         }
 
@@ -362,7 +349,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         if (mode == Submenu.LOAD && !SaveGame.exists(i)) {
             Gdx.app.log("UI", "Slot $i is empty, cannot load.")
             // TODO: show a toast "Slot is empty"
-            return // Don't select the slot
+            return
         }
 
         selectedSlot = i
