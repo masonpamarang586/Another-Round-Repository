@@ -115,7 +115,6 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         }
     }
 
-    // --- ADD THIS ENTIRE FUNCTION ---
     private fun loadTitleImage(path: String) {
         if (!this::titleTexture.isInitialized) { // Prevents reloading
             titleTexture = Texture(Gdx.files.internal(path)).apply {
@@ -157,7 +156,6 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     }
 
     private fun buildMainButtons() {
-        val titleImage = Image(titleTexture)
         val style = TextButton.TextButtonStyle().apply {
             font = this@MainMenuScreen.font
             fontColor = Color.BLACK
@@ -202,7 +200,6 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         val scale = 2.25f
         titleImage.setScale(scale)
 
-        // 2. Position this table at the TOP-CENTER of the screen
         titleImage.setPosition(
             (Gdx.graphics.width / 2f) - (titleImage.width * scale / 2f),
             Gdx.graphics.height * 0.75f - (titleImage.height * scale / 2f)
