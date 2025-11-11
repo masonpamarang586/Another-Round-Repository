@@ -31,7 +31,6 @@ import ktx.async.KtxAsync
 import ktx.graphics.use
 import ktx.style.addStyle
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
@@ -75,28 +74,27 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     var currentSession: GameSession? = null
 
-    // --- NEW FUNCTION: Called by MainMenu to start a NEW game ---
     fun startNewGame(session: GameSession) {
         this.currentSession = session
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
 
         // Reset player/enemy stats to default for a new game
         player.name = session.playerName
-        player.health = 100 // Or your default
+        player.health = 100
         player.level = 1
-        // TODO: Set player.name if you change it from 'val' to 'var'
 
-        enemy.health = 100 // Or your default
+        enemy.health = 100
         enemy.level = 1
 
-        potions = 1 // Default potions
+        potions = 1
+        if (this::useButton.isInitialized) {
+            useButton.setText("Use $potions")
+        }
 
         showToast("New Game: ${session.playerName}!", 1.5f)
     }
 
-    // --- NEW FUNCTION: Called by MainMenu to LOAD a saved game ---
     fun loadSavedGame(state: GameState, slot: Int) {
-        // We re-create the session from the saved data
         this.currentSession = GameSession(slot, state.player.name)
         Gdx.app.log("BattleScreen", "Loading game for ${state.player.name} from slot $slot")
 
@@ -106,7 +104,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.level = state.player.level
         player.defenseStat = state.player.defenseStat
         player.attackStat = state.player.attackStat
-        // TODO: Set player.name if you change it
 
         // Apply saved stats to the enemy
         enemy.health = state.enemy.health
@@ -114,9 +111,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         enemy.defenseStat = state.enemy.defenseStat
         enemy.attackStat = state.enemy.attackStat
 
-        // TODO: You should add 'potions' to your GameState in SaveGame.kt
-        // For now, it will just reset to 1 on load.
         potions = state.potions
+        if (this::useButton.isInitialized) {
+            useButton.setText("Use ($potions)")
+        }
 
         showToast("Loaded Game: ${state.player.name}", 1.5f)
     }
@@ -336,7 +334,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         }
 
         pauseUI.onMainMenuRequested = {
-            // Option A (recommended): register the screen once in Main.create() and just switch here
             game.setScreen<MainMenuScreen>()
         }
 

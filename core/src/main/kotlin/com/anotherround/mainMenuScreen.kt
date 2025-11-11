@@ -136,23 +136,42 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     }
 
     private fun refreshButtonFonts() {
-        fun styleFor(f: BitmapFont) = TextButton.TextButtonStyle().apply {
+        val mainStyle = TextButton.TextButtonStyle().apply {
             font = this@MainMenuScreen.font
             fontColor = Color.BLACK
             up = skin.getDrawable("button-normal")
             down = skin.getDrawable("button-normal-pressed")
             over = skin.getDrawable("button-normal-over")
         }
-        val s = styleFor(font)
-        if (this::newGameBtn.isInitialized) newGameBtn.style = s
-        if (this::loadGameBtn.isInitialized) loadGameBtn.style = s
-        if (this::settingsBtn.isInitialized) settingsBtn.style = s
-        if (this::slot1.isInitialized) slot1.style = s
-        if (this::slot2.isInitialized) slot2.style = s
-        if (this::slot3.isInitialized) slot3.style = s
-        if (this::confirmBtn.isInitialized) confirmBtn.style = s
-        if (this::backBtn.isInitialized) backBtn.style = s
-        if (this::nameField.isInitialized) nameField.style.font = font
+        if (this::newGameBtn.isInitialized) newGameBtn.style = mainStyle
+        if (this::loadGameBtn.isInitialized) loadGameBtn.style = mainStyle
+        if (this::settingsBtn.isInitialized) settingsBtn.style = mainStyle
+
+        val slotStyle = TextButton.TextButtonStyle().apply {
+            font = this@MainMenuScreen.font
+            fontColor = Color.BLACK
+            up = skin.getDrawable("button-normal")
+            down = skin.getDrawable("button-normal-pressed")
+            over = skin.getDrawable("button-normal-over")
+        }
+        slotStyle.font.data.setScale(3.0f)
+
+        if (this::slot1.isInitialized) slot1.style = slotStyle
+        if (this::slot2.isInitialized) slot2.style = slotStyle
+        if (this::slot3.isInitialized) slot3.style = slotStyle
+        if (this::confirmBtn.isInitialized) confirmBtn.style = slotStyle
+        if (this::backBtn.isInitialized) backBtn.style = slotStyle
+
+        // Handle TextField
+        if (this::nameField.isInitialized) {
+            nameField.style.font = this@MainMenuScreen.font
+            nameField.style.font.data.setScale(1.0f)
+        }
+
+        // Handle Label
+        if (this::titleLabel.isInitialized) {
+            titleLabel.style.font = this@MainMenuScreen.font
+        }
     }
 
     private fun buildMainButtons() {
@@ -336,6 +355,9 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         nameField.isVisible = (m == Submenu.NEW)
         updateSlotLabels()
         overlayRoot.isVisible = true
+
+        stage.root.findActor<Table>("bottomMenu")?.isVisible = false
+        stage.root.findActor<Image>("titleImage")?.isVisible = false
     }
 
     private fun closeSlots() {
@@ -343,6 +365,9 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         mode = Submenu.NONE
         selectedSlot = -1
         updateSlotLabels()
+
+        stage.root.findActor<Table>("bottomMenu")?.isVisible = true
+        stage.root.findActor<Image>("titleImage")?.isVisible = true
     }
 
     private fun selectSlot(i: Int) {
@@ -360,11 +385,10 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         fun tag(i: Int) = if (selectedSlot == i) "!" else ""
 
         fun getLabel(slot: Int): String {
-            val state = SaveGame.loadOrNull(slot)
+            val playerName = SaveGame.getPlayerNameForSlot(slot)
 
-            return if (state != null) {
-                val playerName = state.player.name.take(10)
-                "$playerName"
+            return if (playerName != null) {
+                playerName.take(10)
             } else {
                 "Game $slot"
             }

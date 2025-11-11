@@ -97,4 +97,9 @@ object SaveGame {
         val fh = fileForSlot(slot)
         return if (fh.exists()) fh.delete() else false
     }
+
+    fun getPlayerNameForSlot(slot: Int): String? {
+        val state = loadOrNull(slot)
+        return state?.player?.name
+    }
 }
