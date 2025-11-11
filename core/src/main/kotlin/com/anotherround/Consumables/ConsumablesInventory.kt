@@ -11,14 +11,25 @@ class ConsumablesInventory {
     val tempList: MutableList<Consumable> = loadConsumables()
 
 
+    fun getConsumable(index: Int): Consumable {
+
+
+        return slots.get(index)
+    }
+
+
     fun loadConsumables(): MutableList<Consumable> {
-        // Test consumable item
+
+
+
 
         val json = Json()
 
-        val fileHandle: FileHandle = Gdx.files.internal("items.json")
+        val fileHandle: FileHandle = Gdx.files.internal("items/items.json")
+        val jsonString = fileHandle.readString()
 
-        val consumList: MutableList<Consumable> = json.fromJson(
+        // FLAG: ERROR IS HAPPENING WITH THE CODE BELOW, 32-37
+        val consumList = json.fromJson(
             MutableList::class.java,
             Consumable::class.java,
             fileHandle
@@ -35,19 +46,21 @@ class ConsumablesInventory {
     }
 
     //Add a consumable to a slot
-    fun addConsumable(consumable: Consumable) {
+    fun addConsumable(name: String) {
 
 
-        val foundConsumable = tempList.find{ it.equals(consumable) }
+        /*val foundConsumable = tempList.find{ it.name == name }
 
 
         if (slots.size < 8 && foundConsumable != null) {
-          slots.add(consumable);
+          slots.add(foundConsumable);
+        }*/
         }
-        }
-    
-
     }
+
+
+
+
 
 
 

@@ -45,6 +45,7 @@ import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.utils.Align
+import ktx.actors.stage
 
 
 class Main : KtxGame<KtxScreen>() {
@@ -173,12 +174,15 @@ class BattleScreen(val game: Main) : KtxScreen {
     private var potions = 1
     private val itemsTable by lazy {
 
+        // FLAG: ISSUES HAPPENING WITH THE UI DOWN HERE
 
         val table = Table()
+        table.pack()
 
 
+
+        // Sets the skin for the buttons
         val skin = Skin(Gdx.files.internal("atlas/ui.json"))
-
         val style = TextButton.TextButtonStyle()
         style.font = font
         style.fontColor = Color.BLACK
@@ -195,28 +199,30 @@ class BattleScreen(val game: Main) : KtxScreen {
         itemSlot.setSize(200f, 200f)
         //table.add(itemSlot).width(148f).height(148f)
 
-        // Add item
-        val potionImage = Image(potionTexture)
-        potionImage.setSize(116f, 116f)
+        // Create consumables inventory and add the healing potion
+        val inventory = ConsumablesInventory()
+        inventory.addConsumable("Healing Potion")
+
+        // Create slot1
+        val slot1Image = Image(potionTexture)
+        slot1Image.setSize(116f, 116f)
         //table.add(potionImage).width(100f).height(100f)
 
 
         // Group the slot and item together
         group.addActor(itemSlot)
-        group.addActor(potionImage)
-        potionImage.toFront()
-        potionImage.moveBy(40f,40f)
-        group.setPosition(25f, 25f)
+        group.addActor(slot1Image)
+        slot1Image.toFront()
+        slot1Image.moveBy(40f,40f)
         table.add(group)
 
-
-
+        // Interactions with the item slot
         group.addListener(object: ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y:Float) {
                 if (potions != 0) {
                     potions -= 1
                     player.health += 10
-                    potionImage.remove()
+                    slot1Image.remove()
                     showToast("Healed for 5 health")
                 } else {
                     showToast("No potions available")
@@ -230,6 +236,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         table.row()
 
 
+        // Return button, goes back when you click it
         val backButton = TextButton("Return", skin, "default")
         backButton.addListener(object: ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {

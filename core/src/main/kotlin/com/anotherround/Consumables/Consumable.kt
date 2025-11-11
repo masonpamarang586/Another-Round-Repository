@@ -7,6 +7,6 @@ import com.badlogic.gdx.utils.Json
 
 data class Consumable (val name: String,
                        val description: String,
-                       val image: Image,
+                       val image: String,
                        val healAmt: Int
 )

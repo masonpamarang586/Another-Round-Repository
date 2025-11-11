@@ -7,7 +7,5 @@ class Player (
     override var defenseStat: Int = 1,
     override var attackStat: Int = 10,
 ) : Character {
-    val gear = arrayListOf("Sword")
-    val usables = arrayListOf("HealthPotion")
     override val maxHealth: Int get() = 100
 }
