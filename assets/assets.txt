@@ -6,6 +6,7 @@ audio/magical-hit-45356.mp3
 audio/male_hurt7-48124.mp3
 audio/sword-clattering-to-the-ground-393838.mp3
 audio/violent-sword-slice-393839.mp3
+backgrounds/mainmenu_sheet.png
 com/badlogic/gdx/utils/lsans-15.fnt
 com/badlogic/gdx/utils/lsans-15.png
 entities/enemy_slime_spritesheet.png
@@ -31,6 +32,7 @@ generic_char_v0.2/png/red/char_red_1_index10.png
 generic_char_v0.2/png/red/char_red_2.png
 generic_char_v0.2/readme.TXT
 items/potions.png
+logo.png
 test.tpproj
 ui/font-list.fnt
 ui/font-subtitle.fnt
