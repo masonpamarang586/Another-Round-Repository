@@ -28,6 +28,8 @@ class CombatManager(
 
     private val onSfx: (SfxEvent) -> Unit = {},
 
+    private val onDefeat: (defeated: Character, by: Character) -> Unit = { _, _ -> },
+
     var resolveDelay: Float = 5.0f
 ) {
     var turn: Turn = Turn.PLAYER
@@ -122,6 +124,7 @@ class CombatManager(
                 if (!action.defender.isAlive()) {
                     onLog("${action.defender.name} is defeated!")
                     onSfx(if (defenderIsPlayer) SfxEvent.PlayerDeath else SfxEvent.EnemyDeath)
+                    onDefeat(action.defender, action.attacker)
                 } else {
                     onSfx(if (defenderIsPlayer) SfxEvent.PlayerHurt else SfxEvent.EnemyHurt)
                 }

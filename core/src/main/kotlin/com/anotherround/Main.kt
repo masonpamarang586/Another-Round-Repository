@@ -315,6 +315,14 @@ class BattleScreen(val game: Main) : KtxScreen {
                     com.anotherround.combat.SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
                 }
             },
+            onDefeat = { defeated, by ->
+                if (defeated === enemy && by === player) {
+                    val coins = 10
+                    player.currency += coins
+                    Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
+                   // showVictoryPopup(xp = 10, money = coins)
+                }
+            },
             resolveDelay = 0f
         )
 
