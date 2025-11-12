@@ -14,16 +14,15 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.utils.viewport.Viewport
 
 class PauseScreenUI(private val uiViewport: Viewport) {
-    // added by mason for save feature
     var onSaveRequested: (() -> Unit)? = null
-    /** Scales the pause icon by a fraction of screen height (e.g., 0.10f = 10%). */
+    var onMainMenuRequested: (() -> Unit)? = null
+
     var pauseButtonHeightFraction: Float = 0.05f
         set(value) {
             field = value
             updatePauseButtonBounds()
         }
 
-    /** Margin from the screen edges in UI units. */
     var pauseButtonMargin: Float = 0f
         set(value) {
             field = value
@@ -36,7 +35,6 @@ class PauseScreenUI(private val uiViewport: Viewport) {
     }
     private val pauseIconRegion = TextureRegion(pauseTexture)
 
-    // 1×1 white pixel for dim background veil.
     private val dimmerTex: Texture = run {
         val pm = Pixmap(1, 1, Pixmap.Format.RGBA8888)
         pm.setColor(1f, 1f, 1f, 1f)
@@ -45,11 +43,9 @@ class PauseScreenUI(private val uiViewport: Viewport) {
         pm.dispose()
         t
     }
-
-    // Reuse your existing Skin/button visuals.
     private val skin = Skin(Gdx.files.internal("atlas/ui.json"))
     private val style = TextButton.TextButtonStyle().apply {
-        font = BitmapFont() // replaced via updateFont()
+        font = BitmapFont()
         fontColor = Color.BLACK
         up   = skin.getDrawable("button-normal")
         down = skin.getDrawable("button-normal-pressed")
@@ -59,7 +55,7 @@ class PauseScreenUI(private val uiViewport: Viewport) {
     private val resumeButton   = TextButton("Resume", style)
     private val newGameButton  = TextButton("New Game", style)
     private val saveGameButton = TextButton("Save Game", style)
-    private val settingsButton = TextButton("Settings", style)
+    private val mainMenuButton = TextButton("Main Menu", style)
 
     private val pauseButtonBounds = Rectangle()
     private val panelBounds = Rectangle()
@@ -70,12 +66,10 @@ class PauseScreenUI(private val uiViewport: Viewport) {
         private set
 
     init {
-        // Make this style the default so all menu buttons match.
         skin.add("default", style, TextButton.TextButtonStyle::class.java)
         onResize()
     }
 
-    /** Keep the pause UI font in sync with your main UI font (call from FirstScreen.resize). */
     fun updateFont(newFont: BitmapFont) {
         style.font = newFont
         style.fontColor = Color.BLACK
@@ -83,20 +77,18 @@ class PauseScreenUI(private val uiViewport: Viewport) {
         resumeButton.style = style
         newGameButton.style = style
         saveGameButton.style = style
-        settingsButton.style = style
+        mainMenuButton.style = style
 
-        listOf(resumeButton, newGameButton, saveGameButton, settingsButton).forEach {
+        listOf(resumeButton, newGameButton, saveGameButton, mainMenuButton).forEach {
             it.invalidateHierarchy()
         }
     }
 
-    /** Recompute positions/sizes after any viewport change (call from FirstScreen.resize). */
     fun onResize() {
         updatePauseButtonBounds()
         layoutMenu()
     }
 
-    /** Draws the pause icon/menu and handles click input. Call from drawUI() while the batch is active. */
     fun drawAndHandleInput(batch: SpriteBatch) {
         // Draw the pause icon EXACTLY the size of its hitbox.
         batch.draw(
@@ -126,14 +118,14 @@ class PauseScreenUI(private val uiViewport: Viewport) {
         resumeButton.draw(batch, 1f)
         newGameButton.draw(batch, 1f)
         saveGameButton.draw(batch, 1f)
-        settingsButton.draw(batch, 1f)
+        mainMenuButton.draw(batch, 1f)
 
         if (touch != null) {
             when {
                 boundsOf(resumeButton).contains(touch.x, touch.y)   -> onResumeClicked()
                 boundsOf(newGameButton).contains(touch.x, touch.y)  -> onNewGameClicked()
                 boundsOf(saveGameButton).contains(touch.x, touch.y) -> onSaveGameClicked()
-                boundsOf(settingsButton).contains(touch.x, touch.y) -> onSettingsClicked()
+                boundsOf(mainMenuButton).contains(touch.x, touch.y) -> onMainMenuClicked()
             }
         }
     }
@@ -147,7 +139,6 @@ class PauseScreenUI(private val uiViewport: Viewport) {
     // --- Internals ---
 
     private fun updatePauseButtonBounds() {
-        // Preserve the source image aspect ratio so draw-size == hitbox-size.
         val srcW = pauseIconRegion.regionWidth.toFloat()
         val srcH = pauseIconRegion.regionHeight.toFloat()
 
@@ -181,7 +172,7 @@ class PauseScreenUI(private val uiViewport: Viewport) {
         place(resumeButton)
         place(newGameButton)
         place(saveGameButton)
-        place(settingsButton)
+        place(mainMenuButton)
     }
 
     private fun uiToWorld(screenX: Int, screenY: Int): Vector3 {
@@ -194,10 +185,13 @@ class PauseScreenUI(private val uiViewport: Viewport) {
 
     private fun onResumeClicked() { isPaused = false }
     private fun onNewGameClicked() { Gdx.app.log("Pause", "New Game clicked") }
-    private fun onSaveGameClicked() {  // edited by mason for save
+    private fun onSaveGameClicked() {
         Gdx.app.log("Pause", "Save Game clicked")
         onSaveRequested?.invoke()
         isPaused = false
     }
-    private fun onSettingsClicked() { Gdx.app.log("Pause", "Settings clicked") }
+    private fun onMainMenuClicked() {
+        onMainMenuRequested?.invoke()
+        isPaused = false
+    }
 }

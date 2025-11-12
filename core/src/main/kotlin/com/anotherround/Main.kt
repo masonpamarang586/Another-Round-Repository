@@ -8,7 +8,6 @@
 
 package com.anotherround
 
-import com.anotherround.Screens.BattleScreen
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.utils.viewport.FitViewport
@@ -16,6 +15,9 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
 import ktx.app.KtxGame
 import ktx.app.KtxScreen
 import ktx.async.KtxAsync
+import com.anotherround.Screens.BattleScreen
+
+data class GameSession(val slotId: Int, var playerName: String)
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -32,7 +34,8 @@ class Main : KtxGame<KtxScreen>() {
         KtxAsync.initiate()
 
         addScreen(BattleScreen(this))
-        setScreen<BattleScreen>()
+        addScreen(MainMenuScreen(this))
+        setScreen<MainMenuScreen>()
 
         super.create()
     }
