@@ -1,6 +1,6 @@
 package com.anotherround
 
-import com.anotherround.Screens.BattleScreen
+import ktx.app.KtxScreen
 
 object GameLogic {
     enum class GameState {
@@ -18,7 +18,7 @@ object GameLogic {
         ENEMY_ITEM
     }
 
-    var screen: BattleScreen? = null
+    var screen: KtxScreen? = null
 
     var gameState = GameState.MAIN_MENU
     var battles = 0
