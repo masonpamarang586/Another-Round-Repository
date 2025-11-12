@@ -1,4 +1,4 @@
-package com.anotherround
+package com.anotherround.Screens
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
