@@ -46,7 +46,10 @@ import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.utils.Align
 import ktx.actors.stage
+import com.anotherround.SaveLoad.GameState
+import com.anotherround.SaveLoad.SaveGame
 
+data class GameSession(val slotId: Int, var playerName: String)
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -63,7 +66,8 @@ class Main : KtxGame<KtxScreen>() {
         KtxAsync.initiate()
 
         addScreen(BattleScreen(this))
-        setScreen<BattleScreen>()
+        addScreen(MainMenuScreen(this))
+        setScreen<MainMenuScreen>()
 
         super.create()
     }
@@ -75,6 +79,54 @@ class Main : KtxGame<KtxScreen>() {
 }
 
 class BattleScreen(val game: Main) : KtxScreen {
+
+    var currentSession: GameSession? = null
+
+    fun startNewGame(session: GameSession) {
+        this.currentSession = session
+        Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
+
+        // Reset player/enemy stats to default for a new game
+        player.name = session.playerName
+        player.health = 100
+        player.level = 1
+
+        enemy.health = 100
+        enemy.level = 1
+
+        potions = 1
+        if (this::useButton.isInitialized) {
+            useButton.setText("Use $potions")
+        }
+
+        showToast("New Game: ${session.playerName}!", 1.5f)
+    }
+
+    fun loadSavedGame(state: GameState, slot: Int) {
+        this.currentSession = GameSession(slot, state.player.name)
+        Gdx.app.log("BattleScreen", "Loading game for ${state.player.name} from slot $slot")
+
+        // Apply saved stats to the player
+        player.name = state.player.name
+        player.health = state.player.health
+        player.level = state.player.level
+        player.defenseStat = state.player.defenseStat
+        player.attackStat = state.player.attackStat
+
+        // Apply saved stats to the enemy
+        enemy.health = state.enemy.health
+        enemy.level = state.enemy.level
+        enemy.defenseStat = state.enemy.defenseStat
+        enemy.attackStat = state.enemy.attackStat
+
+        potions = state.potions
+        if (this::useButton.isInitialized) {
+            useButton.setText("Use ($potions)")
+        }
+
+        showToast("Loaded Game: ${state.player.name}", 1.5f)
+    }
+
     // TODO: using this for save game
     private var toastText: String? = null
     private var toastTimer = 0f
@@ -285,7 +337,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             combat.resolveDelay = playerSprite.attackDuration()
                         } else if (action.attacker === enemy) {
                             enemySprite.playAttack()
-                            combat.resolveDelay = enemySprite.attackDuration()   // <- NEW
+                            combat.resolveDelay = enemySprite.attackDuration()
                         }
                     }
                 }
@@ -318,6 +370,14 @@ class BattleScreen(val game: Main) : KtxScreen {
                     com.anotherround.combat.SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
                 }
             },
+            onDefeat = { defeated, by ->
+                if (defeated === enemy && by === player) {
+                    val coins = 10
+                    player.currency += coins
+                    Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
+                   // showVictoryPopup(xp = 10, money = coins)
+                }
+            },
             resolveDelay = 0f
         )
 
@@ -326,13 +386,18 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         pauseUI.onSaveRequested = {
             try {
-                com.anotherround.SaveLoad.SaveGame.save(player, enemy)
-                Gdx.app.log("SAVE", "Game saved")
-                showToast("Game Saved", 1.5f)   // <-- top-center
+                val slotToSave = currentSession?.slotId ?: 1 // Default to 1 if session is somehow null
+                SaveGame.save(player, enemy, potions, slotToSave)
+                Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
+                showToast("Game Saved (Slot $slotToSave)", 1.5f)
             } catch (t: Throwable) {
                 Gdx.app.error("SAVE", "Failed to save", t)
                 showToast("Save Failed", 1.5f)
             }
+        }
+
+        pauseUI.onMainMenuRequested = {
+            game.setScreen<MainMenuScreen>()
         }
 
         // Enable input for UI
@@ -381,7 +446,6 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         //ui
         pauseUI.updateFont(this.font)
-        //pauseUI.pauseButtonHeightFraction = 0.10f
         pauseUI.onResize()
     }
 
@@ -436,14 +500,6 @@ class BattleScreen(val game: Main) : KtxScreen {
             // TODO: Draw the sprites
             playerSprite.draw(it)
             enemySprite.draw(it)
-
-            //TODO: Draw health bar
-            /*health = new NinePatch(gradient, 0, 0, 0, 0)
-            width = currentHealth / totalHealth * totalBarWidth;
-            container = new NinePatch(containerRegion, 5, 5, 2, 2);
-            container.draw(batch, 5, 8, totalBarWidth + 10, 8);
-            health.draw(batch, 10, 10, width, 4)
-            */
         }
     }
 
@@ -490,8 +546,6 @@ class BattleScreen(val game: Main) : KtxScreen {
                 font.draw(game.batch, toastLayout, x, y)
 
                 game.batch.color = oldColor
-
-
             }
         }
     }
