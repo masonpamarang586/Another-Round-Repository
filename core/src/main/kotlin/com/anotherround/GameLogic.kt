@@ -1,9 +1,15 @@
 package com.anotherround
 
-import com.badlogic.gdx.math.Vector2
+import ktx.app.KtxScreen
 
 object GameLogic {
-    enum class State {
+    enum class GameState {
+        MAIN_MENU,
+        BATTLE,
+        SHOP
+    }
+
+    enum class BattleState {
         PLAYER_TURN,
         PLAYER_ATTACK,
         PLAYER_ITEM,
@@ -12,35 +18,45 @@ object GameLogic {
         ENEMY_ITEM
     }
 
-    var screen: BattleScreen? = null
+    var screen: KtxScreen? = null
 
-    var state = State.PLAYER_TURN
+    var gameState = GameState.MAIN_MENU
+    var battles = 0
 
-    const val ANIMATION_WAIT = 1.0f
+    var battleState = BattleState.PLAYER_TURN
+
+    const val ANIMATION_WAIT_TIME = 1.0f
     var accumulator = 0f
 
-    fun doLogic(delta: Float, state: GameLogic.State) {
-        println(accumulator)
+    fun doGameLogic(newState: GameLogic.BattleState) {
+        /*
+         *
+         *
+         *
+         */
+    }
+
+    fun doBattleLogic(delta: Float, newState: GameLogic.BattleState) {
         accumulator += delta
-        if (accumulator >= ANIMATION_WAIT) {
+        if (accumulator >= ANIMATION_WAIT_TIME) {
             accumulator = 0f
         }
 
-        when (state) {
-            State.PLAYER_TURN -> {}
-            State.PLAYER_ATTACK -> {
-                if (this.state == State.PLAYER_TURN) {
+        when (newState) {
+            BattleState.PLAYER_TURN -> {}
+            BattleState.PLAYER_ATTACK -> {
+                if (this.battleState == BattleState.PLAYER_TURN) {
                     // TODO: Attack
                 }
             }
-            State.PLAYER_ITEM -> {
-                if (this.state == State.PLAYER_TURN) {
+            BattleState.PLAYER_ITEM -> {
+                if (this.battleState == BattleState.PLAYER_TURN) {
                     // TODO: Open item menu
                 }
             }
-            State.ENEMY_TURN -> {}
-            State.ENEMY_ATTACK -> {}
-            State.ENEMY_ITEM -> {}
+            BattleState.ENEMY_TURN -> {}
+            BattleState.ENEMY_ATTACK -> {}
+            BattleState.ENEMY_ITEM -> {}
         }
     }
 }

@@ -44,3 +44,11 @@ button-pause-pressed
     orig: 32, 32
     offset: 0, 0
     index: -1
+item-slot
+    rotate: false
+    xy: 96, 0
+    size: 32, 32
+    orig: 32, 32
+    offset: 0, 0
+    index: -1
+

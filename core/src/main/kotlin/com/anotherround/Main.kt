@@ -10,37 +10,42 @@ package com.anotherround
 
 import com.anotherround.CharacterClasses.Enemy
 import com.anotherround.CharacterClasses.Player
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Color
+import com.anotherround.Consumables.ConsumablesInventory
+import com.anotherround.SaveLoad.GameState
+import com.anotherround.SaveLoad.SaveGame
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
-import com.badlogic.gdx.maps.tiled.TmxMapLoader
-import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer
-import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import ktx.app.KtxGame
 import ktx.app.KtxScreen
 import ktx.async.KtxAsync
-import ktx.graphics.use
-import ktx.style.addStyle
-import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.ui.Image
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.anotherround.Screens.CampfireScreen
+import com.anotherround.Screens.PauseScreenUI
 import com.anotherround.render.EnemySprite
-import kotlin.math.max
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
-import com.badlogic.gdx.math.Rectangle
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
+import com.badlogic.gdx.maps.tiled.TmxMapLoader
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.Image
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import ktx.graphics.use
+import ktx.style.addStyle
+import kotlin.math.max
+import com.badlogic.gdx.scenes.scene2d.Group
 
+data class GameSession(val slotId: Int, var playerName: String)
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -56,8 +61,10 @@ class Main : KtxGame<KtxScreen>() {
     override fun create() {
         KtxAsync.initiate()
 
+        addScreen(MainMenuScreen(this))
         addScreen(BattleScreen(this))
-        setScreen<BattleScreen>()
+        addScreen(CampfireScreen(this))
+        setScreen<MainMenuScreen>()
 
         super.create()
     }
@@ -66,9 +73,61 @@ class Main : KtxGame<KtxScreen>() {
         batch.dispose()
         super.dispose()
     }
+
+    override fun render() {
+        super.render()
+    }
 }
 
 class BattleScreen(val game: Main) : KtxScreen {
+
+    var currentSession: GameSession? = null
+
+    fun startNewGame(session: GameSession) {
+        this.currentSession = session
+        Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
+
+        // Reset player/enemy stats to default for a new game
+        player.name = session.playerName
+        player.health = 100
+        player.level = 1
+
+        enemy.health = 20
+        enemy.level = 1
+
+        potions = 1
+        if (this::useButton.isInitialized) {
+            useButton.setText("Use $potions")
+        }
+
+//        showToast("New Game: ${session.playerName}!", 1.5f)
+    }
+
+    fun loadSavedGame(state: GameState, slot: Int) {
+        this.currentSession = GameSession(slot, state.player.name)
+        Gdx.app.log("BattleScreen", "Loading game for ${state.player.name} from slot $slot")
+
+        // Apply saved stats to the player
+        player.name = state.player.name
+        player.health = state.player.health
+        player.level = state.player.level
+        player.defenseStat = state.player.defenseStat
+        player.attackStat = state.player.attackStat
+
+        // Apply saved stats to the enemy
+        enemy.health = state.enemy.health
+        enemy.level = state.enemy.level
+        enemy.defenseStat = state.enemy.defenseStat
+        enemy.attackStat = state.enemy.attackStat
+
+        potions = state.potions
+        if (this::useButton.isInitialized) {
+            useButton.setText("Use ($potions)")
+        }
+
+//        showToast("Loaded Game: ${state.player.name}", 1.5f)
+    }
+
     // TODO: using this for save game
     private var toastText: String? = null
     private var toastTimer = 0f
@@ -88,6 +147,10 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var sfxPlayerHurt: Sound
     private lateinit var sfxEnemyHurt: Sound
     private lateinit var sfxEnemyDeath: Sound
+
+    private lateinit var sfxItemHeal: Sound
+
+    private lateinit var sfxItemFail: Sound
 
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
@@ -111,11 +174,49 @@ class BattleScreen(val game: Main) : KtxScreen {
     private val enemy  = Enemy(name = "Meany")
     private lateinit var combat: com.anotherround.combat.CombatManager
 
+    private val playerHealthLabel by lazy {
+        val skin = Skin(Gdx.files.internal("atlas/ui.json"))
+
+        val style = TextButton.TextButtonStyle()
+        style.font = font
+        style.fontColor = Color.BLACK
+        style.up = skin.getDrawable("button-normal")
+        style.down = skin.getDrawable("button-normal-pressed")
+        style.over = skin.getDrawable("button-normal-over")
+        style.font.data.setScale(3.0f)
+        skin.addStyle("default", style)
+
+        val label = TextButton("${player.health}", skin)
+        label.width = 400f
+        label.height = 200f
+        label
+    }
+
+    private val enemyHealthLabel by lazy {
+        val skin = Skin(Gdx.files.internal("atlas/ui.json"))
+
+        val style = TextButton.TextButtonStyle()
+        style.font = font
+        style.fontColor = Color.BLACK
+        style.up = skin.getDrawable("button-normal")
+        style.down = skin.getDrawable("button-normal-pressed")
+        style.over = skin.getDrawable("button-normal-over")
+        style.font.data.setScale(3.0f)
+        skin.addStyle("default", style)
+
+        val label = TextButton("${enemy.health}", skin)
+        label.width = 400f
+        label.height = 200f
+        label
+    }
+
     // TODO:
     //  Add event/onClick listeners for the buttons.
     //  Add textures for button being hovered and being pressed.
     lateinit var attackButton: TextButton
     lateinit var itemsButton: TextButton
+
+     lateinit var group: Group
     private val menuTable by lazy {
         val table = Table()
 
@@ -153,6 +254,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         table.add(itemsButton).pad(100f).width(400f).height(200f)
 
         table
+
     }
 
     private var isShowingItems = false
@@ -165,11 +267,22 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     private var potions = 1
     lateinit var useButton: TextButton
+
     private val itemsTable by lazy {
+
+        // FLAG: ISSUES HAPPENING WITH THE UI DOWN HERE
+
         val table = Table()
+        table.pack()
 
+        // Initializes sound effects
+        sfxItemHeal  = Gdx.audio.newSound(Gdx.files.internal("audio/item-use.mp3"))
+        sfxItemFail  = Gdx.audio.newSound(Gdx.files.internal("audio/item-fail.mp3"))
+
+
+
+        // Sets the skin for the buttons
         val skin = Skin(Gdx.files.internal("atlas/ui.json"))
-
         val style = TextButton.TextButtonStyle()
         style.font = font
         style.fontColor = Color.BLACK
@@ -179,32 +292,78 @@ class BattleScreen(val game: Main) : KtxScreen {
         style.font.data.setScale(3.0f)
         skin.addStyle("default", style)
 
-        val potionImage = Image(potionTexture)
-        table.add(potionImage).width(100f).height(100f)
+        val group = Group()
 
-        val useButton = TextButton("Use ($potions)", skin)
-        this.useButton = useButton
-        useButton.addListener(object : ClickListener() {
-            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+        val consumInventory = ConsumablesInventory()
+        consumInventory.addConsumable("Health potion")
+
+        // Add viewable item slot1
+        val itemSlot1 = Image(skin.getDrawable("item-slot"))
+        itemSlot1.setSize(200f, 200f)
+
+
+        // Create consumables inventory and add the healing potion
+        val inventory = ConsumablesInventory()
+        inventory.addConsumable("Healing Potion")
+
+        // Create slot1
+        val slot1Image = Image(potionTexture)
+        slot1Image.setSize(116f, 116f)
+
+
+        // Group the slot and item together
+        group.addActor(itemSlot1)
+        group.addActor(slot1Image)
+        slot1Image.toFront()
+        slot1Image.moveBy(40f,40f)
+        table.add(group)
+
+
+        // Interactions with the item slot
+        group.addListener(object: ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y:Float) {
                 if (potions != 0) {
+                    sfxItemHeal.play(50f)
                     potions -= 1
                     player.health += 10
-                    useButton.setText("Use $potions")
-                    showToast("Healed for 10 health")
+                    slot1Image.remove()
+//                  showToast("Healed for 10 health")
                 } else {
-                    showToast("No potions available")
+                    sfxItemFail.play(50f)
+//                  showToast("No potions available")
                 }
                 if (isShowingItems) {
                     isShowingItems = false
                 }
             }
         })
-        table.add(useButton).width(400f).height(200f)
+
+        table.row()
+
+
+        // Return button, goes back when you click it
+        val backButton = TextButton("Return", skin, "default")
+        backButton.addListener(object: ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                if (isShowingItems) {
+                    isShowingItems = false
+                }
+            }
+        })
+
+
+        table.add(backButton).width(400f).height(200f)
+        table.row()
+
+
 
         table
     }
 
+    private var accumulator = 0f
+
     override fun show() {
+        GameLogic.gameState = GameLogic.GameState.BATTLE
         itemsTable.center()
         playerSprite = com.anotherround.render.PlayerSprite(
             game.worldViewport,
@@ -232,7 +391,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             combat.resolveDelay = playerSprite.attackDuration()
                         } else if (action.attacker === enemy) {
                             enemySprite.playAttack()
-                            combat.resolveDelay = enemySprite.attackDuration()   // <- NEW
+                            combat.resolveDelay = enemySprite.attackDuration()
                         }
                     }
                 }
@@ -252,7 +411,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             playerSprite.playHurt()
                             combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
                         }
-                        }
+                    }
                 }
             },
             onSfx = { e ->
@@ -265,6 +424,14 @@ class BattleScreen(val game: Main) : KtxScreen {
                     com.anotherround.combat.SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
                 }
             },
+            onDefeat = { defeated, by ->
+                if (defeated === enemy && by === player) {
+                    val coins = 10
+                    player.currency += coins
+                    Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
+                    // showVictoryPopup(xp = 10, money = coins)
+                }
+            },
             resolveDelay = 0f
         )
 
@@ -273,13 +440,18 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         pauseUI.onSaveRequested = {
             try {
-                com.anotherround.SaveLoad.SaveGame.save(player, enemy)
-                Gdx.app.log("SAVE", "Game saved")
-                showToast("Game Saved", 1.5f)   // <-- top-center
+                val slotToSave = currentSession?.slotId ?: 1 // Default to 1 if session is somehow null
+                SaveGame.save(player, enemy, potions, slotToSave)
+                Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
+//                showToast("Game Saved (Slot $slotToSave)", 1.5f)
             } catch (t: Throwable) {
                 Gdx.app.error("SAVE", "Failed to save", t)
-                showToast("Save Failed", 1.5f)
+//                showToast("Save Failed", 1.5f)
             }
+        }
+
+        pauseUI.onMainMenuRequested = {
+            game.setScreen<MainMenuScreen>()
         }
 
         // Enable input for UI
@@ -328,7 +500,6 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         //ui
         pauseUI.updateFont(this.font)
-        //pauseUI.pauseButtonHeightFraction = 0.10f
         pauseUI.onResize()
     }
 
@@ -355,6 +526,82 @@ class BattleScreen(val game: Main) : KtxScreen {
         if (toastTimer > 0f) {
             toastTimer -= Gdx.graphics.deltaTime
             if (toastTimer <= 0f) toastText = null
+        }
+        if (enemy.health == 0 || player.health == 0) {
+            accumulator += delta
+            if (accumulator >= 2f && enemy.health == 0) {
+                accumulator = 0f
+                enemy.health = 20
+                playerSprite = com.anotherround.render.PlayerSprite(
+                    game.worldViewport,
+                    idlePath = "generic_char_v0.2/png/blue/char_blue_1_index00.png",
+                    attackRowPath = "generic_char_v0.2/png/blue/blue_attack1.png"
+                )
+                enemySprite = com.anotherround.render.EnemySprite(game.worldViewport)
+                backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/battle-fighting-warrior-drums-372078.mp3"))
+                backgroundMusic.isLooping = true
+                backgroundMusic.volume = 1.5f
+                backgroundMusic.play()
+                sfxPlayerAttack = Gdx.audio.newSound(Gdx.files.internal("audio/violent-sword-slice-393839.mp3"))
+                sfxEnemyAttack  = Gdx.audio.newSound(Gdx.files.internal("audio/magical-hit-45356.mp3"))
+                sfxPlayerHurt   = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
+                sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
+                sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
+                combat = com.anotherround.combat.CombatManager(
+                    player, enemy,
+                    onLog = { msg -> Gdx.app.log("COMBAT", msg) },
+                    onActionStart = { action ->
+                        when (action) {
+                            is com.anotherround.combat.Action.Attack -> {
+                                if (action.attacker === player) {
+                                    playerSprite.playAttack()
+                                    combat.resolveDelay = playerSprite.attackDuration()
+                                } else if (action.attacker === enemy) {
+                                    enemySprite.playAttack()
+                                    combat.resolveDelay = enemySprite.attackDuration()
+                                }
+                            }
+                        }
+                    },
+                    onActionEnd   = { action ->
+                        when (action) {
+                            is com.anotherround.combat.Action.Attack -> {
+                                if (action.attacker === player) {
+                                    if (enemy.isAlive()) {
+                                        enemySprite.playHurt()
+                                        combat.pauseNextTurnFor(max(1.5f,enemySprite.hurtDuration())) // little hit-pause
+                                    } else {
+                                        enemySprite.playDeath()
+                                        combat.pauseNextTurnFor(enemySprite.deathDuration())
+                                    }
+                                } else if (action.attacker === enemy) {
+                                    playerSprite.playHurt()
+                                    combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
+                                }
+                            }
+                        }
+                    },
+                    onSfx = { e ->
+                        when (e) {
+                            com.anotherround.combat.SfxEvent.PlayerAttack -> sfxPlayerAttack.play(0.9f)
+                            com.anotherround.combat.SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
+                            com.anotherround.combat.SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
+                            com.anotherround.combat.SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
+                            com.anotherround.combat.SfxEvent.PlayerDeath  -> { /* add later if you have it */ }
+                            com.anotherround.combat.SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
+                        }
+                    },
+                    onDefeat = { defeated, by ->
+                        if (defeated === enemy && by === player) {
+                            val coins = 10
+                            player.currency += coins
+                            Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
+                            // showVictoryPopup(xp = 10, money = coins)
+                        }
+                    },
+                    resolveDelay = 0f
+                )
+            }
         }
     }
 
@@ -383,14 +630,6 @@ class BattleScreen(val game: Main) : KtxScreen {
             // TODO: Draw the sprites
             playerSprite.draw(it)
             enemySprite.draw(it)
-
-            //TODO: Draw health bar
-            /*health = new NinePatch(gradient, 0, 0, 0, 0)
-            width = currentHealth / totalHealth * totalBarWidth;
-            container = new NinePatch(containerRegion, 5, 5, 2, 2);
-            container.draw(batch, 5, 8, totalBarWidth + 10, 8);
-            health.draw(batch, 10, 10, width, 4)
-            */
         }
     }
 
@@ -414,6 +653,8 @@ class BattleScreen(val game: Main) : KtxScreen {
 
             if (!pauseUI.isPaused) {
                 menuTable.isVisible = !isShowingItems
+                playerHealthLabel.isVisible = !isShowingItems
+                enemyHealthLabel.isVisible = !isShowingItems
                 itemsTable.isVisible = isShowingItems
                 if (isShowingItems) {
                     itemsTable.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f)
@@ -422,6 +663,12 @@ class BattleScreen(val game: Main) : KtxScreen {
                     menuTable.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f * 0.1f)
                     menuTable.bottom()
                     menuTable.draw(game.batch, 1f)
+                    playerHealthLabel.setText("${player.health}")
+                    playerHealthLabel.setPosition(100f, Gdx.graphics.height - 400f)
+                    playerHealthLabel.draw(game.batch, 1f)
+                    enemyHealthLabel.setText("${enemy.health}")
+                    enemyHealthLabel.setPosition(Gdx.graphics.width - 100f - enemyHealthLabel.width, Gdx.graphics.height - 400f)
+                    enemyHealthLabel.draw(game.batch, 1f)
                 }
             }
 
