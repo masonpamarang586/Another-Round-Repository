@@ -10,6 +10,8 @@ package com.anotherround
 
 import com.anotherround.CharacterClasses.Enemy
 import com.anotherround.CharacterClasses.Player
+import com.anotherround.Consumables.Consumable
+import com.anotherround.Consumables.ConsumablesInventory
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.OrthographicCamera
@@ -31,6 +33,7 @@ import ktx.async.KtxAsync
 import ktx.graphics.use
 import ktx.style.addStyle
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
@@ -38,6 +41,11 @@ import com.anotherround.render.EnemySprite
 import kotlin.math.max
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
+import com.badlogic.gdx.math.Rectangle
+import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.utils.Align
+import ktx.actors.stage
 import com.anotherround.SaveLoad.GameState
 import com.anotherround.SaveLoad.SaveGame
 
@@ -139,6 +147,10 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var sfxEnemyHurt: Sound
     private lateinit var sfxEnemyDeath: Sound
 
+    private lateinit var sfxItemHeal: Sound
+
+    private lateinit var sfxItemFail: Sound
+
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
     private val uiStage = Stage(game.uiViewport)
@@ -166,6 +178,8 @@ class BattleScreen(val game: Main) : KtxScreen {
     //  Add textures for button being hovered and being pressed.
     lateinit var attackButton: TextButton
     lateinit var itemsButton: TextButton
+
+     lateinit var group: Group
     private val menuTable by lazy {
         val table = Table()
 
@@ -203,6 +217,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         table.add(itemsButton).pad(100f).width(400f).height(200f)
 
         table
+
     }
 
     private var isShowingItems = false
@@ -215,11 +230,22 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     private var potions = 1
     lateinit var useButton: TextButton
+
     private val itemsTable by lazy {
+
+        // FLAG: ISSUES HAPPENING WITH THE UI DOWN HERE
+
         val table = Table()
+        table.pack()
 
+        // Initializes sound effects
+        sfxItemHeal  = Gdx.audio.newSound(Gdx.files.internal("audio/item-use.mp3"))
+        sfxItemFail  = Gdx.audio.newSound(Gdx.files.internal("audio/item-fail.mp3"))
+
+
+
+        // Sets the skin for the buttons
         val skin = Skin(Gdx.files.internal("atlas/ui.json"))
-
         val style = TextButton.TextButtonStyle()
         style.font = font
         style.fontColor = Color.BLACK
@@ -229,19 +255,44 @@ class BattleScreen(val game: Main) : KtxScreen {
         style.font.data.setScale(3.0f)
         skin.addStyle("default", style)
 
-        val potionImage = Image(potionTexture)
-        table.add(potionImage).width(100f).height(100f)
+        val group = Group()
 
-        val useButton = TextButton("Use ($potions)", skin)
-        this.useButton = useButton
-        useButton.addListener(object : ClickListener() {
-            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+        val consumInventory = ConsumablesInventory()
+        consumInventory.addConsumable("Health potion")
+
+        // Add viewable item slot1
+        val itemSlot1 = Image(skin.getDrawable("item-slot"))
+        itemSlot1.setSize(200f, 200f)
+
+
+        // Create consumables inventory and add the healing potion
+        val inventory = ConsumablesInventory()
+        inventory.addConsumable("Healing Potion")
+
+        // Create slot1
+        val slot1Image = Image(potionTexture)
+        slot1Image.setSize(116f, 116f)
+
+
+        // Group the slot and item together
+        group.addActor(itemSlot1)
+        group.addActor(slot1Image)
+        slot1Image.toFront()
+        slot1Image.moveBy(40f,40f)
+        table.add(group)
+
+
+        // Interactions with the item slot
+        group.addListener(object: ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y:Float) {
                 if (potions != 0) {
+                    sfxItemHeal.play(50f)
                     potions -= 1
                     player.health += 10
-                    useButton.setText("Use $potions")
-                    showToast("Healed for 10 health")
+                    slot1Image.remove()
+                    showToast("Healed for 5 health")
                 } else {
+                    sfxItemFail.play(50f)
                     showToast("No potions available")
                 }
                 if (isShowingItems) {
@@ -249,7 +300,25 @@ class BattleScreen(val game: Main) : KtxScreen {
                 }
             }
         })
-        table.add(useButton).width(400f).height(200f)
+
+        table.row()
+
+
+        // Return button, goes back when you click it
+        val backButton = TextButton("Return", skin, "default")
+        backButton.addListener(object: ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                if (isShowingItems) {
+                    isShowingItems = false
+                }
+            }
+        })
+
+
+        table.add(backButton).width(400f).height(200f)
+        table.row()
+
+
 
         table
     }

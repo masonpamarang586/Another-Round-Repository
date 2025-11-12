@@ -1,0 +1,6 @@
+{
+  "name": "Healing Potion",
+  "description": "Most standard healing potion. Heals 5 HP.",
+  "image": "potions.png",
+  "healAmt": 5
+}
