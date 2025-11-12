@@ -48,6 +48,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
     private enum class Submenu { NONE, NEW, LOAD }
 
     override fun show() {
+        GameLogic.gameState = GameLogic.GameState.MAIN_MENU
         Gdx.input.inputProcessor = stage
         skin = Skin(Gdx.files.internal("atlas/ui.json"))
         updateFont()
