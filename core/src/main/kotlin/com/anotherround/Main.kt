@@ -147,6 +147,10 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var sfxEnemyHurt: Sound
     private lateinit var sfxEnemyDeath: Sound
 
+    private lateinit var sfxItemHeal: Sound
+
+    private lateinit var sfxItemFail: Sound
+
     private val worldStage = Stage(game.worldViewport)
     // TODO: Use this.
     private val uiStage = Stage(game.uiViewport)
@@ -213,6 +217,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         table.add(itemsButton).pad(100f).width(400f).height(200f)
 
         table
+
     }
 
     private var isShowingItems = false
@@ -224,12 +229,18 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     private var potions = 1
+    lateinit var useButton: TextButton
+
     private val itemsTable by lazy {
 
         // FLAG: ISSUES HAPPENING WITH THE UI DOWN HERE
 
         val table = Table()
         table.pack()
+
+        // Initializes sound effects
+        sfxItemHeal  = Gdx.audio.newSound(Gdx.files.internal("audio/item-use.mp3"))
+        sfxItemFail  = Gdx.audio.newSound(Gdx.files.internal("audio/item-fail.mp3"))
 
 
 
@@ -249,9 +260,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         val consumInventory = ConsumablesInventory()
         consumInventory.addConsumable("Health potion")
 
-        // Add viewable item slot
-        val itemSlot = Image(skin.getDrawable("item-slot"))
-        itemSlot.setSize(200f, 200f)
+        // Add viewable item slot1
+        val itemSlot1 = Image(skin.getDrawable("item-slot"))
+        itemSlot1.setSize(200f, 200f)
 
 
         // Create consumables inventory and add the healing potion
@@ -264,21 +275,24 @@ class BattleScreen(val game: Main) : KtxScreen {
 
 
         // Group the slot and item together
-        group.addActor(itemSlot)
+        group.addActor(itemSlot1)
         group.addActor(slot1Image)
         slot1Image.toFront()
         slot1Image.moveBy(40f,40f)
         table.add(group)
 
+
         // Interactions with the item slot
         group.addListener(object: ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y:Float) {
                 if (potions != 0) {
+                    sfxItemHeal.play(50f)
                     potions -= 1
                     player.health += 10
                     slot1Image.remove()
                     showToast("Healed for 5 health")
                 } else {
+                    sfxItemFail.play(50f)
                     showToast("No potions available")
                 }
                 if (isShowingItems) {
