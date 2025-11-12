@@ -20,9 +20,7 @@ class ConsumablesInventory {
 
     fun loadConsumables(): MutableList<Consumable> {
 
-
-
-
+        /*
         val json = Json()
 
         val fileHandle: FileHandle = Gdx.files.internal("items/items.json")
@@ -35,6 +33,12 @@ class ConsumablesInventory {
             fileHandle
 
         ) as MutableList<Consumable>
+*/
+
+
+        var consumList: MutableList<Consumable> = mutableListOf()
+
+        consumList.add(Consumable("Healing Potion", "Most standard healing potion. Heals 5 HP.", "potions.png", 5))
 
         return consumList
 
@@ -49,12 +53,12 @@ class ConsumablesInventory {
     fun addConsumable(name: String) {
 
 
-        /*val foundConsumable = tempList.find{ it.name == name }
+        val foundConsumable = tempList.find{ it.name == name }
 
 
         if (slots.size < 8 && foundConsumable != null) {
           slots.add(foundConsumable);
-        }*/
+        }
         }
     }
 

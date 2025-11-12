@@ -194,10 +194,13 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         val group = Group()
 
+        val consumInventory = ConsumablesInventory()
+        consumInventory.addConsumable("Health potion")
+
         // Add viewable item slot
         val itemSlot = Image(skin.getDrawable("item-slot"))
         itemSlot.setSize(200f, 200f)
-        //table.add(itemSlot).width(148f).height(148f)
+
 
         // Create consumables inventory and add the healing potion
         val inventory = ConsumablesInventory()
@@ -206,7 +209,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         // Create slot1
         val slot1Image = Image(potionTexture)
         slot1Image.setSize(116f, 116f)
-        //table.add(potionImage).width(100f).height(100f)
 
 
         // Group the slot and item together
