@@ -44,8 +44,22 @@ import ktx.graphics.use
 import ktx.style.addStyle
 import kotlin.math.max
 import com.badlogic.gdx.scenes.scene2d.Group
+// --- NEW IMPORTS ---
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.TextTooltip
+import com.badlogic.gdx.scenes.scene2d.ui.TooltipManager
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 
 data class GameSession(val slotId: Int, var playerName: String)
+
+// --- NEW DATA CLASS FOR POTIONS ---
+data class Potion(
+    val name: String,
+    val description: String,
+    val healAmount: Int,
+    val textureRegion: TextureRegion
+)
 
 class Main : KtxGame<KtxScreen>() {
     companion object {
@@ -83,6 +97,11 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     var currentSession: GameSession? = null
 
+    // --- POTION INVENTORY ---
+    // This is now a list that acts as our stack
+    private val potionInventory = mutableListOf<Potion>()
+    // ---
+
     fun startNewGame(session: GameSession) {
         this.currentSession = session
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
@@ -95,10 +114,15 @@ class BattleScreen(val game: Main) : KtxScreen {
         enemy.health = 20
         enemy.level = 1
 
-        potions = 1
-        if (this::useButton.isInitialized) {
-            useButton.setText("Use $potions")
+        // --- UPDATED ---
+        // Add 3 default potions to the inventory
+        potionInventory.clear()
+        repeat(3) {
+            potionInventory.add(createHealthPotion())
         }
+        // Add a mana potion for variety
+        potionInventory.add(createManaPotion())
+        // ---
 
 //        showToast("New Game: ${session.playerName}!", 1.5f)
     }
@@ -120,10 +144,15 @@ class BattleScreen(val game: Main) : KtxScreen {
         enemy.defenseStat = state.enemy.defenseStat
         enemy.attackStat = state.enemy.attackStat
 
-        potions = state.potions
-        if (this::useButton.isInitialized) {
-            useButton.setText("Use ($potions)")
+        // --- UPDATED ---
+        // Re-create the potion inventory from the saved count
+        potionInventory.clear()
+        repeat(state.potions) {
+            potionInventory.add(createHealthPotion())
+            // Note: This only saves/loads Health Potions.
+            // A more complex system would save the *type* of each potion.
         }
+        // ---
 
 //        showToast("Loaded Game: ${state.player.name}", 1.5f)
     }
@@ -149,7 +178,6 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var sfxEnemyDeath: Sound
 
     private lateinit var sfxItemHeal: Sound
-
     private lateinit var sfxItemFail: Sound
 
     private val worldStage = Stage(game.worldViewport)
@@ -161,6 +189,22 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     var font = BitmapFont()
     val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/monogram.ttf"))
+
+    // --- CLEANUP: Shared Skin and Style ---
+    private val skin by lazy {
+        Skin(Gdx.files.internal("atlas/ui.json"))
+    }
+
+    private val buttonStyle by lazy {
+        TextButton.TextButtonStyle().apply {
+            font = this@BattleScreen.font // Uses the already-sized font
+            fontColor = Color.BLACK
+            up = skin.getDrawable("button-normal")
+            down = skin.getDrawable("button-normal-pressed")
+            over = skin.getDrawable("button-normal-over")
+        }
+    }
+    // ---
 
     private val tiledMap by lazy {
         val mapLoader = TmxMapLoader()
@@ -175,63 +219,29 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var combat: com.anotherround.combat.CombatManager
 
     private val playerHealthLabel by lazy {
-        val skin = Skin(Gdx.files.internal("atlas/ui.json"))
-
-        val style = TextButton.TextButtonStyle()
-        style.font = font
-        style.fontColor = Color.BLACK
-        style.up = skin.getDrawable("button-normal")
-        style.down = skin.getDrawable("button-normal-pressed")
-        style.over = skin.getDrawable("button-normal-over")
-        style.font.data.setScale(3.0f)
-        skin.addStyle("default", style)
-
-        val label = TextButton("${player.health}", skin)
+        // Use the shared style
+        val label = TextButton("${player.health}", buttonStyle)
         label.width = 400f
         label.height = 200f
         label
     }
 
     private val enemyHealthLabel by lazy {
-        val skin = Skin(Gdx.files.internal("atlas/ui.json"))
-
-        val style = TextButton.TextButtonStyle()
-        style.font = font
-        style.fontColor = Color.BLACK
-        style.up = skin.getDrawable("button-normal")
-        style.down = skin.getDrawable("button-normal-pressed")
-        style.over = skin.getDrawable("button-normal-over")
-        style.font.data.setScale(3.0f)
-        skin.addStyle("default", style)
-
-        val label = TextButton("${enemy.health}", skin)
+        // Use the shared style
+        val label = TextButton("${enemy.health}", buttonStyle)
         label.width = 400f
         label.height = 200f
         label
     }
 
-    // TODO:
-    //  Add event/onClick listeners for the buttons.
-    //  Add textures for button being hovered and being pressed.
     lateinit var attackButton: TextButton
     lateinit var itemsButton: TextButton
 
-     lateinit var group: Group
     private val menuTable by lazy {
         val table = Table()
 
-        val skin = Skin(Gdx.files.internal("atlas/ui.json"))
-
-        val style = TextButton.TextButtonStyle()
-        style.font = font
-        style.fontColor = Color.BLACK
-        style.up = skin.getDrawable("button-normal")
-        style.down = skin.getDrawable("button-normal-pressed")
-        style.over = skin.getDrawable("button-normal-over")
-        style.font.data.setScale(3.0f)
-        skin.addStyle("default", style)
-
-        val attackButton = TextButton("Attack", skin)
+        // Use the shared style
+        val attackButton = TextButton("Attack", buttonStyle)
         attackButton.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 val accepted = combat.requestPlayerAttack()
@@ -242,107 +252,97 @@ class BattleScreen(val game: Main) : KtxScreen {
         table.add(attackButton).width(400f).height(200f)
         table.row()
 
-        val itemsButton = TextButton("Items", skin)
+        // Use the shared style
+        val itemsButton = TextButton("Items", buttonStyle)
         this.itemsButton = itemsButton
         itemsButton.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 if (combat.canOpenMenu() && !isShowingItems) {
                     isShowingItems = true
+                    // --- NEW: Update the table when it's opened ---
+                    updateItemsTable()
                 }
             }
         })
         table.add(itemsButton).pad(100f).width(400f).height(200f)
 
         table
-
     }
 
     private var isShowingItems = false
 
-    private val potionTexture by lazy {
-        val texture = Texture(Gdx.files.internal("items/potions.png"))
-        val region = TextureRegion(texture, 48, 32, 16,16)
-        region
+    // --- NEW: Load the entire spritesheet ---
+    private val potionsSpritesheet by lazy {
+        Texture(Gdx.files.internal("items/potions.png"))
     }
 
-    private var potions = 1
-    lateinit var useButton: TextButton
+    // --- NEW: Define Potion types ---
+    private val healthPotionRegion by lazy {
+        TextureRegion(potionsSpritesheet, 48, 32, 16, 16)
+    }
+    private val manaPotionRegion by lazy {
+        TextureRegion(potionsSpritesheet, 64, 32, 16, 16)
+    }
 
-    private val itemsTable by lazy {
+    // --- NEW: Potion creation functions ---
+    private fun createHealthPotion() = Potion(
+        name = "Health Potion",
+        description = "Heals 10 HP.",
+        healAmount = 10,
+        textureRegion = healthPotionRegion
+    )
 
-        // FLAG: ISSUES HAPPENING WITH THE UI DOWN HERE
+    private fun createManaPotion() = Potion(
+        name = "Mana Potion",
+        description = "Restores 10 MP.",
+        healAmount = 0, // Or add mana logic
+        textureRegion = manaPotionRegion
+    )
 
-        val table = Table()
-        table.pack()
+    // --- REMOVED: Old `potions` and `useButton` variables ---
 
+    // --- REBUILT: itemsTable is now a placeholder, built by functions ---
+    private lateinit var itemsTable: Table
+    private lateinit var itemsGrid: Table // This will hold the 8 slots
+    private lateinit var tooltipLabelStyle: Label.LabelStyle
+    private lateinit var itemTooltipStyle: TextTooltip.TextTooltipStyle
+
+    // --- NEW: Function to build the items table structure ---
+    private fun buildItemsTable() {
+        // Setup Tooltip Manager
+        val tooltipManager = TooltipManager.getInstance()
+        tooltipManager.initialTime = 0f // Hover for 0.5s to show
+        tooltipManager.resetTime = 0f
+        tooltipManager.hideAll()
+
+        // Style for the tooltip label
+        if (!this::tooltipLabelStyle.isInitialized) {
+            tooltipLabelStyle = Label.LabelStyle(font, Color.WHITE)
+        }
+        val tooltipBackground = TextureRegionDrawable(onePixel(Color(0.2f, 0.2f, 0.2f, 0.8f)))
+        // This is now our reusable "template style"
+        itemTooltipStyle = TextTooltip.TextTooltipStyle(tooltipLabelStyle, tooltipBackground)
         // Initializes sound effects
         sfxItemHeal  = Gdx.audio.newSound(Gdx.files.internal("audio/item-use.mp3"))
         sfxItemFail  = Gdx.audio.newSound(Gdx.files.internal("audio/item-fail.mp3"))
 
+        // Create the main table
+        itemsTable = Table()
+        itemsTable.setFillParent(true) // This table will dim the background
+        itemsTable.background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
+        itemsTable.center()
 
+        // Create an inner table to hold the grid and back button
+        val innerTable = Table()
+        itemsTable.add(innerTable)
 
-        // Sets the skin for the buttons
-        val skin = Skin(Gdx.files.internal("atlas/ui.json"))
-        val style = TextButton.TextButtonStyle()
-        style.font = font
-        style.fontColor = Color.BLACK
-        style.up = skin.getDrawable("button-normal")
-        style.down = skin.getDrawable("button-normal-pressed")
-        style.over = skin.getDrawable("button-normal-over")
-        style.font.data.setScale(3.0f)
-        skin.addStyle("default", style)
-
-        val group = Group()
-
-        val consumInventory = ConsumablesInventory()
-        consumInventory.addConsumable("Health potion")
-
-        // Add viewable item slot1
-        val itemSlot1 = Image(skin.getDrawable("item-slot"))
-        itemSlot1.setSize(200f, 200f)
-
-
-        // Create consumables inventory and add the healing potion
-        val inventory = ConsumablesInventory()
-        inventory.addConsumable("Healing Potion")
-
-        // Create slot1
-        val slot1Image = Image(potionTexture)
-        slot1Image.setSize(116f, 116f)
-
-
-        // Group the slot and item together
-        group.addActor(itemSlot1)
-        group.addActor(slot1Image)
-        slot1Image.toFront()
-        slot1Image.moveBy(40f,40f)
-        table.add(group)
-
-
-        // Interactions with the item slot
-        group.addListener(object: ClickListener() {
-            override fun clicked(event: InputEvent?, x: Float, y:Float) {
-                if (potions != 0) {
-                    sfxItemHeal.play(50f)
-                    potions -= 1
-                    player.health += 10
-                    slot1Image.remove()
-//                  showToast("Healed for 10 health")
-                } else {
-                    sfxItemFail.play(50f)
-//                  showToast("No potions available")
-                }
-                if (isShowingItems) {
-                    isShowingItems = false
-                }
-            }
-        })
-
-        table.row()
-
+        // This table will hold the 8 item slots
+        itemsGrid = Table()
+        innerTable.add(itemsGrid).pad(750f)
+        innerTable.row()
 
         // Return button, goes back when you click it
-        val backButton = TextButton("Return", skin, "default")
+        val backButton = TextButton("Return", buttonStyle)
         backButton.addListener(object: ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 if (isShowingItems) {
@@ -351,20 +351,88 @@ class BattleScreen(val game: Main) : KtxScreen {
             }
         })
 
+        // Add the back button at the bottom
+        innerTable.add(backButton).width(400f).height(200f).padTop(50f)
+    }
 
-        table.add(backButton).width(400f).height(200f)
-        table.row()
+    // --- NEW: Function to update the 8 item slots ---
+    private fun updateItemsTable() {
+        itemsGrid.clear() // Clear all old slots
+        TooltipManager.getInstance().hideAll() // Hide any active tooltip
 
+        val slotSize = 200f
+        val itemSize = 160f
+        val itemPadding = (slotSize - itemSize) / 2f
 
+        // Create 8 slots (2 rows of 4)
+        for (i in 0 until 8) {
+            val potion = potionInventory.getOrNull(i) // Get potion for this slot
 
-        table
+            // Create the item slot background
+            val itemSlotBg = Image(skin.getDrawable("item-slot"))
+
+            val slotGroup = Group()
+            slotGroup.addActor(itemSlotBg)
+            itemSlotBg.setSize(slotSize, slotSize)
+
+            if (potion != null) {
+                // If a potion exists, add its image
+                val potionImage = Image(potion.textureRegion)
+                potionImage.setSize(itemSize, itemSize)
+                slotGroup.addActor(potionImage)
+                potionImage.setPosition(itemPadding, itemPadding)
+
+                // Add click listener to use the item
+                slotGroup.addListener(object: ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y:Float) {
+                        // Use the item
+                        val usedPotion = potionInventory.removeAt(i) // Remove from stack
+                        player.health += usedPotion.healAmount
+                        sfxItemHeal.play(50f)
+                        showToast("Healed for ${usedPotion.healAmount} health")
+
+                        // Refresh the UI
+                        updateItemsTable()
+                    }
+                })
+
+                // Add tooltip
+                val tooltip = TextTooltip("${potion.name}\n${potion.description}", itemTooltipStyle)
+                slotGroup.addListener(tooltip)
+
+            } else {
+                // If no potion, add a "fail" click listener
+                slotGroup.addListener(object: ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y:Float) {
+                        sfxItemFail.play(50f)
+                        showToast("Slot is empty")
+                    }
+                })
+            }
+
+            // Add the slot to the grid
+            itemsGrid.add(slotGroup).size(slotSize).pad(10f)
+
+            if ((i + 1) % 4 == 0) {
+                // New row every 4 slots
+                itemsGrid.row()
+            }
+        }
     }
 
     private var accumulator = 0f
 
     override fun show() {
+        updateFont()
+
+        pauseUI.updateFont(font)
         GameLogic.gameState = GameLogic.GameState.BATTLE
-        itemsTable.center()
+
+        // --- NEW ---
+        // Build the items table structure once
+        buildItemsTable()
+        // ---
+
         playerSprite = com.anotherround.render.PlayerSprite(
             game.worldViewport,
             idlePath = "generic_char_v0.2/png/blue/char_blue_1_index00.png",
@@ -441,12 +509,14 @@ class BattleScreen(val game: Main) : KtxScreen {
         pauseUI.onSaveRequested = {
             try {
                 val slotToSave = currentSession?.slotId ?: 1 // Default to 1 if session is somehow null
-                SaveGame.save(player, enemy, potions, slotToSave)
+                // --- UPDATED ---
+                // Save the *size* of the inventory
+                SaveGame.save(player, enemy, potionInventory.size, slotToSave)
                 Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
-//                showToast("Game Saved (Slot $slotToSave)", 1.5f)
+                showToast("Game Saved (Slot $slotToSave)", 1.5f)
             } catch (t: Throwable) {
                 Gdx.app.error("SAVE", "Failed to save", t)
-//                showToast("Save Failed", 1.5f)
+                showToast("Save Failed", 1.5f)
             }
         }
 
@@ -457,41 +527,20 @@ class BattleScreen(val game: Main) : KtxScreen {
         // Enable input for UI
         Gdx.input.inputProcessor = uiStage
         uiStage.addActor(menuTable)
-        uiStage.addActor(itemsTable)
+        uiStage.addActor(itemsTable) // Add the (initially empty) items table
 
+        uiStage.addActor(playerHealthLabel)
+        uiStage.addActor(enemyHealthLabel)
         GameLogic.screen = this
     }
 
     // TODO: Fix font turning into squares when reopening the application
     override fun resume() {
-        val buttonHeightFraction = 0.08f
-        val textToButtonHeight = 0.65f
-
-        val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
-            size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt()
-            minFilter = Texture.TextureFilter.Nearest
-            magFilter = Texture.TextureFilter.Nearest
-        }
-
-        val font = generator.generateFont(parameter)
-        font.color = Color.BLACK
-        this.font = font
+        updateFont() // Simplified
     }
 
     override fun resize(width: Int, height: Int) {
-        val buttonHeightFraction = 0.08f
-        val textToButtonHeight = 0.65f
-
-        val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
-            size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt()
-            println(size)
-            minFilter = Texture.TextureFilter.Nearest
-            magFilter = Texture.TextureFilter.Nearest
-        }
-
-        val font = generator.generateFont(parameter)
-        font.color = Color.BLACK
-        this.font = font
+        updateFont() // Simplified
 
         game.worldViewport.update(width, height, true)
         game.worldViewport.camera.update()
@@ -642,12 +691,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         game.batch.projectionMatrix = game.uiViewport.camera.combined
 
         game.batch.use {
-//            // Why this has to be done: https://gamedev.stackexchange.com/questions/73688/why-is-my-text-is-too-large-even-when-scaled-to-05f-in-libgdx
-//            val originalMatrix = it.projectionMatrix.cpy()
-//            it.projectionMatrix = originalMatrix.cpy().scale(getWidthInPixels(), getHeightInPixels(), 1f)
-//            game.font.draw(it, "Hello World", 0f * getWidthInPixels(), game.worldViewport.screenHeight / 2f)
-//            it.projectionMatrix = originalMatrix
-
             // TODO: Use the font from the BattleScreen class
             pauseUI.drawAndHandleInput(game.batch)
 
@@ -655,10 +698,13 @@ class BattleScreen(val game: Main) : KtxScreen {
                 menuTable.isVisible = !isShowingItems
                 playerHealthLabel.isVisible = !isShowingItems
                 enemyHealthLabel.isVisible = !isShowingItems
+
+                // --- UPDATED: Only draw the table, don't position it ---
                 itemsTable.isVisible = isShowingItems
                 if (isShowingItems) {
-                    itemsTable.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f)
-                    itemsTable.draw(game.batch, 1f)
+                    // The table is already added to the stage and
+                    // set to fill parent, so we just need to draw the stage.
+                    // The `itemsTable.draw` call is handled by `stage.draw()`
                 } else {
                     menuTable.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f * 0.1f)
                     menuTable.bottom()
@@ -686,6 +732,12 @@ class BattleScreen(val game: Main) : KtxScreen {
                 game.batch.color = oldColor
             }
         }
+
+        // --- NEW: Draw the stage AFTER the batch ---
+        // This makes the UI (tooltips, tables) draw correctly.
+        if (!pauseUI.isPaused && isShowingItems) {
+            uiStage.draw()
+        }
     }
 
     /**
@@ -706,6 +758,43 @@ class BattleScreen(val game: Main) : KtxScreen {
         backgroundMusic.stop()
     }
 
+    // --- NEW: Helper function to create a 1x1 pixmap texture ---
+    private fun onePixel(color: Color): TextureRegion {
+        val pm = com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888)
+        pm.setColor(color)
+        pm.fill()
+        val t = Texture(pm)
+        pm.dispose()
+        return TextureRegion(t)
+    }
+
+    // --- NEW: Reusable updateFont function ---
+    private fun updateFont() {
+        val buttonHeightFraction = 0.08f
+        val textToButtonHeight = 0.65f
+
+        val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
+            size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt()
+            if (size <= 0) size = 15 // Fix for size being 0
+            println(size)
+            minFilter = Texture.TextureFilter.Nearest
+            magFilter = Texture.TextureFilter.Nearest
+        }
+
+        // Dispose the old font to prevent memory leaks
+        if (font.data.fontFile != null) font.dispose()
+
+        font = generator.generateFont(parameter)
+        font.color = Color.BLACK
+
+        if (this::tooltipLabelStyle.isInitialized) {
+            tooltipLabelStyle.font = font
+        } else {
+            // If this is the first time, create the style
+            tooltipLabelStyle = Label.LabelStyle(font, Color.WHITE)
+        }
+    }
+
     override fun dispose() {
         font.dispose()
         generator.dispose()
@@ -722,6 +811,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         sfxPlayerHurt.dispose()
         sfxEnemyHurt.dispose()
         sfxEnemyDeath.dispose()
-        super.dispose()
+
+        // --- NEW: Dispose new sounds and texture ---
+        sfxItemHeal.dispose()
+        sfxItemFail.dispose()
+        potionsSpritesheet.dispose()
     }
 }
