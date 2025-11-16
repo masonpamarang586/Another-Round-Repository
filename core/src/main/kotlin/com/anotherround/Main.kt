@@ -44,6 +44,9 @@ import ktx.graphics.use
 import ktx.style.addStyle
 import kotlin.math.max
 import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
+import ktx.scene2d.defaultVerticalStyle
+import kotlin.jvm.java
 
 data class GameSession(val slotId: Int, var playerName: String)
 
@@ -185,6 +188,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         style.over = skin.getDrawable("button-normal-over")
         style.font.data.setScale(3.0f)
         skin.addStyle("default", style)
+
+        val barStyle = skin.get(defaultVerticalStyle, ProgressBar.ProgressBarStyle::class.java)
+        val healthBar = ProgressBar(0f, player.maxHealth.toFloat(), 1f, true, skin)
+        healthBar.value = player.health.toFloat()
+        healthBar.width = 20f
+        healthBar.height = 200f
+        healthBar.setPosition(10f, 10f)
 
         val label = TextButton("${player.health}", skin)
         label.width = 400f
