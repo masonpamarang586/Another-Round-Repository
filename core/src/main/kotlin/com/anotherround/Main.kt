@@ -181,6 +181,8 @@ class BattleScreen(val game: Main) : KtxScreen {
     private val enemy  = Enemy(name = "Meany")
     private lateinit var combat: com.anotherround.combat.CombatManager
 
+    private val playerIcon = Image(Texture(Gdx.files.internal("ui/playerIcon.png")))
+
     private val playerHealthLabel by lazy {
         val label = TextButton("${player.health}", buttonStyle)
         label.width = 400f
@@ -479,6 +481,8 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(playerHealthLabel)
         uiStage.addActor(enemyHealthLabel)
         GameLogic.screen = this
+
+        playerHealthLabel.setSize(250f, 200f)
     }
 
     override fun resume() {

@@ -41,6 +41,7 @@ ui/font-list.fnt
 ui/font-subtitle.fnt
 ui/font-window.fnt
 ui/font.fnt
+ui/playerIcon.png
 ui/tilemap.png
 ui/tilemapPause.png
 ui/uiskin.atlas
