@@ -1,6 +1,5 @@
 package com.anotherround.Screens
 
-import com.anotherround.BattleScreen
 import com.anotherround.GameLogic
 import com.anotherround.Main
 import com.badlogic.gdx.Gdx
