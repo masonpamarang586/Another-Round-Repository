@@ -1,14 +1,12 @@
 package com.anotherround.SaveLoad
 
 import com.anotherround.CharacterClasses.Character
-import com.anotherround.CharacterClasses.Player
 import com.anotherround.CharacterClasses.Enemy
-import com.badlogic.gdx.Application
+import com.anotherround.CharacterClasses.Player
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonWriter
-import java.time.Instant
 
 data class CharacterSnapshot(
     var name: String = "",
