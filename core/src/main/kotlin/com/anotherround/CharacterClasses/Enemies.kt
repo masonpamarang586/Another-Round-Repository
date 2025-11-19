@@ -1,6 +1,6 @@
 package com.anotherround.CharacterClasses
 
-class Enemy(
+class Enemies(
     override val name: String = "BadGuy",
     override var level: Int = 1,
     override var health: Int = 20,
