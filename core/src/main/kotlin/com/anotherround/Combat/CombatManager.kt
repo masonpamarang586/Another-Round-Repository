@@ -116,7 +116,6 @@ class CombatManager(
         when (action) {
             is Action.Attack -> {
                 val dealt = action.attacker.attack(action.defender)
-
                 action.defender.health = (action.defender.health - dealt).coerceAtLeast(0)
                 onLog("${action.attacker.name} attacks ${action.defender.name} for $dealt. " +
                     "${action.defender.name} HP=${action.defender.health}")
