@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.viewport.Viewport
 
 interface SpritesInterface: Disposable {
     val viewport: Viewport
-    val enemies: Enemies
+    val redEnemy: RedEnemy
     val idlePath: String
     val damageRowPath: String
     val deathRowPath: String
@@ -19,6 +19,7 @@ interface SpritesInterface: Disposable {
     val drawHeight: Float
     val framesAreReversed: Boolean
     val frameSize: Int
+    val idleFps: Float
     val hurtFps: Float
     val deathFps: Float
     val attackFps: Float

@@ -1,7 +1,7 @@
 package com.anotherround.CharacterClasses
 
 class RedEnemy(
-    override val name: String = "BadGuy",
+    override val name: String = "Grunt",
     override var level: Int = 1,
     override var health: Int = 20,
     override var defenseStat: Int = 0,

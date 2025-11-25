@@ -1,7 +1,7 @@
 package com.anotherround.SaveLoad
 
 import com.anotherround.CharacterClasses.Character
-import com.anotherround.CharacterClasses.Enemies
+import com.anotherround.CharacterClasses.RedEnemy
 import com.anotherround.CharacterClasses.Player
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
@@ -65,11 +65,11 @@ object SaveGame {
 
     // Save current state to the given slot (default slot 1)
     @Synchronized
-    fun save(player: Player, enemies: Enemies, potions: Int, slot: Int = 1) {
+    fun save(player: Player, redEnemy: RedEnemy, potions: Int, slot: Int = 1) {
         val fh = fileForSlot(slot)
         val state = GameState(
             player = CharacterSnapshot.from(player),
-            enemy = CharacterSnapshot.from(enemies),
+            enemy = CharacterSnapshot.from(redEnemy),
             potions = potions
         )
         val text = json.prettyPrint(state)

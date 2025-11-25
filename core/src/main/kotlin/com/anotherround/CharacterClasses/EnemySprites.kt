@@ -11,7 +11,7 @@ import kotlin.math.max
 
 class RedEnemySprite(
     override val viewport: Viewport,
-    override val redEnemy: RedEnemy = RedEnemy("Red Enemy"),
+    override val redEnemy: RedEnemy = RedEnemy(),
     override val idlePath: String = "generic_char_v0.2/png/red/char_red_1_index10.png",
     override val damageRowPath: String = "generic_char_v0.2/png/red/char_red_1_damage.png",
     override val deathRowPath: String = "generic_char_v0.2/png/red/char_red_1_death.png",
