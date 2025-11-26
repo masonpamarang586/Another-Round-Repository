@@ -1,7 +1,10 @@
 package com.anotherround.Screens
 
-import com.anotherround.CharacterClasses.RedEnemy
-import com.anotherround.CharacterClasses.Player
+import com.anotherround.CharacterClasses.*
+import com.anotherround.combat.CombatManager
+import com.anotherround.combat.Action
+import com.anotherround.combat.SfxEvent
+import com.anotherround.combat.Turn
 import com.anotherround.Consumables.ConsumablesInventory
 import com.anotherround.GameLogic
 import com.anotherround.GameSession
@@ -9,7 +12,6 @@ import com.anotherround.Main
 import com.anotherround.MainMenuScreen
 import com.anotherround.SaveLoad.GameState
 import com.anotherround.SaveLoad.SaveGame
-import com.anotherround.render.RedEnemySprite
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound

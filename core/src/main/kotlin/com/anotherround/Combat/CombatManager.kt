@@ -2,7 +2,6 @@ package com.anotherround.combat
 
 import com.anotherround.CharacterClasses.Character
 import com.anotherround.CharacterClasses.Player
-import com.anotherround.CharacterClasses.RedEnemy
 import kotlin.math.max
 enum class Turn { PLAYER, ENEMY, OVER }
 enum class SfxEvent {
@@ -18,7 +17,7 @@ sealed class Action {
 
 class CombatManager(
     val player: Player,
-    val redEnemy: RedEnemy,
+    val enemy: Character,
 
     private val onLog: (String) -> Unit = {},
 
@@ -52,7 +51,7 @@ class CombatManager(
     fun requestPlayerAttack(): Boolean {
         if (turn != Turn.PLAYER || isOver()) return false
         if (pending != null) return false
-        pending = Action.Attack(player, redEnemy)
+        pending = Action.Attack(player, enemy)
         return true
     }
 
@@ -69,7 +68,7 @@ class CombatManager(
 
         // If it's the enemy's turn and nothing is queued, queue a simple attack.
         if (turn == Turn.ENEMY && pending == null && timer <= 0f) {
-            pending = Action.Attack(redEnemy, player)
+            pending = Action.Attack(enemy, player)
         }
 
         val action = pending ?: return
@@ -131,5 +130,5 @@ class CombatManager(
         }
     }
 
-    private fun isOver(): Boolean = !(player.isAlive() && redEnemy.isAlive())
+    private fun isOver(): Boolean = !(player.isAlive() && enemy.isAlive())
 }
