@@ -494,11 +494,25 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(enemyIcon_NotTurn)
         GameLogic.screen = this
 
+        playerHealthLabel.setSize(250f, 200f)
+        playerHealthLabel.addAction(Actions.moveBy(150f, 0f))
+
+
+        enemyHealthLabel.setSize(250f, 200f)
+        enemyHealthLabel.addAction(Actions.moveBy(50f, 0f))
+
+
         playerIcon.setSize(200f, 200f)
         playerIcon.addAction(Actions.moveBy(49f, 2000f))
 
         playerIcon_NotTurn.setSize(200f, 200f)
         playerIcon_NotTurn.addAction(Actions.moveBy(48f, 2000f))
+
+        enemyIcon.setSize(200f, 200f)
+        enemyIcon.addAction(Actions.moveBy(580f, 2000f))
+
+        enemyIcon_NotTurn.setSize(200f, 200f)
+        enemyIcon_NotTurn.addAction(Actions.moveBy(580f, 2000f))
     }
 
     override fun resume() {
@@ -605,6 +619,8 @@ class BattleScreen(val game: Main) : KtxScreen {
                 // update health text
                 playerHealthLabel.setText("${player.health}")
                 enemyHealthLabel.setText("${enemy.health}")
+                font.draw(game.batch,"Player", 60f, 2275f )
+                font.draw(game.batch, "Enemy", 790f, 2275f)
             }
 
             toastText?.let { msg ->
