@@ -64,12 +64,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
 
         // reset stats to default for new game
-        player.name = session.playerName
-        player.health = 100
-        player.level = 1
-        player.defenseStat = 0
-        player.attackStat = 10
-        player.currency = 0
+        val basePlayer = Player(name = session.playerName)
+        player.name = basePlayer.name
+        player.level = basePlayer.level
+        player.health = basePlayer.health
+        player.defenseStat = basePlayer.defenseStat
+        player.attackStat = basePlayer.attackStat
+        player.currency = basePlayer.currency
 
         inventory.loadDefaultPotions()
 

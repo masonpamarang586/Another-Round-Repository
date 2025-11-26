@@ -23,6 +23,10 @@ evil_wizard/Sprites/Idle.png
 evil_wizard/Sprites/Jump.png
 evil_wizard/Sprites/Run.png
 evil_wizard/Sprites/Take hit.png
+evil_wizard/evilWizardAttackFrame1.png
+evil_wizard/evilWizardDamageFrame1.png
+evil_wizard/evilWizardDeathFrame1.png
+evil_wizard/evilWizardIdleFrame1.png
 fonts/monogram.ttf
 generic_char_v0.2/guide.png
 generic_char_v0.2/guide_2.png
@@ -48,12 +52,17 @@ items/potions.png
 logo.png
 nightborne/NightBorne.png
 nightborne/NightBorneAttack.png
-nightborne/NightBorneDamage.png
-nightborne/NightBorneDeath.png
-nightborne/NightBorneIdle.png
+nightborne/NightBorneAttackFrame1.png
+nightborne/NightBorneDamageFrame1.png
+nightborne/NightBorneDeathFrame1.png
+nightborne/NightBorneIdleFrame1.png
 phantom/LayeredProject.aseprite
 phantom/allanimation.aseprite
 phantom/main project.aseprite
+phantom/phantomAttackFrame1.png
+phantom/phantomDamageFrame1.png
+phantom/phantomDeathFrame1.png
+phantom/phantomIdleFrame1.png
 phantom/png/attacking.png
 phantom/png/death.png
 phantom/png/idle.png

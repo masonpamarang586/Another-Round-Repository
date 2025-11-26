@@ -8,7 +8,7 @@ fun enemyConfig(kind: EnemyKind): SpriteConfig = when (kind) {
         damageRowPath = "generic_char_v0.2/png/red/char_red_1_damage.png",
         deathRowPath  = "generic_char_v0.2/png/red/char_red_1_death.png",
         attackRowPath = "generic_char_v0.2/png/red/char_red_1_attack.png",
-        framesAreReversed = true,
+        framesAreReversed = false,
         frameSize = 60,
         idleFps = 4f,
         hurtFps = 12f,
@@ -18,48 +18,36 @@ fun enemyConfig(kind: EnemyKind): SpriteConfig = when (kind) {
     )
 
     EnemyKind.Phantom -> SpriteConfig(
-        idlePath      = "phantom/png/idle.png",
-        damageRowPath = "phantom/png/idle.png",
-        deathRowPath  = "phantom/png/death.png",
-        attackRowPath = "phantom/png/attacking.png",
+        idlePath      = "phantom/phantomIdleFrame1.png",
+        damageRowPath = "phantom/phantomDamageFrame1.png",
+        deathRowPath  = "phantom/phantomDeathFrame1.png",
+        attackRowPath = "phantom/phantomAttackFrame1.png",
         framesAreReversed = true,
-        frameSize = 60,
-        idleFps = 5f,
-        hurtFps = 12f,
+        frameSize = 80,
         drawWidth = 3f,
         drawHeight = 3f,
-        attackFps = 6f,
-        deathFps = 18f,
         offsetX = +1.5f
     )
     EnemyKind.EvilWizard -> SpriteConfig(
-        idlePath      = "evil_wizard/Sprites/Idle.png",
-        damageRowPath = "evil_wizard/Sprites/Take hit.png",
-        deathRowPath  = "evil_wizard/Sprites/Death.png",
-        attackRowPath = "evil_wizard/Sprites/Attack2.png",
+        idlePath      = "evil_wizard/evilWizardIdleFrame1.png",
+        damageRowPath = "evil_wizard/evilWizardDamageFrame1.png",
+        deathRowPath  = "evil_wizard/evilWizardDeathFrame1.png",
+        attackRowPath = "evil_wizard/evilWizardAttackFrame1.png",
         framesAreReversed = true,
-        frameSize = 60,
-        idleFps = 8f,
-        hurtFps = 12f,
+        frameSize = 80,
         drawWidth = 3f,
         drawHeight = 3f,
-        attackFps = 8f,
-        deathFps = 7f,
         offsetX = +1.5f
     )
     EnemyKind.NightBorne -> SpriteConfig(
-        idlePath      = "nightborne/NightBorneIdle.png",
-        damageRowPath = "nightborne/NightBorneDamage.png",
-        deathRowPath  = "nightborne/NightBorneDeath.png",
-        attackRowPath = "nightborne/NightBorneAttack.png",
+        idlePath      = "nightborne/NightBorneIdleFrame1.png",
+        damageRowPath = "nightborne/NightBorneDamageFrame1.png",
+        deathRowPath  = "nightborne/NightBorneDeathFrame1.png",
+        attackRowPath = "nightborne/NightBorneAttackFrame1.png",
         framesAreReversed = true,
         frameSize = 60,
-        idleFps = 9f,
-        hurtFps = 12f,
         drawWidth = 3f,
         drawHeight = 3f,
-        attackFps = 12f,
-        deathFps = 10f,
         offsetX = +1.5f
     )
 }
