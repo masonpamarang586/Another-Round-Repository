@@ -34,6 +34,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import ktx.app.KtxScreen
 import ktx.graphics.use
+import ktx.style.defaultStyle
 import kotlin.math.max
 
 class BattleScreen(val game: Main) : KtxScreen {
@@ -138,12 +139,16 @@ class BattleScreen(val game: Main) : KtxScreen {
     private val playerIcon = Image(Texture(Gdx.files.internal("ui/playerIcon.png")))
     private val playerIcon_NotTurn = Image(Texture(Gdx.files.internal("ui/playerIcon_noTurn.png")))
 
+    private val playerHealthBar = Image(Texture(Gdx.files.internal("ui/playerHealthBar.png")))
+
 
     private val enemyIcon = Image(Texture(Gdx.files.internal("ui/enemyIcon.png")))
     private val enemyIcon_NotTurn = Image(Texture(Gdx.files.internal("ui/enemyIcon_noTurn.png")))
 
     private val playerHealthLabel by lazy {
         val label = TextButton("${player.health}", buttonStyle)
+        playerHealthBar.moveBy(265f, 2025f)
+        playerHealthBar.setSize(220f, 20f)
         label.width = 400f
         label.height = 200f
         label
@@ -411,6 +416,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                     val coins = 10
                     player.currency += coins
                     Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
+                    //showToast("+$coins Gold. \n Total: ${player.currency}", 2f)
                     // showVictoryPopup(xp = 10, money = coins)
                 }
             },
@@ -449,8 +455,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         playerHealthLabel.setSize(250f, 200f)
         playerHealthLabel.addAction(Actions.moveBy(150f, 0f))
 
+
         enemyHealthLabel.setSize(250f, 200f)
         enemyHealthLabel.addAction(Actions.moveBy(50f, 0f))
+
 
         playerIcon.setSize(200f, 200f)
         playerIcon.addAction(Actions.moveBy(49f, 2000f))
@@ -591,8 +599,10 @@ class BattleScreen(val game: Main) : KtxScreen {
                         if (defeated === enemy && by === player) {
                             val coins = 10
                             player.currency += coins
-                            Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
-                            // showVictoryPopup(xp = 10, money = coins)
+                            font.draw(game.batch, "+$coins Gold. Total: ${player.currency}", 500f, 2000f)
+                            showToast("+$coins Gold. Total: ${player.currency}", 2f)
+
+                            //showVictoryPopup(xp = 10, money = coins)
                         }
                     },
                     resolveDelay = 0f
