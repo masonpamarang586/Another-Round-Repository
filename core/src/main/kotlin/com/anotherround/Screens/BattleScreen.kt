@@ -187,7 +187,11 @@ class BattleScreen(val game: Main) : KtxScreen {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 if (combat.canOpenMenu() && !isShowingItems) {
                     isShowingItems = true
-                    updateItemsTable()
+                    if (isShopping) {
+                        updateShopTable()
+                    } else {
+                        updateItemsTable()
+                    }
                 }
             }
         })
@@ -197,12 +201,14 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     private var isShowingItems = false
-
+    private var isShopping = false
 
     private lateinit var itemsTable: Table
     private lateinit var itemsListTable: Table
     private lateinit var nameLabelStyle: Label.LabelStyle
     private lateinit var descLabelStyle: Label.LabelStyle
+
+    private lateinit var coinsLabel: TextButton
 
     private fun buildItemsTable() {
         nameLabelStyle = Label.LabelStyle(font, Color.WHITE)
@@ -229,10 +235,18 @@ class BattleScreen(val game: Main) : KtxScreen {
                 if (isShowingItems) {
                     isShowingItems = false
                 }
+                if (isShopping) {
+                    isShopping = false
+                }
             }
         })
 
         innerTable.add(backButton).width(400f).height(200f).padTop(50f)
+
+        val coinsLabel = TextButton("$${player.currency}", buttonStyle)
+        this.coinsLabel = coinsLabel
+
+        innerTable.add(coinsLabel).width(200f).height(200f).padTop(50f)
     }
 
     private fun updateItemsTable() {
@@ -250,6 +264,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             val itemSlotBg = Image(skin.getDrawable("item-slot"))
             val slotGroup = Group()
             slotGroup.addActor(itemSlotBg)
+            slotGroup.clearListeners()
             itemSlotBg.setSize(slotSize, slotSize)
 
             val nameLabel: Label
@@ -300,6 +315,73 @@ class BattleScreen(val game: Main) : KtxScreen {
             itemsListTable.add(textTable).width(Gdx.graphics.width * 0.5f).padLeft(50f) // Give text 50% of screen width
             itemsListTable.row()
         }
+
+        coinsLabel.setText("$${player.currency}")
+    }
+
+    private fun updateShopTable() {
+        itemsListTable.clear()
+
+        val slotSize = 200f
+        val itemSize = 160f
+        val itemPadding = (slotSize - itemSize) / 2f
+
+        // make 8 slots
+        for (i in 0 until 8) {
+            val consumable = inventory.getItems().getOrNull(i) // Get item for this slot
+
+            // slot bg
+            val itemSlotBg = Image(skin.getDrawable("item-slot"))
+            val slotGroup = Group()
+            slotGroup.addActor(itemSlotBg)
+            itemSlotBg.setSize(slotSize, slotSize)
+
+            val nameLabel: Label
+            val descLabel: Label
+
+            if (consumable != null) {
+                // item icon
+                val itemImage = Image(consumable.textureRegion)
+                itemImage.setSize(itemSize, itemSize)
+                slotGroup.addActor(itemImage)
+                itemImage.setPosition(itemPadding, itemPadding)
+
+                // Set the text
+                nameLabel = Label(consumable.name, nameLabelStyle)
+                descLabel = Label(consumable.description, descLabelStyle)
+                descLabel.setWrap(true)
+            } else {
+                nameLabel = Label("Health Potion", nameLabelStyle)
+                descLabel = Label("Tap to buy for 10 gold", descLabelStyle)
+                slotGroup.clearListeners()
+
+                slotGroup.addListener(object: ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y:Float) {
+                        if (player.currency >= 10) {
+                            player.currency -= 10
+                            inventory.addItem(
+                                inventory.createHealthPotion()
+                            )
+                            updateShopTable()
+                        } else {
+                            showToast("Not enough coins")
+                        }
+                    }
+                })
+            }
+
+            //  table for text and title
+            val textTable = Table()
+            textTable.add(nameLabel).left().padBottom(10f)
+            textTable.row()
+            textTable.add(descLabel).left().expandX().fillX()
+
+            itemsListTable.add(slotGroup).size(slotSize).pad(10f)
+            itemsListTable.add(textTable).width(Gdx.graphics.width * 0.5f).padLeft(50f) // Give text 50% of screen width
+            itemsListTable.row()
+        }
+
+        coinsLabel.setText("$${player.currency}")
     }
 
     private var accumulator = 0f
@@ -430,6 +512,13 @@ class BattleScreen(val game: Main) : KtxScreen {
                     player.currency += coins
                     Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
                     showToast("+10 XP, +$$coins", 1.5f)
+
+                    GameLogic.battles++
+                    if (GameLogic.battles == 1) {
+                        GameLogic.battles = 0
+                        isShopping = true
+                        isShowingItems = true
+                    }
 
                     // after death animation, spawn another random enemy
                     scheduleNextEnemy(delaySeconds = 2f)
@@ -647,6 +736,10 @@ class BattleScreen(val game: Main) : KtxScreen {
             enemyIcon.isVisible = !isShowingItems
             playerIcon_NotTurn.isVisible = !isShowingItems
             enemyIcon_NotTurn.isVisible = !isShowingItems
+
+            if (isShopping) {
+                updateShopTable()
+            }
 
             uiStage.draw()
         }
