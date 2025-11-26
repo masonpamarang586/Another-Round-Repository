@@ -29,6 +29,7 @@ generic_char_v0.2/guide_2.png
 generic_char_v0.2/png/blue/blue_attack1.png
 generic_char_v0.2/png/blue/char_blue_1.png
 generic_char_v0.2/png/blue/char_blue_1_damage.png
+generic_char_v0.2/png/blue/char_blue_1_death.png
 generic_char_v0.2/png/blue/char_blue_1_index00.png
 generic_char_v0.2/png/blue/char_blue_2.png
 generic_char_v0.2/png/green/char_green_1.png

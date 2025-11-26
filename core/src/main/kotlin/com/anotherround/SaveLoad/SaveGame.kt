@@ -71,8 +71,8 @@ object SaveGame {
         val fh = fileForSlot(slot)
 
         val state = GameState(
-            player = CharacterSnapshot.from(player),
-            enemy = CharacterSnapshot.from(enemy),
+            player = CharacterSnapshot.from(player, player.currency),
+            enemy = CharacterSnapshot.from(enemy, 0),
             potions = potions
         )
         val text = json.prettyPrint(state)

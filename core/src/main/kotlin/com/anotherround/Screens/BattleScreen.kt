@@ -151,7 +151,7 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     private val enemyHealthLabel by lazy {
-        val label = TextButton("${enemy.health}", buttonStyle)
+        val label = TextButton("", buttonStyle) // come back to this, I may have broke something -mason
         label.width = 400f
         label.height = 200f
         label
