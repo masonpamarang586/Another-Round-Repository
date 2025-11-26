@@ -80,6 +80,7 @@ ui/font-list.fnt
 ui/font-subtitle.fnt
 ui/font-window.fnt
 ui/font.fnt
+ui/playerHealthBar.png
 ui/playerIcon.png
 ui/playerIcon_noTurn.png
 ui/tilemap.png

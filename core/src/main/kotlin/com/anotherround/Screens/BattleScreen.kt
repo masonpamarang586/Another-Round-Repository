@@ -24,6 +24,7 @@ import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
@@ -143,6 +144,12 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
     private val tiledMapCamera = OrthographicCamera()
     private val tiledMapRenderer = OrthogonalTiledMapRenderer(tiledMap, Main.UNIT_SCALE)
+
+    private val playerIcon = Image(Texture(Gdx.files.internal("ui/playerIcon.png")))
+    private val playerIcon_NotTurn = Image(Texture(Gdx.files.internal("ui/playerIcon_noTurn.png")))
+
+    private val enemyIcon = Image(Texture(Gdx.files.internal("ui/enemyIcon.png")))
+    private val enemyIcon_NotTurn = Image(Texture(Gdx.files.internal("ui/enemyIcon_noTurn.png")))
 
     private val playerHealthLabel by lazy {
         val label = TextButton("${player.health}", buttonStyle)
@@ -386,6 +393,10 @@ class BattleScreen(val game: Main) : KtxScreen {
                             if (enemy.isAlive()) {
                                 enemySprite.playHurt()
                                 combat.pauseNextTurnFor(max(1.5f, enemySprite.hurtDuration()))
+                                playerIcon.remove()
+                                enemyIcon_NotTurn.remove()
+                                uiStage.addActor(playerIcon_NotTurn)
+                                uiStage.addActor(enemyIcon)
                             } else {
                                 enemySprite.playDeath()
                                 combat.pauseNextTurnFor(enemySprite.deathDuration())
@@ -393,6 +404,10 @@ class BattleScreen(val game: Main) : KtxScreen {
                         } else if (action.attacker === enemy) {
                             playerSprite.playHurt()
                             combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
+                            playerIcon_NotTurn.remove()
+                            enemyIcon.remove()
+                            uiStage.addActor(playerIcon)
+                            uiStage.addActor(enemyIcon_NotTurn)
                         }
                     }
                 }
@@ -475,7 +490,29 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(itemsTable)
         uiStage.addActor(playerHealthLabel)
         uiStage.addActor(enemyHealthLabel)
+        uiStage.addActor(playerIcon)
+        uiStage.addActor(enemyIcon_NotTurn)
         GameLogic.screen = this
+
+        playerHealthLabel.setSize(250f, 200f)
+        playerHealthLabel.addAction(Actions.moveBy(150f, 0f))
+
+
+        enemyHealthLabel.setSize(250f, 200f)
+        enemyHealthLabel.addAction(Actions.moveBy(50f, 0f))
+
+
+        playerIcon.setSize(200f, 200f)
+        playerIcon.addAction(Actions.moveBy(49f, 2000f))
+
+        playerIcon_NotTurn.setSize(200f, 200f)
+        playerIcon_NotTurn.addAction(Actions.moveBy(48f, 2000f))
+
+        enemyIcon.setSize(200f, 200f)
+        enemyIcon.addAction(Actions.moveBy(580f, 2000f))
+
+        enemyIcon_NotTurn.setSize(200f, 200f)
+        enemyIcon_NotTurn.addAction(Actions.moveBy(580f, 2000f))
     }
 
     override fun resume() {
@@ -582,6 +619,8 @@ class BattleScreen(val game: Main) : KtxScreen {
                 // update health text
                 playerHealthLabel.setText("${player.health}")
                 enemyHealthLabel.setText("${enemy.health}")
+                font.draw(game.batch,"Player", 60f, 2275f )
+                font.draw(game.batch, "Enemy", 790f, 2275f)
             }
 
             toastText?.let { msg ->
@@ -604,6 +643,10 @@ class BattleScreen(val game: Main) : KtxScreen {
             playerHealthLabel.isVisible = !isShowingItems
             enemyHealthLabel.isVisible = !isShowingItems
             itemsTable.isVisible = isShowingItems
+            playerIcon.isVisible = !isShowingItems
+            enemyIcon.isVisible = !isShowingItems
+            playerIcon_NotTurn.isVisible = !isShowingItems
+            enemyIcon_NotTurn.isVisible = !isShowingItems
 
             uiStage.draw()
         }
