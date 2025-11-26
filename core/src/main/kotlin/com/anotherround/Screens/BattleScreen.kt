@@ -71,8 +71,11 @@ class BattleScreen(val game: Main) : KtxScreen {
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
 
         isGameOver = false
+        pendingGameOver = false
+        gameOverDelay = 0f
         pendingNextEnemy = false
         nextEnemyDelay = 0f
+        isShowingItems = false
         toastText = null
 
         // reset stats to default for new game
@@ -87,7 +90,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         inventory.loadDefaultPotions()
 
         if (this::playerSprite.isInitialized) {
-            playerSprite.playIdle()
+            playerSprite.revive()
         }
         if (this::enemySprite.isInitialized) {
             enemySprite.dispose()
@@ -334,16 +337,8 @@ class BattleScreen(val game: Main) : KtxScreen {
         newGameButton.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 if (!isGameOver) return
-                val session = currentSession!!
-                // restart player & inventory
+                val session = currentSession ?: GameSession(1, player.name)
                 startNewGame(session)
-                // respawn a fresh random enemy
-                spawnRandomEnemy()
-                // reset sprite state
-                playerSprite.playIdle()
-
-                // hide popup & resume
-                isGameOver = false
                 gameOverTable.isVisible = false
             }
         })
