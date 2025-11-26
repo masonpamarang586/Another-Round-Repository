@@ -2,7 +2,6 @@ package com.anotherround.combat
 
 import com.anotherround.CharacterClasses.Character
 import com.anotherround.CharacterClasses.Player
-import com.anotherround.CharacterClasses.Enemy
 import kotlin.math.max
 enum class Turn { PLAYER, ENEMY, OVER }
 enum class SfxEvent {
@@ -18,7 +17,7 @@ sealed class Action {
 
 class CombatManager(
     val player: Player,
-    val enemy: Enemy,
+    val enemy: Character,
 
     private val onLog: (String) -> Unit = {},
 
