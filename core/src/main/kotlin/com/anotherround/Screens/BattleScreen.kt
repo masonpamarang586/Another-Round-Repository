@@ -60,6 +60,12 @@ class BattleScreen(val game: Main) : KtxScreen {
     private var pendingNextEnemy = false
     private var nextEnemyDelay = 0f
 
+    // ui for the "Game Over"
+    private lateinit var gameOverTable: Table
+    private var pendingGameOver = false
+    private var gameOverDelay = 0f
+    private var isGameOver = false
+
     fun startNewGame(session: GameSession) {
         this.currentSession = session
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
@@ -301,7 +307,46 @@ class BattleScreen(val game: Main) : KtxScreen {
             itemsListTable.row()
         }
     }
+    private fun buildGameOverTable() {
+        gameOverTable = Table().apply {
+            setFillParent(true)
+            background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
+            isVisible = false
+        }
 
+        val inner = Table()
+
+        val titleLabel = Label("GAME OVER", Label.LabelStyle(font, Color.WHITE))
+        val newGameButton = TextButton("New Game", buttonStyle)
+
+        newGameButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                if (!isGameOver) return
+
+                val session = currentSession ?: GameSession(1, player.name.ifBlank { "Hero" })
+
+                // restart player & inventory
+                startNewGame(session)
+
+                // respawn a fresh random enemy
+                spawnRandomEnemy()
+
+                // reset sprite state
+                playerSprite.playIdle()
+
+                // hide popup & resume
+                isGameOver = false
+                gameOverTable.isVisible = false
+            }
+        })
+
+        inner.add(titleLabel).padBottom(40f)
+        inner.row()
+        inner.add(newGameButton).width(400f).height(200f)
+
+        gameOverTable.add(inner)
+        uiStage.addActor(gameOverTable)
+    }
     private var accumulator = 0f
 
     private fun updateFont() {
@@ -347,6 +392,16 @@ class BattleScreen(val game: Main) : KtxScreen {
     private fun scheduleNextEnemy(delaySeconds: Float = 2f) {
         pendingNextEnemy = true
         nextEnemyDelay = delaySeconds
+    }
+
+    private fun scheduleGameOver(delaySeconds: Float = 2f) {
+        pendingGameOver = true
+        gameOverDelay = delaySeconds
+    }
+
+    private fun showGameOverPopup() {
+        isGameOver = true
+        gameOverTable.isVisible = true
     }
 
     private fun spawnRandomEnemy() {
@@ -419,7 +474,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                     SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
                     SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
                     SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
-                    SfxEvent.PlayerDeath  -> { /* TODO */ }
+                    SfxEvent.PlayerDeath  -> sfxEnemyDeath.play(1.0f)
                     SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
                 }
             },
@@ -435,7 +490,11 @@ class BattleScreen(val game: Main) : KtxScreen {
                     scheduleNextEnemy(delaySeconds = 2f)
                 }
                 if (defeated === player) {
+                    playerSprite.playDeath()
+                    val delay = playerSprite.deathDuration()
+                    combat.pauseNextTurnFor(delay)
                     showToast("You were defeated...", 2f)
+                    scheduleGameOver(delaySeconds = delay)
                 }
             },
 
@@ -449,6 +508,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         GameLogic.gameState = GameLogic.GameState.BATTLE
 
         buildItemsTable()
+        buildGameOverTable()
 
         playerSprite = PlayerSprite(game.worldViewport)
 
@@ -572,6 +632,14 @@ class BattleScreen(val game: Main) : KtxScreen {
                 spawnRandomEnemy()
             }
         }
+
+        if (pendingGameOver) {
+            gameOverDelay -= delta
+            if (gameOverDelay <= 0f) {
+                pendingGameOver = false
+                showGameOverPopup()
+            }
+        }
     }
 
     /**
@@ -619,8 +687,6 @@ class BattleScreen(val game: Main) : KtxScreen {
                 // update health text
                 playerHealthLabel.setText("${player.health}")
                 enemyHealthLabel.setText("${enemy.health}")
-                font.draw(game.batch,"Player", 60f, 2275f )
-                font.draw(game.batch, "Enemy", 790f, 2275f)
             }
 
             toastText?.let { msg ->
@@ -636,7 +702,15 @@ class BattleScreen(val game: Main) : KtxScreen {
                 game.batch.color = oldColor
             }
         }
+        if (isGameOver) {
+            menuTable.isVisible = false
+            playerHealthLabel.isVisible = false
+            enemyHealthLabel.isVisible = false
+            itemsTable.isVisible = false
 
+            uiStage.draw()
+            return
+        }
         if (!pauseUI.isPaused) {
             // set visibility
             menuTable.isVisible = !isShowingItems
