@@ -4,7 +4,6 @@ import com.anotherround.CharacterClasses.*
 import com.anotherround.combat.CombatManager
 import com.anotherround.combat.Action
 import com.anotherround.combat.SfxEvent
-import com.anotherround.combat.Turn
 import com.anotherround.Consumables.ConsumablesInventory
 import com.anotherround.GameLogic
 import com.anotherround.GameSession
@@ -42,6 +41,24 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     private val inventory = ConsumablesInventory()
 
+
+    private val player = Player(name = "Hero")
+
+    // current enemy & its type
+    private lateinit var enemy: Character
+    private lateinit var enemyKind: EnemyKind
+
+    // sprites
+    private lateinit var playerSprite: PlayerSprite
+    private lateinit var enemySprite: EnemySprite
+
+    // combat manager
+    private lateinit var combat: CombatManager
+
+    // when true, we wait a bit then spawn a new random enemy
+    private var pendingNextEnemy = false
+    private var nextEnemyDelay = 0f
+
     fun startNewGame(session: GameSession) {
         this.currentSession = session
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
@@ -50,9 +67,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.name = session.playerName
         player.health = 100
         player.level = 1
-
-        redEnemy.health = 20
-        redEnemy.level = 1
+        player.defenseStat = 0
+        player.attackStat = 10
+        player.currency = 0
 
         inventory.loadDefaultPotions()
 
@@ -69,12 +86,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.level = state.player.level
         player.defenseStat = state.player.defenseStat
         player.attackStat = state.player.attackStat
-
+        player.currency = state.player.currency
         // Apply saved stats to the enemy
-        redEnemy.health = state.enemy.health
-        redEnemy.level = state.enemy.level
-        redEnemy.defenseStat = state.enemy.defenseStat
-        redEnemy.attackStat = state.enemy.attackStat
+
+        spawnRandomEnemy()
 
         inventory.loadFromSaveState(state.potions)
 
@@ -88,8 +103,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         toastText = text
         toastTimer = seconds
     }
-    private lateinit var playerSprite: com.anotherround.render.PlayerSprite
-    private lateinit var enemySprite: RedEnemySprite
+
     private lateinit var backgroundMusic: Music
     private lateinit var attackSound: Sound
     private lateinit var sfxPlayerAttack: Sound
@@ -99,11 +113,13 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var sfxEnemyDeath: Sound
     private lateinit var sfxItemHeal: Sound
     private lateinit var sfxItemFail: Sound
+
     private val worldStage = Stage(game.worldViewport)
     private val uiStage = Stage(game.uiViewport)
     private val pauseUI by lazy { PauseScreenUI(game.uiViewport) }
 
     var font = BitmapFont()
+    private var smallFont = BitmapFont()
     val generator = FreeTypeFontGenerator(Gdx.files.internal("fonts/monogram.ttf"))
 
     private val skin by lazy {
@@ -119,7 +135,6 @@ class BattleScreen(val game: Main) : KtxScreen {
             over = skin.getDrawable("button-normal-over")
         }
     }
-    private var smallFont = BitmapFont()
 
     private val tiledMap by lazy {
         val mapLoader = TmxMapLoader()
@@ -127,11 +142,6 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
     private val tiledMapCamera = OrthographicCamera()
     private val tiledMapRenderer = OrthogonalTiledMapRenderer(tiledMap, Main.UNIT_SCALE)
-
-    // fields
-    private val player = Player(name = "Hero")
-    private val redEnemy  = RedEnemy(name = "Meany")
-    private lateinit var combat: com.anotherround.combat.CombatManager
 
     private val playerHealthLabel by lazy {
         val label = TextButton("${player.health}", buttonStyle)
@@ -141,7 +151,7 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     private val enemyHealthLabel by lazy {
-        val label = TextButton("${redEnemy.health}", buttonStyle)
+        val label = TextButton("${enemy.health}", buttonStyle)
         label.width = 400f
         label.height = 200f
         label
@@ -252,7 +262,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                 slotGroup.addListener(object: ClickListener() {
                     override fun clicked(event: InputEvent?, x: Float, y:Float) {
                         val healAmount = inventory.useItem(consumable)
-                        player.health += healAmount
+                        player.heal(healAmount)
                         sfxItemHeal.play(50f)
                         showToast("Healed for $healAmount health")
 
@@ -326,7 +336,96 @@ class BattleScreen(val game: Main) : KtxScreen {
             descLabelStyle = Label.LabelStyle(smallFont, Color.LIGHT_GRAY)
         }
     }
+    private fun scheduleNextEnemy(delaySeconds: Float = 2f) {
+        pendingNextEnemy = true
+        nextEnemyDelay = delaySeconds
+    }
 
+    private fun spawnRandomEnemy() {
+        // choose enemy kind & build model + sprite
+        enemyKind = EnemyFactory.randomKind()
+        enemy = EnemyFactory.create(enemyKind)
+
+        // dispose old sprite if present
+        if (this::enemySprite.isInitialized) {
+            enemySprite.dispose()
+        }
+        enemySprite = EnemySprite(game.worldViewport, enemyKind)
+
+        // rebuild combat so it uses the new enemy
+        setupCombat()
+
+        Gdx.app.log("ENEMY", "Spawned ${enemy.name} of kind $enemyKind")
+    }
+
+    private fun setupCombat() {
+        combat = CombatManager(
+            player = player,
+            enemy  = enemy,
+            onLog  = { msg -> Gdx.app.log("COMBAT", msg) },
+
+            onActionStart = { action ->
+                when (action) {
+                    is Action.Attack -> {
+                        if (action.attacker === player) {
+                            playerSprite.playAttack()
+                            combat.resolveDelay = playerSprite.attackDuration()
+                        } else if (action.attacker === enemy) {
+                            enemySprite.playAttack()
+                            combat.resolveDelay = enemySprite.attackDuration()
+                        }
+                    }
+                }
+            },
+
+            onActionEnd = { action ->
+                when (action) {
+                    is Action.Attack -> {
+                        if (action.attacker === player) {
+                            if (enemy.isAlive()) {
+                                enemySprite.playHurt()
+                                combat.pauseNextTurnFor(max(1.5f, enemySprite.hurtDuration()))
+                            } else {
+                                enemySprite.playDeath()
+                                combat.pauseNextTurnFor(enemySprite.deathDuration())
+                            }
+                        } else if (action.attacker === enemy) {
+                            playerSprite.playHurt()
+                            combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
+                        }
+                    }
+                }
+            },
+
+            onSfx = { e ->
+                when (e) {
+                    SfxEvent.PlayerAttack -> sfxPlayerAttack.play(0.9f)
+                    SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
+                    SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
+                    SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
+                    SfxEvent.PlayerDeath  -> { /* TODO */ }
+                    SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
+                }
+            },
+
+            onDefeat = { defeated, by ->
+                if (defeated === enemy && by === player) {
+                    val coins = 10
+                    player.currency += coins
+                    Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
+                    showToast("+10 XP, +$$coins", 1.5f)
+
+                    // after death animation, spawn another random enemy
+                    scheduleNextEnemy(delaySeconds = 2f)
+                }
+                if (defeated === player) {
+                    showToast("You were defeated...", 2f)
+                }
+            },
+
+            resolveDelay = 0f
+        )
+    }
     override fun show() {
         updateFont()
 
@@ -335,75 +434,20 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         buildItemsTable()
 
-        playerSprite = com.anotherround.render.PlayerSprite(
-            game.worldViewport,
-            idlePath = "generic_char_v0.2/png/blue/char_blue_1_index00.png",
-            attackRowPath = "generic_char_v0.2/png/blue/blue_attack1.png"
-        )
-        enemySprite = com.anotherround.render.RedEnemySprite(game.worldViewport)
+        playerSprite = PlayerSprite(game.worldViewport)
+
         backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/battle-fighting-warrior-drums-372078.mp3"))
         backgroundMusic.isLooping = true
         backgroundMusic.volume = 1.5f
         backgroundMusic.play()
+
         sfxPlayerAttack = Gdx.audio.newSound(Gdx.files.internal("audio/violent-sword-slice-393839.mp3"))
         sfxEnemyAttack  = Gdx.audio.newSound(Gdx.files.internal("audio/magical-hit-45356.mp3"))
         sfxPlayerHurt   = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
         sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
         sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
-        combat = com.anotherround.combat.CombatManager(
-            player, redEnemy,
-            onLog = { msg -> Gdx.app.log("COMBAT", msg) },
-            onActionStart = { action ->
-                when (action) {
-                    is com.anotherround.combat.Action.Attack -> {
-                        if (action.attacker === player) {
-                            playerSprite.playAttack()
-                            combat.resolveDelay = playerSprite.attackDuration()
-                        } else if (action.attacker === redEnemy) {
-                            enemySprite.playAttack()
-                            combat.resolveDelay = enemySprite.attackDuration()
-                        }
-                    }
-                }
-            },
-            onActionEnd   = { action ->
-                when (action) {
-                    is com.anotherround.combat.Action.Attack -> {
-                        if (action.attacker === player) {
-                            if (redEnemy.isAlive()) {
-                                enemySprite.playHurt()
-                                combat.pauseNextTurnFor(max(1.5f,enemySprite.hurtDuration())) // little hit-pause
-                            } else {
-                                enemySprite.playDeath()
-                                combat.pauseNextTurnFor(enemySprite.deathDuration())
-                            }
-                        } else if (action.attacker === redEnemy) {
-                            playerSprite.playHurt()
-                            combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
-                        }
-                    }
-                }
-            },
-            onSfx = { e ->
-                when (e) {
-                    com.anotherround.combat.SfxEvent.PlayerAttack -> sfxPlayerAttack.play(0.9f)
-                    com.anotherround.combat.SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
-                    com.anotherround.combat.SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
-                    com.anotherround.combat.SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
-                    com.anotherround.combat.SfxEvent.PlayerDeath  -> { /* add later if you have it */ }
-                    com.anotherround.combat.SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
-                }
-            },
-            onDefeat = { defeated, by ->
-                if (defeated === redEnemy && by === player) {
-                    val coins = 10
-                    player.currency += coins
-                    Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
-                    // showVictoryPopup(xp = 10, money = coins)
-                }
-            },
-            resolveDelay = 0f
-        )
+
+        spawnRandomEnemy()
 
         pauseUI.updateFont(font)
         pauseUI.onResize()
@@ -411,7 +455,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         pauseUI.onSaveRequested = {
             try {
                 val slotToSave = currentSession?.slotId ?: 1
-                SaveGame.save(player, redEnemy, inventory.getItems().size, slotToSave)
+                SaveGame.save(player, enemy, inventory.getItems().size, slotToSave)
                 Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
                 showToast("Game Saved (Slot $slotToSave)", 1.5f)
             } catch (t: Throwable) {
@@ -474,87 +518,20 @@ class BattleScreen(val game: Main) : KtxScreen {
      * TODO: Handles the game logic.
      */
     fun logic(delta: Float) {
-        combat.update(Gdx.graphics.deltaTime)
-        playerSprite.update(Gdx.graphics.deltaTime)
-        enemySprite.update(Gdx.graphics.deltaTime)
+        combat.update(delta)
+        playerSprite.update(delta)
+        enemySprite.update(delta)
+
         if (toastTimer > 0f) {
-            toastTimer -= Gdx.graphics.deltaTime
+            toastTimer -= delta
             if (toastTimer <= 0f) toastText = null
         }
-        if (redEnemy.health == 0 || player.health == 0) {
-            accumulator += delta
-            if (accumulator >= 2f && redEnemy.health == 0) {
-                accumulator = 0f
-                redEnemy.health = 20
-                playerSprite = com.anotherround.render.PlayerSprite(
-                    game.worldViewport,
-                    idlePath = "generic_char_v0.2/png/blue/char_blue_1_index00.png",
-                    attackRowPath = "generic_char_v0.2/png/blue/blue_attack1.png"
-                )
-                enemySprite = com.anotherround.render.RedEnemySprite(game.worldViewport)
-                backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/battle-fighting-warrior-drums-372078.mp3"))
-                backgroundMusic.isLooping = true
-                backgroundMusic.volume = 1.5f
-                backgroundMusic.play()
-                sfxPlayerAttack = Gdx.audio.newSound(Gdx.files.internal("audio/violent-sword-slice-393839.mp3"))
-                sfxEnemyAttack  = Gdx.audio.newSound(Gdx.files.internal("audio/magical-hit-45356.mp3"))
-                sfxPlayerHurt   = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
-                sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
-                sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
-                combat = com.anotherround.combat.CombatManager(
-                    player, redEnemy,
-                    onLog = { msg -> Gdx.app.log("COMBAT", msg) },
-                    onActionStart = { action ->
-                        when (action) {
-                            is com.anotherround.combat.Action.Attack -> {
-                                if (action.attacker === player) {
-                                    playerSprite.playAttack()
-                                    combat.resolveDelay = playerSprite.attackDuration()
-                                } else if (action.attacker === redEnemy) {
-                                    enemySprite.playAttack()
-                                    combat.resolveDelay = enemySprite.attackDuration()
-                                }
-                            }
-                        }
-                    },
-                    onActionEnd   = { action ->
-                        when (action) {
-                            is com.anotherround.combat.Action.Attack -> {
-                                if (action.attacker === player) {
-                                    if (redEnemy.isAlive()) {
-                                        enemySprite.playHurt()
-                                        combat.pauseNextTurnFor(max(1.5f,enemySprite.hurtDuration())) // little hit-pause
-                                    } else {
-                                        enemySprite.playDeath()
-                                        combat.pauseNextTurnFor(enemySprite.deathDuration())
-                                    }
-                                } else if (action.attacker === redEnemy) {
-                                    playerSprite.playHurt()
-                                    combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
-                                }
-                            }
-                        }
-                    },
-                    onSfx = { e ->
-                        when (e) {
-                            com.anotherround.combat.SfxEvent.PlayerAttack -> sfxPlayerAttack.play(0.9f)
-                            com.anotherround.combat.SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
-                            com.anotherround.combat.SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
-                            com.anotherround.combat.SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
-                            com.anotherround.combat.SfxEvent.PlayerDeath  -> { /* add later if you have it */ }
-                            com.anotherround.combat.SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
-                        }
-                    },
-                    onDefeat = { defeated, by ->
-                        if (defeated === redEnemy && by === player) {
-                            val coins = 10
-                            player.currency += coins
-                            Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
-                            // showVictoryPopup(xp = 10, money = coins)
-                        }
-                    },
-                    resolveDelay = 0f
-                )
+
+        if (pendingNextEnemy) {
+            nextEnemyDelay -= delta
+            if (nextEnemyDelay <= 0f) {
+                pendingNextEnemy = false
+                spawnRandomEnemy()
             }
         }
     }
@@ -591,7 +568,7 @@ class BattleScreen(val game: Main) : KtxScreen {
      * Draws the UI.
      */
     fun drawUI(delta: Float) {
-        uiStage.act(Gdx.graphics.deltaTime)
+        uiStage.act(delta)
 
         game.uiViewport.apply()
         game.batch.projectionMatrix = game.uiViewport.camera.combined
@@ -603,7 +580,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             if (!pauseUI.isPaused) {
                 // update health text
                 playerHealthLabel.setText("${player.health}")
-                enemyHealthLabel.setText("${redEnemy.health}")
+                enemyHealthLabel.setText("${enemy.health}")
             }
 
             toastText?.let { msg ->

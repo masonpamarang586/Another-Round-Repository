@@ -14,6 +14,15 @@ com/badlogic/gdx/utils/lsans-15.png
 entities/enemy_slime_spritesheet.png
 entities/player_spritesheet.atlas
 entities/player_spritesheet.png
+evil_wizard/License.txt
+evil_wizard/Sprites/Attack1.png
+evil_wizard/Sprites/Attack2.png
+evil_wizard/Sprites/Death.png
+evil_wizard/Sprites/Fall.png
+evil_wizard/Sprites/Idle.png
+evil_wizard/Sprites/Jump.png
+evil_wizard/Sprites/Run.png
+evil_wizard/Sprites/Take hit.png
 fonts/monogram.ttf
 generic_char_v0.2/guide.png
 generic_char_v0.2/guide_2.png
@@ -36,6 +45,24 @@ generic_char_v0.2/readme.TXT
 items/items.json
 items/potions.png
 logo.png
+nightborne/NightBorne.png
+nightborne/NightBorneAttack.png
+nightborne/NightBorneDamage.png
+nightborne/NightBorneDeath.png
+nightborne/NightBorneIdle.png
+phantom/LayeredProject.aseprite
+phantom/allanimation.aseprite
+phantom/main project.aseprite
+phantom/png/attacking.png
+phantom/png/death.png
+phantom/png/idle.png
+phantom/png/idle2.png
+phantom/png/skill1.png
+phantom/png/summon.png
+phantom/png/summonAppear.png
+phantom/png/summonDeath.png
+phantom/png/summonIdle.png
+phantom/summons1.aseprite
 test.tpproj
 ui/enemyIcon.png
 ui/enemyIcon_noTurn.png
