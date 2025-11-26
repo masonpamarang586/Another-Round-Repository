@@ -53,11 +53,15 @@ class ConsumablesInventory {
         return healAmount
     }
 
+    fun addItem(consumable: Consumable) {
+        items.add(consumable)
+    }
+
     fun dispose() {
         potionsSpritesheet.dispose()
     }
 
-    private fun createHealthPotion() = Consumable(
+    fun createHealthPotion() = Consumable(
         name = "Health Potion",
         description = "A standard potion. Heals 10 HP.",
         healAmount = 10,
