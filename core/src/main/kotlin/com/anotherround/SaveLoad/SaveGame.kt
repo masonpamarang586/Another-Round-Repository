@@ -1,27 +1,29 @@
 package com.anotherround.SaveLoad
 
 import com.anotherround.CharacterClasses.Character
-import com.anotherround.CharacterClasses.Enemy
 import com.anotherround.CharacterClasses.Player
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonWriter
+import kotlin.text.Charsets
 
 data class CharacterSnapshot(
     var name: String = "",
     var level: Int = 1,
     var health: Int = 0,
     var defenseStat: Int = 0,
-    var attackStat: Int = 0
+    var attackStat: Int = 0,
+    val currency: Int = 0
 ) {
     companion object {
-        fun from(c: Character) = CharacterSnapshot(
+        fun from(c: Character, currency: Int = 0) = CharacterSnapshot(
             name = c.name,
             level = c.level,
             health = c.health,
             defenseStat = c.defenseStat,
-            attackStat = c.attackStat
+            attackStat = c.attackStat,
+            currency = currency
         )
     }
 }
@@ -65,11 +67,12 @@ object SaveGame {
 
     // Save current state to the given slot (default slot 1)
     @Synchronized
-    fun save(player: Player, enemy: Enemy, potions: Int, slot: Int = 1) {
+    fun save(player: Player, enemy: Character, potions: Int, slot: Int = 1) {
         val fh = fileForSlot(slot)
+
         val state = GameState(
-            player = CharacterSnapshot.from(player),
-            enemy = CharacterSnapshot.from(enemy),
+            player = CharacterSnapshot.from(player, player.currency),
+            enemy = CharacterSnapshot.from(enemy, 0),
             potions = potions
         )
         val text = json.prettyPrint(state)
