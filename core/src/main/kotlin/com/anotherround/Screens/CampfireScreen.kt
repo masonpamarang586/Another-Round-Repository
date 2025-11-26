@@ -1,6 +1,5 @@
 package com.anotherround.Screens
 
-import com.anotherround.BattleScreen
 import com.anotherround.GameLogic
 import com.anotherround.Main
 import com.badlogic.gdx.Gdx
@@ -71,6 +70,7 @@ class CampfireScreen(val game: Main) : KtxScreen {
 
     private fun logic(delta: Float) {
         if (accumulator >= 3f) {
+            accumulator = 0f;
             game.setScreen<BattleScreen>()
             hide()
         }
