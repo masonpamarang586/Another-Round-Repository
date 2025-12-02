@@ -2,7 +2,6 @@ package com.anotherround.Equipment
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 
-/** What kind of weapon it is (for flavor or later logic). */
 enum class WeaponType {
     SWORD,
     MACE,
@@ -41,10 +40,6 @@ enum class WeaponSprite(val row: Int, val col: Int) {
     DIAMOND_STAFF(103, 7)
 }
 
-/**
- * Blueprint = weapon data without the TextureRegion yet.
- * Stronger order: Stone < Gold < Diamond.
- */
 data class WeaponBlueprint(
     val name: String,
     val type: WeaponType,
@@ -53,7 +48,6 @@ data class WeaponBlueprint(
     val attack: Int
 )
 
-/** All default weapons. Attack goes up*/
 val DEFAULT_WEAPON_BLUEPRINTS = listOf(
     // Swords
     WeaponBlueprint("Stone Sword",   WeaponType.SWORD, WeaponSprite.STONE_SWORD,   "Common",   5),
@@ -76,13 +70,6 @@ val DEFAULT_WEAPON_BLUEPRINTS = listOf(
     WeaponBlueprint("Diamond Staff", WeaponType.STAFF, WeaponSprite.DIAMOND_STAFF, "Rare", 11)
 )
 
-/**
- * Build the actual Weapon objects from the sprite sheet cells.
- *
- * Usage (in BattleScreen):
- *   val cells = TextureRegion.split(armorTexture, 64, 64)
- *   weaponInventory.addAll(buildDefaultWeapons(cells))
- */
 fun buildDefaultWeapons(cells: Array<Array<TextureRegion>>): List<Weapon> {
     return DEFAULT_WEAPON_BLUEPRINTS.map { bp ->
         val region = cells[bp.sprite.row][bp.sprite.col]

@@ -2,14 +2,12 @@ package com.anotherround.Equipment
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 
-/** Where a particular armor piece is worn. */
 enum class ArmorSlot {
     HELMET,
     CHEST,
     BOOTS
 }
 
-/** One armor item (name + slot + icon from the sprite sheet). */
 data class ArmorPiece(
     val name: String,
     val slot: ArmorSlot,
@@ -19,12 +17,6 @@ data class ArmorPiece(
     val health: Int
 )
 
-/**
- * All equipment the character can have on at once.
- *
- * NOTE: weapon is defined in Weapons.kt but can be referenced here
- * because it's in the same package.
- */
 data class EquipmentSlots(
     var weapon: Weapon? = null,
     var helmet: ArmorPiece? = null,
@@ -45,7 +37,7 @@ enum class ArmorSprite(val row: Int, val col: Int) {
     GOLD_CHEST(120, 6),
     GOLD_BOOTS(121, 6),
 
-    // add more armor pieces here later if you want
+    // add more armor pieces here
 }
 
 data class ArmorBlueprint(
@@ -75,13 +67,6 @@ val DEFAULT_ARMOR_BLUEPRINTS = listOf(
     ArmorBlueprint("Gold Boots",         ArmorSlot.BOOTS,  ArmorSprite.GOLD_BOOTS,    "Rare",     3,  8)
 )
 
-/**
- * Build the list of actual ArmorPiece objects, given the split sprite sheet.
- *
- * Usage (in BattleScreen):
- *   val cells = TextureRegion.split(armorTexture, 64, 64)
- *   armorInventory.addAll(buildDefaultArmor(cells))
- */
 fun buildDefaultArmor(cells: Array<Array<TextureRegion>>): List<ArmorPiece> {
     return DEFAULT_ARMOR_BLUEPRINTS.map { bp ->
         val region = cells[bp.sprite.row][bp.sprite.col]
