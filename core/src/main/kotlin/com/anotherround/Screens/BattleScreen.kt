@@ -35,6 +35,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import ktx.app.KtxScreen
 import ktx.graphics.use
 import kotlin.math.max
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.anotherround.Equipment.ArmorPiece
+import com.anotherround.Equipment.ArmorSlot
+import com.anotherround.Equipment.EquipmentSlots
 
 class BattleScreen(val game: Main) : KtxScreen {
 
@@ -42,6 +46,10 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     private val inventory = ConsumablesInventory()
 
+    // equipment data
+    private lateinit var armorTexture: Texture
+    private val equipmentInventory = mutableListOf<ArmorPiece>()
+    private val equipmentSlots = EquipmentSlots()
 
     private val player = Player(name = "Hero")
 
@@ -167,6 +175,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     lateinit var attackButton: TextButton
     lateinit var itemsButton: TextButton
+    lateinit var equipmentButton: TextButton
 
     private val menuTable by lazy {
         val table = Table()
@@ -185,24 +194,47 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.itemsButton = itemsButton
         itemsButton.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                if (combat.canOpenMenu() && !isShowingItems) {
+                // Open items only if no overlay is open
+                if (combat.canOpenMenu() && !isShowingItems && !isShowingEquipment) {
                     isShowingItems = true
+                    isShowingEquipment = false
                     updateItemsTable()
                 }
             }
         })
-        table.add(itemsButton).pad(100f).width(400f).height(200f)
+        table.add(itemsButton).pad(10f).width(400f).height(200f)
+        table.row()
+
+        // equipment button
+        val equipmentButton = TextButton("Equipment", buttonStyle)
+        this.equipmentButton = equipmentButton
+        equipmentButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                // Open equipment only if no overlay is open
+                if (combat.canOpenMenu() && !isShowingEquipment && !isShowingItems) {
+                    isShowingEquipment = true
+                    isShowingItems = false
+                    updateEquipmentTable()
+                }
+            }
+        })
+        table.add(equipmentButton).padTop(0f).width(400f).height(200f)
 
         table
     }
 
     private var isShowingItems = false
-
+    private var isShowingEquipment = false
 
     private lateinit var itemsTable: Table
     private lateinit var itemsListTable: Table
     private lateinit var nameLabelStyle: Label.LabelStyle
     private lateinit var descLabelStyle: Label.LabelStyle
+
+    // equipment UI tables
+    private lateinit var equipmentTable: Table
+    private lateinit var equipmentEquippedTable: Table
+    private lateinit var equipmentInventoryTable: Table
 
     private fun buildItemsTable() {
         nameLabelStyle = Label.LabelStyle(font, Color.WHITE)
@@ -299,6 +331,175 @@ class BattleScreen(val game: Main) : KtxScreen {
             itemsListTable.add(slotGroup).size(slotSize).pad(10f)
             itemsListTable.add(textTable).width(Gdx.graphics.width * 0.5f).padLeft(50f) // Give text 50% of screen width
             itemsListTable.row()
+        }
+    }
+
+    /** Load armor icons from the 64x64 sprite sheet and create some example pieces. */
+    private fun initEquipmentSprites() {
+        if (this::armorTexture.isInitialized) return  // already loaded
+
+        armorTexture = Texture(Gdx.files.internal("items/64x64.png"))
+        armorTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+
+        val cells = TextureRegion.split(armorTexture, 64, 64)
+
+        // row 0: Bronze Helmet, Chest, Boots
+        val bronzeHelmet = ArmorPiece("Bronze Helmet", ArmorSlot.HELMET, cells[0][0])
+        val bronzeChest  = ArmorPiece("Bronze Chestplate", ArmorSlot.CHEST, cells[0][1])
+        val bronzeBoots  = ArmorPiece("Bronze Boots", ArmorSlot.BOOTS, cells[0][2])
+
+        // row 1: Iron Helmet, Chest, Boots
+        val ironHelmet   = ArmorPiece("Iron Helmet", ArmorSlot.HELMET, cells[1][0])
+        val ironChest    = ArmorPiece("Iron Chestplate", ArmorSlot.CHEST, cells[1][1])
+        val ironBoots    = ArmorPiece("Iron Boots", ArmorSlot.BOOTS, cells[1][2])
+
+        // row 2: Gold Helmet, Chest, Boots
+        val goldHelmet   = ArmorPiece("Gold Helmet", ArmorSlot.HELMET, cells[2][0])
+        val goldChest    = ArmorPiece("Gold Chestplate", ArmorSlot.CHEST, cells[2][1])
+        val goldBoots    = ArmorPiece("Gold Boots", ArmorSlot.BOOTS, cells[2][2])
+
+        equipmentInventory.clear()
+        equipmentInventory.addAll(
+            listOf(
+                bronzeHelmet, bronzeChest, bronzeBoots,
+                ironHelmet, ironChest, ironBoots,
+                goldHelmet, goldChest, goldBoots
+            )
+        )
+
+        // Default equipped set for now – bronze.
+        equipmentSlots.helmet = bronzeHelmet
+        equipmentSlots.chest  = bronzeChest
+        equipmentSlots.boots  = bronzeBoots
+    }
+
+    /** Builds the equipment overlay window. */
+    private fun buildEquipmentTable() {
+        // Ensure label styles exist (buildItemsTable does this too)
+        if (!this::nameLabelStyle.isInitialized) {
+            nameLabelStyle = Label.LabelStyle(font, Color.WHITE)
+        }
+        if (!this::descLabelStyle.isInitialized) {
+            descLabelStyle = Label.LabelStyle(smallFont, Color.LIGHT_GRAY)
+        }
+
+        equipmentTable = Table()
+        equipmentTable.setFillParent(true)
+        equipmentTable.background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
+        equipmentTable.center()
+
+        val innerTable = Table()
+        innerTable.defaults().pad(10f)
+        equipmentTable.add(innerTable).expand().center()
+
+        // Title
+        val titleLabel = Label("Equipment", nameLabelStyle)
+        innerTable.add(titleLabel).colspan(3).padBottom(30f)
+        innerTable.row()
+
+        // Top: currently equipped slots (Helmet / Armor / Boots)
+        equipmentEquippedTable = Table()
+        innerTable.add(equipmentEquippedTable).colspan(3).padBottom(30f)
+        innerTable.row()
+
+        // Label above inventory list
+        val inventoryLabel = Label("Equipment in Inventory", nameLabelStyle)
+        innerTable.add(inventoryLabel).colspan(3).padBottom(10f)
+        innerTable.row()
+
+        // Bottom: inventory icons grid
+        equipmentInventoryTable = Table()
+        equipmentInventoryTable.defaults().pad(10f)
+        innerTable.add(equipmentInventoryTable).colspan(3).padBottom(30f)
+        innerTable.row()
+
+        // Return button – same style and size as Items overlay
+        val backButton = TextButton("Return", buttonStyle)
+        backButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                if (isShowingEquipment) {
+                    isShowingEquipment = false
+                }
+            }
+        })
+        innerTable.add(backButton).width(400f).height(200f).colspan(3).padTop(20f)
+    }
+
+    /** Populates the equipment overlay:
+     *  - Top: 3 equipped slots (Helmet / Armor / Boots)
+     *  - Bottom: up to 8 inventory items in a grid (4x2)
+     */
+    private fun updateEquipmentTable() {
+        equipmentEquippedTable.clearChildren()
+        equipmentInventoryTable.clearChildren()
+
+        val slotSize = 200f
+        val itemSize = 160f
+        val itemPadding = (slotSize - itemSize) / 2f
+
+        // --- Equipped slots (Helmet / Armor / Boots) ---
+        fun addEquippedSlot(title: String, piece: ArmorPiece?) {
+            val outer = Table()
+
+            val slotBg = Image(skin.getDrawable("item-slot"))
+            slotBg.setSize(slotSize, slotSize)
+            val group = Group()
+            group.addActor(slotBg)
+
+            if (piece != null) {
+                val itemImage = Image(piece.icon)
+                itemImage.setSize(itemSize, itemSize)
+                itemImage.setPosition(itemPadding, itemPadding)
+                group.addActor(itemImage)
+            }
+
+            outer.add(Label(title, nameLabelStyle)).center().padBottom(10f)
+            outer.row()
+            outer.add(group).size(slotSize)
+
+            equipmentEquippedTable.add(outer).pad(10f)
+        }
+
+        addEquippedSlot("Helmet", equipmentSlots.helmet)
+        addEquippedSlot("Armor",  equipmentSlots.chest)
+        addEquippedSlot("Boots",  equipmentSlots.boots)
+        equipmentEquippedTable.row()
+
+        // --- Inventory section at the bottom (max 8 items, 4 per row) ---
+        val itemsPerRow = 4
+        var col = 0
+
+        for (i in 0 until 8) {
+            val piece = equipmentInventory.getOrNull(i)
+
+            val slotBg = Image(skin.getDrawable("item-slot"))
+            slotBg.setSize(slotSize, slotSize)
+            val group = Group()
+            group.addActor(slotBg)
+
+            if (piece != null) {
+                val itemImage = Image(piece.icon)
+                itemImage.setSize(itemSize, itemSize)
+                itemImage.setPosition(itemPadding, itemPadding)
+                group.addActor(itemImage)
+
+                val nameLabel = Label(piece.name, nameLabelStyle)
+
+                val cellTable = Table()
+                cellTable.add(group).row()
+                cellTable.add(nameLabel).padTop(10f)
+
+                equipmentInventoryTable.add(cellTable).pad(10f)
+            } else {
+                // Empty inventory slot
+                equipmentInventoryTable.add(group).size(slotSize).pad(10f)
+            }
+
+            col++
+            if (col >= itemsPerRow) {
+                equipmentInventoryTable.row()
+                col = 0
+            }
         }
     }
 
@@ -449,6 +650,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         GameLogic.gameState = GameLogic.GameState.BATTLE
 
         buildItemsTable()
+        initEquipmentSprites()
+        buildEquipmentTable()
+        updateEquipmentTable()
 
         playerSprite = PlayerSprite(game.worldViewport)
 
@@ -488,6 +692,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         Gdx.input.inputProcessor = uiStage
         uiStage.addActor(menuTable)
         uiStage.addActor(itemsTable)
+        uiStage.addActor(equipmentTable)
         uiStage.addActor(playerHealthLabel)
         uiStage.addActor(enemyHealthLabel)
         uiStage.addActor(playerIcon)
@@ -638,15 +843,20 @@ class BattleScreen(val game: Main) : KtxScreen {
         }
 
         if (!pauseUI.isPaused) {
-            // set visibility
-            menuTable.isVisible = !isShowingItems
-            playerHealthLabel.isVisible = !isShowingItems
-            enemyHealthLabel.isVisible = !isShowingItems
+            val showingOverlay = isShowingItems || isShowingEquipment
+
+            // Normal combat UI visible only when no overlay is open
+            menuTable.isVisible = !showingOverlay
+            playerHealthLabel.isVisible = !showingOverlay
+            enemyHealthLabel.isVisible = !showingOverlay
+            playerIcon.isVisible = !showingOverlay
+            enemyIcon.isVisible = !showingOverlay
+            playerIcon_NotTurn.isVisible = !showingOverlay
+            enemyIcon_NotTurn.isVisible = !showingOverlay
+
+            // Overlays
             itemsTable.isVisible = isShowingItems
-            playerIcon.isVisible = !isShowingItems
-            enemyIcon.isVisible = !isShowingItems
-            playerIcon_NotTurn.isVisible = !isShowingItems
-            enemyIcon_NotTurn.isVisible = !isShowingItems
+            equipmentTable.isVisible = isShowingEquipment
 
             uiStage.draw()
         }
@@ -700,6 +910,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         sfxItemHeal.dispose()
         sfxItemFail.dispose()
         inventory.dispose()
+        if (this::armorTexture.isInitialized) {
+            armorTexture.dispose()
+        }
         super.dispose()
     }
 }
