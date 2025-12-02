@@ -39,6 +39,10 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.anotherround.Equipment.ArmorPiece
 import com.anotherround.Equipment.ArmorSlot
 import com.anotherround.Equipment.EquipmentSlots
+import com.anotherround.Equipment.buildDefaultArmor
+import com.anotherround.Equipment.Weapon
+import com.anotherround.Equipment.WeaponType
+import com.anotherround.Equipment.buildDefaultWeapons
 
 class BattleScreen(val game: Main) : KtxScreen {
 
@@ -48,8 +52,12 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     // equipment data
     private lateinit var armorTexture: Texture
-    private val equipmentInventory = mutableListOf<ArmorPiece>()
+    private val armorInventory = mutableListOf<ArmorPiece>()
+    private val weaponInventory = mutableListOf<Weapon>()
     private val equipmentSlots = EquipmentSlots()
+
+    // round number (starts at 0, increments each time an enemy is defeated)
+    private var roundNumber = 0
 
     private val player = Player(name = "Hero")
 
@@ -72,7 +80,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.currentSession = session
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
 
-        // reset stats to default for new game
         val basePlayer = Player(name = session.playerName)
         player.name = basePlayer.name
         player.level = basePlayer.level
@@ -82,6 +89,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.currency = basePlayer.currency
 
         inventory.loadDefaultPotions()
+        roundNumber = 0
 
         showToast("New Game: ${session.playerName}!", 1.5f)
     }
@@ -90,18 +98,17 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.currentSession = GameSession(slot, state.player.name)
         Gdx.app.log("BattleScreen", "Loading game for ${state.player.name} from slot $slot")
 
-        // Apply saved stats to the player
         player.name = state.player.name
         player.health = state.player.health
         player.level = state.player.level
         player.defenseStat = state.player.defenseStat
         player.attackStat = state.player.attackStat
         player.currency = state.player.currency
-        // Apply saved stats to the enemy
 
         spawnRandomEnemy()
 
         inventory.loadFromSaveState(state.potions)
+        roundNumber = 0  // later you can load this from save too
 
         showToast("Loaded Game: ${state.player.name}", 1.5f)
     }
@@ -289,6 +296,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                 itemImage.setPosition(itemPadding, itemPadding)
 
                 nameLabel = Label(consumable.name, nameLabelStyle)
+                nameLabel.setWrap(false)
                 descLabel = Label(consumable.description, descLabelStyle)
                 descLabel.setWrap(true)
 
@@ -325,7 +333,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         }
     }
 
-    /** Load armor icons + stats from the 64x64 sprite sheet. */
+    /** Load armor and weapon icons + stats from the 64x64 sprite sheet. */
     private fun initEquipmentSprites() {
         if (this::armorTexture.isInitialized) return
 
@@ -334,32 +342,17 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         val cells = TextureRegion.split(armorTexture, 64, 64)
 
-        // You can tweak rarity/defense/health numbers however you like
-        val bronzeHelmet = ArmorPiece("Bronze Helmet", ArmorSlot.HELMET, cells[0][0], "Common", 2, 5)
-        val bronzeChest  = ArmorPiece("Bronze Chestplate", ArmorSlot.CHEST,  cells[0][1], "Common", 4, 10)
-        val bronzeBoots  = ArmorPiece("Bronze Boots",      ArmorSlot.BOOTS,  cells[0][2], "Common", 1, 3)
+        armorInventory.clear()
+        armorInventory.addAll(buildDefaultArmor(cells))
 
-        val ironHelmet   = ArmorPiece("Iron Helmet",       ArmorSlot.HELMET, cells[1][0], "Uncommon", 4, 8)
-        val ironChest    = ArmorPiece("Iron Chestplate",   ArmorSlot.CHEST,  cells[1][1], "Uncommon", 8, 15)
-        val ironBoots    = ArmorPiece("Iron Boots",        ArmorSlot.BOOTS,  cells[1][2], "Uncommon", 2, 6)
+        weaponInventory.clear()
+        weaponInventory.addAll(buildDefaultWeapons(cells))
 
-        val goldHelmet   = ArmorPiece("Gold Helmet",       ArmorSlot.HELMET, cells[2][0], "Rare", 6, 12)
-        val goldChest    = ArmorPiece("Gold Chestplate",   ArmorSlot.CHEST,  cells[2][1], "Rare", 12, 20)
-        val goldBoots    = ArmorPiece("Gold Boots",        ArmorSlot.BOOTS,  cells[2][2], "Rare", 3, 8)
-
-        equipmentInventory.clear()
-        equipmentInventory.addAll(
-            listOf(
-                bronzeHelmet, bronzeChest, bronzeBoots,
-                ironHelmet, ironChest, ironBoots,
-                goldHelmet, goldChest, goldBoots
-            )
-        )
-
-        // Default equipped set – bronze
-        equipmentSlots.helmet = bronzeHelmet
-        equipmentSlots.chest  = bronzeChest
-        equipmentSlots.boots  = bronzeBoots
+        // Default equipped items:
+        equipmentSlots.weapon = weaponInventory.firstOrNull() // first weapon
+        equipmentSlots.helmet = armorInventory.firstOrNull { it.slot == ArmorSlot.HELMET }
+        equipmentSlots.chest  = armorInventory.firstOrNull { it.slot == ArmorSlot.CHEST }
+        equipmentSlots.boots  = armorInventory.firstOrNull { it.slot == ArmorSlot.BOOTS }
     }
 
     /** Builds the equipment overlay window. */
@@ -384,7 +377,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         innerTable.add(titleLabel).padBottom(20f)
         innerTable.row()
 
-        // Top section: 3 vertical equipped rows
         equipmentEquippedTable = Table()
         equipmentEquippedTable.defaults().pad(8f)
         innerTable.add(equipmentEquippedTable).padBottom(25f)
@@ -394,7 +386,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         innerTable.add(inventoryLabel).padBottom(10f)
         innerTable.row()
 
-        // Bottom section: 8 inventory slots (4x2)
         equipmentInventoryTable = Table()
         equipmentInventoryTable.defaults().pad(10f)
         innerTable.add(equipmentInventoryTable).padBottom(20f)
@@ -411,9 +402,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         innerTable.add(backButton).width(400f).height(200f).padTop(5f)
     }
 
-    /** Top: 3 vertical equipped slots (name + description).
-     *  Bottom: 8 inventory icons (4 columns x 2 rows, icons only).
-     */
+    /** Top: Weapon + 3 armor slots. Bottom: 8 inventory icons (4x2), armor and weapons mixed. */
     private fun updateEquipmentTable() {
         equipmentEquippedTable.clearChildren()
         equipmentInventoryTable.clearChildren()
@@ -424,7 +413,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // ------------ EQUIPPED SECTION ------------
 
-        fun addEquippedRow(piece: ArmorPiece?) {
+        fun addEquippedArmorRow(piece: ArmorPiece?) {
             val slotBg = Image(skin.getDrawable("item-slot"))
             val slotGroup = Group()
             slotGroup.addActor(slotBg)
@@ -439,15 +428,13 @@ class BattleScreen(val game: Main) : KtxScreen {
                 icon.setPosition(itemPadding, itemPadding)
                 slotGroup.addActor(icon)
 
-                // name only (we already know type from name)
                 nameLabel = Label(piece.name, nameLabelStyle)
-                nameLabel.setFontScale(0.75f)  // smaller so it fits on screen
+                nameLabel.setFontScale(0.75f)
 
                 val descText = "Rarity: ${piece.rarity}\nDEF: ${piece.defense}   HP: ${piece.health}"
                 descLabel = Label(descText, descLabelStyle)
                 descLabel.setWrap(true)
             } else {
-                // Empty slot = no icon & "None"
                 nameLabel = Label("None", nameLabelStyle)
                 nameLabel.setFontScale(0.75f)
                 descLabel = Label("", descLabelStyle)
@@ -463,38 +450,103 @@ class BattleScreen(val game: Main) : KtxScreen {
             equipmentEquippedTable.row()
         }
 
-        addEquippedRow(equipmentSlots.helmet)
-        addEquippedRow(equipmentSlots.chest)
-        addEquippedRow(equipmentSlots.boots)
+        fun addEquippedWeaponRow(weapon: Weapon?) {
+            val slotBg = Image(skin.getDrawable("item-slot"))
+            val slotGroup = Group()
+            slotGroup.addActor(slotBg)
+            slotBg.setSize(slotSize, slotSize)
 
-        // ------------ INVENTORY SECTION (8 slots, icons only) ------------
+            val nameLabel: Label
+            val descLabel: Label
+
+            if (weapon != null) {
+                val icon = Image(weapon.icon)
+                icon.setSize(itemSize, itemSize)
+                icon.setPosition(itemPadding, itemPadding)
+                slotGroup.addActor(icon)
+
+                nameLabel = Label(weapon.name, nameLabelStyle)
+                nameLabel.setFontScale(0.75f)
+
+                val descText = "Rarity: ${weapon.rarity}\nATK: ${weapon.attack}"
+                descLabel = Label(descText, descLabelStyle)
+                descLabel.setWrap(true)
+            } else {
+                nameLabel = Label("None", nameLabelStyle)
+                nameLabel.setFontScale(0.75f)
+                descLabel = Label("", descLabelStyle)
+            }
+
+            val textTable = Table()
+            textTable.add(nameLabel).left().padBottom(4f).width(Gdx.graphics.width * 0.5f)
+            textTable.row()
+            textTable.add(descLabel).left().width(Gdx.graphics.width * 0.5f)
+
+            equipmentEquippedTable.add(slotGroup).size(slotSize).pad(5f)
+            equipmentEquippedTable.add(textTable).padLeft(20f)
+            equipmentEquippedTable.row()
+        }
+
+        // Order: Weapon on top, then armor slots
+        addEquippedWeaponRow(equipmentSlots.weapon)
+        addEquippedArmorRow(equipmentSlots.helmet)
+        addEquippedArmorRow(equipmentSlots.chest)
+        addEquippedArmorRow(equipmentSlots.boots)
+
+        // ------------ INVENTORY SECTION (8 slots, armor + weapons mixed) ------------
+
+        val combined = mutableListOf<Any>()
+        combined.addAll(armorInventory)
+        combined.addAll(weaponInventory)
 
         val maxSlots = 8
         val itemsPerRow = 4
         var col = 0
 
         for (i in 0 until maxSlots) {
-            val piece = equipmentInventory.getOrNull(i)
+            val item = combined.getOrNull(i)
 
             val slotBg = Image(skin.getDrawable("item-slot"))
             val group = Group()
             group.addActor(slotBg)
             slotBg.setSize(slotSize, slotSize)
 
-            if (piece != null) {
-                val icon = Image(piece.icon)
+            if (item is ArmorPiece) {
+                val icon = Image(item.icon)
                 icon.setSize(itemSize, itemSize)
                 icon.setPosition(itemPadding, itemPadding)
                 group.addActor(icon)
 
-                // Click to show stats (since hover isn't a thing on mobile)
                 group.addListener(object : ClickListener() {
                     override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                        val text = "${piece.name}  |  ${piece.rarity}  |  DEF ${piece.defense}  HP ${piece.health}"
-                        showToast(text, 1.5f)
+                        val text = """
+                            Armor:
+                            ${item.name}
+                            Rarity: ${item.rarity}
+                            DEF: ${item.defense}   HP: ${item.health}
+                        """.trimIndent()
+                        showToast(text, 1.8f)
+                    }
+                })
+            } else if (item is Weapon) {
+                val icon = Image(item.icon)
+                icon.setSize(itemSize, itemSize)
+                icon.setPosition(itemPadding, itemPadding)
+                group.addActor(icon)
+
+                group.addListener(object : ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                        val text = """
+                            Weapon:
+                            ${item.name}
+                            Rarity: ${item.rarity}
+                            ATK: ${item.attack}
+                        """.trimIndent()
+                        showToast(text, 1.8f)
                     }
                 })
             }
+            // else: empty slot, just the background
 
             equipmentInventoryTable.add(group).size(slotSize).pad(5f)
 
@@ -629,8 +681,9 @@ class BattleScreen(val game: Main) : KtxScreen {
                 if (defeated === enemy && by === player) {
                     val coins = 10
                     player.currency += coins
-                    Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
-                    showToast("+10 XP, +$$coins", 1.5f)
+                    roundNumber += 1  // increment round when enemy is defeated
+                    Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency} | Round $roundNumber")
+                    showToast("+10 XP, +$$coins\nRound: $roundNumber", 1.5f)
                     scheduleNextEnemy(delaySeconds = 2f)
                 }
                 if (defeated === player) {
@@ -797,8 +850,17 @@ class BattleScreen(val game: Main) : KtxScreen {
             if (!pauseUI.isPaused) {
                 playerHealthLabel.setText("${player.health}")
                 enemyHealthLabel.setText("${enemy.health}")
-                font.draw(game.batch,"Player", 60f, 2275f )
-                font.draw(game.batch, "Enemy", 790f, 2275f)
+
+                // COMMENTED OUT the old Player/Enemy labels:
+                // font.draw(game.batch,"Player", 60f, 2275f )
+                // font.draw(game.batch, "Enemy", 790f, 2275f)
+
+                // New ROUND label at the very top, centered-ish
+                val roundText = "Round: $roundNumber"
+                toastLayout.setText(font, roundText)
+                val rx = (Gdx.graphics.width - toastLayout.width) / 2f
+                val ry = Gdx.graphics.height - 50f
+                font.draw(game.batch, toastLayout, rx, ry)
             }
 
             toastText?.let { msg ->
