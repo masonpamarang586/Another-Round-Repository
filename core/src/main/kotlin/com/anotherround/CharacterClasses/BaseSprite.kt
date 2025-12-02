@@ -46,6 +46,10 @@ open class BaseSprite(
     fun playDeath(){ state = State.Dead; stateTime = 0f }
     fun playAttack(){ if (state != State.Dead) { state = State.Attacking; stateTime = 0f } }
 
+    fun revive() {
+        state = State.Idle
+        stateTime = 0f
+    }
     fun update(delta: Float) {
         stateTime += delta
         when (state) {

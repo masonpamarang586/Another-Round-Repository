@@ -70,6 +70,7 @@ class CampfireScreen(val game: Main) : KtxScreen {
 
     private fun logic(delta: Float) {
         if (accumulator >= 3f) {
+            accumulator = 0f;
             game.setScreen<BattleScreen>()
             hide()
         }

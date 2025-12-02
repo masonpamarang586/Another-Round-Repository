@@ -75,6 +75,12 @@ class BattleScreen(val game: Main) : KtxScreen {
     private var pendingNextEnemy = false
     private var nextEnemyDelay = 0f
 
+    // ui for the "Game Over"
+    private lateinit var gameOverTable: Table
+    private var pendingGameOver = false
+    private var gameOverDelay = 0f
+    private var isGameOver = false
+
     fun startNewGame(session: GameSession) {
         this.currentSession = session
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
@@ -90,6 +96,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         inventory.loadDefaultPotions()
         roundNumber = 0
 
+        if (this::playerSprite.isInitialized) {
+            playerSprite.revive()
+        }
+        if (this::enemySprite.isInitialized) {
+            enemySprite.dispose()
+        }
+        spawnRandomEnemy()
         showToast("New Game: ${session.playerName}!", 1.5f)
     }
 
@@ -276,10 +289,18 @@ class BattleScreen(val game: Main) : KtxScreen {
                 if (isShowingItems) {
                     isShowingItems = false
                 }
+                if (isShopping) {
+                    isShopping = false
+                }
             }
         })
 
         innerTable.add(backButton).width(400f).height(200f).padTop(50f)
+
+        val coinsLabel = TextButton("$${player.currency}", buttonStyle)
+        this.coinsLabel = coinsLabel
+
+        innerTable.add(coinsLabel).width(200f).height(200f).padTop(50f)
     }
 
     private fun updateItemsTable() {
@@ -295,6 +316,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             val itemSlotBg = Image(skin.getDrawable("item-slot"))
             val slotGroup = Group()
             slotGroup.addActor(itemSlotBg)
+            slotGroup.clearListeners()
             itemSlotBg.setSize(slotSize, slotSize)
 
             val nameLabel: Label
@@ -342,7 +364,80 @@ class BattleScreen(val game: Main) : KtxScreen {
             itemsListTable.add(textTable).width(Gdx.graphics.width * 0.5f).padLeft(50f)
             itemsListTable.row()
         }
+
+        coinsLabel.setText("$${player.currency}")
     }
+
+    private fun updateShopTable() {
+        itemsListTable.clear()
+
+        val slotSize = 200f
+        val itemSize = 160f
+        val itemPadding = (slotSize - itemSize) / 2f
+
+        // make 8 slots
+        for (i in 0 until 8) {
+            val consumable = inventory.getItems().getOrNull(i) // Get item for this slot
+
+            // slot bg
+            val itemSlotBg = Image(skin.getDrawable("item-slot"))
+            val slotGroup = Group()
+            slotGroup.addActor(itemSlotBg)
+            itemSlotBg.setSize(slotSize, slotSize)
+
+            val nameLabel: Label
+            val descLabel: Label
+
+            if (consumable != null) {
+                // item icon
+                val itemImage = Image(consumable.textureRegion)
+                itemImage.setSize(itemSize, itemSize)
+                slotGroup.addActor(itemImage)
+                itemImage.setPosition(itemPadding, itemPadding)
+
+                // Set the text
+                nameLabel = Label(consumable.name, nameLabelStyle)
+                descLabel = Label(consumable.description, descLabelStyle)
+                descLabel.setWrap(true)
+            } else {
+                nameLabel = Label("Health Potion", nameLabelStyle)
+                descLabel = Label("Tap to buy for 10 gold", descLabelStyle)
+                slotGroup.clearListeners()
+
+                slotGroup.addListener(object: ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y:Float) {
+                        if (player.currency >= 10) {
+                            player.currency -= 10
+                            inventory.addItem(
+                                inventory.createHealthPotion()
+                            )
+                            updateShopTable()
+                        } else {
+                            showToast("Not enough coins")
+                        }
+                    }
+                })
+            }
+
+            //  table for text and title
+            val textTable = Table()
+            textTable.add(nameLabel).left().padBottom(10f)
+            textTable.row()
+            textTable.add(descLabel).left().expandX().fillX()
+
+            itemsListTable.add(slotGroup).size(slotSize).pad(10f)
+            itemsListTable.add(textTable).width(Gdx.graphics.width * 0.5f).padLeft(50f) // Give text 50% of screen width
+            itemsListTable.row()
+        }
+
+        coinsLabel.setText("$${player.currency}")
+    }
+    private fun buildGameOverTable() {
+        gameOverTable = Table().apply {
+            setFillParent(true)
+            background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
+            isVisible = false
+        }
 
     /** Load armor and weapon icons + stats from the 64x64 sprite sheet. */
     private fun initEquipmentSprites() {
@@ -690,6 +785,16 @@ class BattleScreen(val game: Main) : KtxScreen {
         nextEnemyDelay = delaySeconds
     }
 
+    private fun scheduleGameOver(delaySeconds: Float = 2f) {
+        pendingGameOver = true
+        gameOverDelay = delaySeconds
+    }
+
+    private fun showGameOverPopup() {
+        isGameOver = true
+        gameOverTable.isVisible = true
+    }
+
     private fun spawnRandomEnemy() {
         enemyKind = EnemyFactory.randomKind()
         enemy = EnemyFactory.create(enemyKind)
@@ -757,7 +862,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                     SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
                     SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
                     SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
-                    SfxEvent.PlayerDeath  -> { /* TODO */ }
+                    SfxEvent.PlayerDeath  -> sfxEnemyDeath.play(1.0f)
                     SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
                 }
             },
@@ -772,7 +877,11 @@ class BattleScreen(val game: Main) : KtxScreen {
                     scheduleNextEnemy(delaySeconds = 2f)
                 }
                 if (defeated === player) {
+                    playerSprite.playDeath()
+                    val delay = playerSprite.deathDuration()
+                    combat.pauseNextTurnFor(delay)
                     showToast("You were defeated...", 2f)
+                    scheduleGameOver(delaySeconds = delay)
                 }
             },
 
@@ -900,6 +1009,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     fun input(delta: Float) { }
 
     fun logic(delta: Float) {
+        if (isGameOver) {
+            return
+        }
         combat.update(delta)
         playerSprite.update(delta)
         enemySprite.update(delta)
@@ -914,6 +1026,14 @@ class BattleScreen(val game: Main) : KtxScreen {
             if (nextEnemyDelay <= 0f) {
                 pendingNextEnemy = false
                 spawnRandomEnemy()
+            }
+        }
+
+        if (pendingGameOver) {
+            gameOverDelay -= delta
+            if (gameOverDelay <= 0f) {
+                pendingGameOver = false
+                showGameOverPopup()
             }
         }
     }
@@ -969,7 +1089,15 @@ class BattleScreen(val game: Main) : KtxScreen {
                 game.batch.color = oldColor
             }
         }
+        if (isGameOver) {
+            menuTable.isVisible = false
+            playerHealthLabel.isVisible = false
+            enemyHealthLabel.isVisible = false
+            itemsTable.isVisible = false
 
+            uiStage.draw()
+            return
+        }
         if (!pauseUI.isPaused) {
             val showingOverlay = isShowingItems || isShowingEquipment
 
@@ -983,6 +1111,10 @@ class BattleScreen(val game: Main) : KtxScreen {
 
             itemsTable.isVisible = isShowingItems
             equipmentTable.isVisible = isShowingEquipment
+
+            if (isShopping) {
+                updateShopTable()
+            }
 
             uiStage.draw()
         }
