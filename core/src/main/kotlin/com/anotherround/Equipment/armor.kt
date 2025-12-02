@@ -13,7 +13,10 @@ enum class ArmorSlot {
 data class ArmorPiece(
     val name: String,
     val slot: ArmorSlot,
-    val icon: TextureRegion
+    val icon: TextureRegion,
+    val rarity: String,
+    val defense: Int,
+    val health: Int
 )
 
 /** Convenience holder for what the character has equipped. */
@@ -24,7 +27,7 @@ data class EquipmentSlots(
 )
 
 enum class ArmorSprite(val row: Int, val col: Int) {
-    BRONZE_HELMET(0, 0),
+    BRONZE_HELMET(1, 120),
     BRONZE_CHEST(0, 1),
     BRONZE_BOOTS(0, 2),
 
