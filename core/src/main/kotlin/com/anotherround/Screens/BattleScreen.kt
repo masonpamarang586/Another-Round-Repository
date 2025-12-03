@@ -245,6 +245,8 @@ class BattleScreen(val game: Main) : KtxScreen {
     private var isShowingItems = false
     private var isShowingEquipment = false
 
+    private lateinit var coinsLabel: TextButton
+
     private lateinit var itemsTable: Table
     private lateinit var itemsListTable: Table
     private lateinit var nameLabelStyle: Label.LabelStyle
@@ -288,9 +290,6 @@ class BattleScreen(val game: Main) : KtxScreen {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 if (isShowingItems) {
                     isShowingItems = false
-                }
-                if (isShopping) {
-                    isShopping = false
                 }
             }
         })
@@ -438,7 +437,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
             isVisible = false
         }
-    }
+      }
 
     /** Load armor and weapon icons + stats from the 64x64 sprite sheet. */
     private fun initEquipmentSprites() {
@@ -1112,10 +1111,6 @@ class BattleScreen(val game: Main) : KtxScreen {
 
             itemsTable.isVisible = isShowingItems
             equipmentTable.isVisible = isShowingEquipment
-
-            if (isShopping) {
-                updateShopTable()
-            }
 
             uiStage.draw()
         }
