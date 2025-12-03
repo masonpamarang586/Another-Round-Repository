@@ -438,6 +438,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
             isVisible = false
         }
+    }
 
     /** Load armor and weapon icons + stats from the 64x64 sprite sheet. */
     private fun initEquipmentSprites() {
