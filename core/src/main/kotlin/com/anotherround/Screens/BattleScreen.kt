@@ -224,6 +224,8 @@ class BattleScreen(val game: Main) : KtxScreen {
     private var isShowingItems = false
     private var isShopping = false
 
+    private lateinit var coinsLabel: TextButton
+
     private lateinit var itemsTable: Table
     private lateinit var itemsListTable: Table
     private lateinit var nameLabelStyle: Label.LabelStyle
@@ -255,9 +257,6 @@ class BattleScreen(val game: Main) : KtxScreen {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 if (isShowingItems) {
                     isShowingItems = false
-                }
-                if (isShopping) {
-                    isShopping = false
                 }
             }
         })
@@ -410,6 +409,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
             isVisible = false
         }
+      }
 
         val inner = Table()
 
@@ -816,10 +816,6 @@ class BattleScreen(val game: Main) : KtxScreen {
             enemyIcon.isVisible = !isShowingItems
             playerIcon_NotTurn.isVisible = !isShowingItems
             enemyIcon_NotTurn.isVisible = !isShowingItems
-
-            if (isShopping) {
-                updateShopTable()
-            }
 
             uiStage.draw()
         }
