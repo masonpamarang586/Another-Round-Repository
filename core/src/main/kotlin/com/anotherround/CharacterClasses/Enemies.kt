@@ -7,7 +7,7 @@ class RedGrunt(
     override var defenseStat: Int = 0,
     override var attackStat: Int = 5
 ) : Character {
-    override val maxHealth: Int get() = 20
+    override val maxHealth: Int get() = 25
 }
 
 class Phantom(
