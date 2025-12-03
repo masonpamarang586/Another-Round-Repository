@@ -38,11 +38,19 @@ import kotlin.math.max
 
 class PrebattleScreen(val game: Main) : KtxScreen {
 
-    /*var currentSession: GameSession? = null
+    var currentSession: GameSession? = null
 
     fun encounterStart(session: GameSession){
+
+        val player = Player(name = "Hero")
+
+        lateinit var enemy: Character
+        lateinit var enemyKind: EnemyKind
+
         this.currentSession = session
 
-    }*/
+        val worldStage = Stage(game.worldViewport)
+
+    }
 
 }
