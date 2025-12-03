@@ -47,6 +47,7 @@ generic_char_v0.2/png/red/char_red_1_death.png
 generic_char_v0.2/png/red/char_red_1_index10.png
 generic_char_v0.2/png/red/char_red_2.png
 generic_char_v0.2/readme.TXT
+items/64x64.png
 items/items.json
 items/potions.png
 logo.png
