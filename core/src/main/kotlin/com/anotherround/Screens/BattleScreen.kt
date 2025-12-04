@@ -85,6 +85,14 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.currentSession = session
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
 
+        isGameOver = false
+        pendingGameOver = false
+        gameOverDelay = 0f
+        pendingNextEnemy = false
+        nextEnemyDelay = 0f
+        isShowingItems = false
+        toastText = null
+
         val basePlayer = Player(name = session.playerName)
         player.name = basePlayer.name
         player.level = basePlayer.level
@@ -437,7 +445,19 @@ class BattleScreen(val game: Main) : KtxScreen {
             background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
             isVisible = false
         }
-      }
+
+        val label = Label("GAME OVER", nameLabelStyle)
+        label.setFontScale(2f)
+        gameOverTable.add(label).padBottom(50f).row()
+
+        val menuButton = TextButton("Main Menu", buttonStyle)
+        menuButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                game.setScreen<MainMenuScreen>()
+            }
+        })
+        gameOverTable.add(menuButton).width(700f).height(300f)
+    }
 
     /** Load armor and weapon icons + stats from the 64x64 sprite sheet. */
     private fun initEquipmentSprites() {
@@ -898,6 +918,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         buildItemsTable()
         initEquipmentSprites()
         buildEquipmentTable()
+        buildGameOverTable()
         updateEquipmentTable()
 
         playerSprite = PlayerSprite(game.worldViewport)
@@ -938,6 +959,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(menuTable)
         uiStage.addActor(itemsTable)
         uiStage.addActor(equipmentTable)
+        uiStage.addActor(gameOverTable)
         uiStage.addActor(playerHealthLabel)
         uiStage.addActor(enemyHealthLabel)
         uiStage.addActor(playerIcon)
@@ -945,22 +967,16 @@ class BattleScreen(val game: Main) : KtxScreen {
         GameLogic.screen = this
 
         playerHealthLabel.setSize(250f, 200f)
-        playerHealthLabel.addAction(Actions.moveBy(150f, 0f))
 
         enemyHealthLabel.setSize(250f, 200f)
-        enemyHealthLabel.addAction(Actions.moveBy(50f, 0f))
 
         playerIcon.setSize(200f, 200f)
-        playerIcon.addAction(Actions.moveBy(49f, 2000f))
 
         playerIcon_NotTurn.setSize(200f, 200f)
-        playerIcon_NotTurn.addAction(Actions.moveBy(48f, 2000f))
 
         enemyIcon.setSize(200f, 200f)
-        enemyIcon.addAction(Actions.moveBy(580f, 2000f))
 
         enemyIcon_NotTurn.setSize(200f, 200f)
-        enemyIcon_NotTurn.addAction(Actions.moveBy(580f, 2000f))
 
         // Round label at top of screen (UI actor)
         roundLabel = Label("Round: $roundNumber", Label.LabelStyle(font, Color.WHITE))
@@ -994,8 +1010,17 @@ class BattleScreen(val game: Main) : KtxScreen {
         menuTable.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f * 0.1f)
         menuTable.bottom()
 
-        playerHealthLabel.setPosition(100f, Gdx.graphics.height - 400f)
-        enemyHealthLabel.setPosition(Gdx.graphics.width - 100f - enemyHealthLabel.width, Gdx.graphics.height - 400f)
+        val iconY = Gdx.graphics.height - 400f
+
+        // Player: Icon (50) -> Label (250)
+        playerIcon.setPosition(50f, iconY)
+        playerIcon_NotTurn.setPosition(50f, iconY)
+        playerHealthLabel.setPosition(250f, iconY)
+
+        // Enemy: Icon (Width-500) -> Label (Width-300)
+        enemyIcon.setPosition(Gdx.graphics.width - 500f, iconY)
+        enemyIcon_NotTurn.setPosition(Gdx.graphics.width - 500f, iconY)
+        enemyHealthLabel.setPosition(Gdx.graphics.width - 300f, iconY)
 
         positionRoundLabel()
     }
@@ -1094,6 +1119,10 @@ class BattleScreen(val game: Main) : KtxScreen {
             playerHealthLabel.isVisible = false
             enemyHealthLabel.isVisible = false
             itemsTable.isVisible = false
+            playerIcon.isVisible = false
+            enemyIcon.isVisible = false
+            playerIcon_NotTurn.isVisible = false
+            enemyIcon_NotTurn.isVisible = false
 
             uiStage.draw()
             return
