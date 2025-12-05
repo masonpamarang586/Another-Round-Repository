@@ -15,6 +15,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
@@ -144,7 +145,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         roundNumber = state.roundNumber
 
         // Restore Inventory (Potions)
-        inventory.getItems().clear()
+        inventory.clear() // Fixed: use clear() method
         state.inventory.forEach { snapshot ->
             val potion = when (snapshot.type) {
                 com.anotherround.Consumables.PotionType.HEALTH -> com.anotherround.Consumables.PotionFactory.createHealthPotion(snapshot.rarity)
@@ -997,7 +998,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         enemyKind = kinds.random()
 
         enemy = when (enemyKind) {
-            EnemyKind.Grunt -> RedGrunt()
+            EnemyKind.RedGrunt -> RedGrunt() // Fixed: Grunt -> RedGrunt
             EnemyKind.Phantom -> Phantom()
             EnemyKind.EvilWizard -> EvilWizard()
             EnemyKind.NightBorne -> NightBorne()
@@ -1010,8 +1011,8 @@ class BattleScreen(val game: Main) : KtxScreen {
         Gdx.app.log("Battle", "Spawned ${enemy.name} (Round $roundNumber)")
 
         // Re-init sprite
-        enemySprite = EnemySprite(enemyKind)
-        playerSprite = PlayerSprite() // ensure player sprite is ready
+        enemySprite = EnemySprite(game.worldViewport, enemyKind) // Fixed: passed viewport
+        playerSprite = PlayerSprite(game.worldViewport) // Fixed: passed viewport
     }
 
     private fun scheduleNextEnemy(delaySeconds: Float) {
@@ -1059,7 +1060,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // Draw World
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f)
-        Gdx.gl.glClear(Gdx.gl.GL_COLOR_BUFFER_BIT)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT) // Fixed: GL20.GL_COLOR_BUFFER_BIT
 
         tiledMapRenderer.setView(tiledMapCamera)
         tiledMapRenderer.render()
@@ -1067,8 +1068,8 @@ class BattleScreen(val game: Main) : KtxScreen {
         game.batch.use { batch ->
             // Draw characters
             // positions hardcoded for demo
-            playerSprite.draw(batch, 200f, 300f, delta)
-            enemySprite.draw(batch, 800f, 300f, delta)
+            playerSprite.draw(batch) // Fixed: removed extra args
+            enemySprite.draw(batch) // Fixed: removed extra args
         }
 
         // Draw UI
@@ -1105,7 +1106,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         }
 
         // If pause menu is open, hide combat menu
-        if (pauseUI.isVisible) {
+        if (pauseUI.rootTable.isVisible) { // Fixed: check rootTable.isVisible if pauseUI itself isn't an actor
             menuTable.isVisible = false
             return
         }
