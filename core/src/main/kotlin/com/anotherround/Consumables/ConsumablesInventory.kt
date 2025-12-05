@@ -2,76 +2,51 @@ package com.anotherround.Consumables
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.TextureRegion
-
-data class Consumable(
-    val name: String,
-    val description: String,
-    val healAmount: Int,
-    val textureRegion: TextureRegion
-)
 
 class ConsumablesInventory {
 
-    private val items = mutableListOf<Consumable>()
+    private val items = mutableListOf<Potion>()
 
     private val potionsSpritesheet by lazy {
         Texture(Gdx.files.internal("items/potions.png"))
     }
 
-    private val healthPotionRegion by lazy {
-        TextureRegion(potionsSpritesheet, 48, 32, 16, 16)
-    }
-    private val manaPotionRegion by lazy {
-        TextureRegion(potionsSpritesheet, 64, 32, 16, 16)
+    init {
+        // Initialize factory with the texture
+        PotionFactory.init(potionsSpritesheet)
     }
 
-
-    fun getItems(): List<Consumable> {
+    fun getItems(): List<Potion> {
         return items
     }
 
     fun loadDefaultPotions() {
         items.clear()
-        repeat(3) {
-            items.add(createHealthPotion())
-        }
-        items.add(createManaPotion())
+        // Add a mix of potions
+        items.add(PotionFactory.createHealthPotion(PotionRarity.COMMON))
+        items.add(PotionFactory.createHealthPotion(PotionRarity.UNCOMMON))
+        items.add(PotionFactory.createDefensiveLacquer())
+        items.add(PotionFactory.createLiquidFire())
     }
 
-    fun loadFromSaveState(potionCount: Int) {
+    fun loadFromSaveState(savedItems: List<Potion>) {
         items.clear()
-        repeat(potionCount) {
-            items.add(createHealthPotion())
-            // this only loads health potions.
-        }
+        items.addAll(savedItems)
     }
 
-    fun useItem(consumable: Consumable): Int {
-        val healAmount = consumable.healAmount
-        items.remove(consumable)
-        return healAmount
+    fun useItem(potion: Potion) {
+        items.remove(potion)
     }
 
-    fun addItem(consumable: Consumable) {
-        items.add(consumable)
+    fun addItem(potion: Potion) {
+        items.add(potion)
     }
 
     fun dispose() {
         potionsSpritesheet.dispose()
     }
-
-    fun createHealthPotion() = Consumable(
-        name = "Health Potion",
-        description = "A standard potion. Heals 10 HP.",
-        healAmount = 10,
-        textureRegion = healthPotionRegion
-    )
-
-    private fun createManaPotion() = Consumable(
-        name = "Mana Potion",
-        description = "A blue potion. Restores 10 MP.",
-        healAmount = 0,
-        textureRegion = manaPotionRegion
-    )
+    
+    // Helper for reconstruction if needed, though PotionFactory handles creation.
+    // We might need methods to create specific potions by name if we save just the name/type.
+    // But for now, we rely on PotionFactory.
 }

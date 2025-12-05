@@ -9,4 +9,5 @@ class Player (
     var currency: Int = 100
 ) : Character {
     override val maxHealth: Int get() = 40
+    override val activeEffects = mutableListOf<com.anotherround.combat.StatusEffect>()
 }
