@@ -145,7 +145,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         roundNumber = state.roundNumber
 
         // Restore Inventory (Potions)
-        inventory.clear() // Fixed: use clear() method
+        inventory.clear()
         state.inventory.forEach { snapshot ->
             val potion = when (snapshot.type) {
                 com.anotherround.Consumables.PotionType.HEALTH -> com.anotherround.Consumables.PotionFactory.createHealthPotion(snapshot.rarity)
@@ -904,10 +904,8 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(gameOverTable)
 
         // Pause UI
-        pauseUI.build()
-        pauseUI.onResume = {
-            // nothing special
-        }
+        // pauseUI.build() // Removed as it doesn't exist
+        
         pauseUI.onSaveRequested = {
             try {
                 val slotToSave = currentSession?.slotId ?: 1
@@ -919,10 +917,10 @@ class BattleScreen(val game: Main) : KtxScreen {
                 showToast("Save Failed", 1.5f)
             }
         }
-        pauseUI.onExit = {
+        pauseUI.onMainMenuRequested = { // Fixed: onMainMenuRequested instead of onExit
             game.setScreen<MainMenuScreen>()
         }
-        uiStage.addActor(pauseUI.rootTable)
+        // uiStage.addActor(pauseUI.rootTable) // Removed as rootTable doesn't exist
 
         // Player & Enemy Labels
         uiStage.addActor(playerHealthLabel)
@@ -998,7 +996,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         enemyKind = kinds.random()
 
         enemy = when (enemyKind) {
-            EnemyKind.RedGrunt -> RedGrunt() // Fixed: Grunt -> RedGrunt
+            EnemyKind.RedGrunt -> RedGrunt()
             EnemyKind.Phantom -> Phantom()
             EnemyKind.EvilWizard -> EvilWizard()
             EnemyKind.NightBorne -> NightBorne()
@@ -1011,8 +1009,8 @@ class BattleScreen(val game: Main) : KtxScreen {
         Gdx.app.log("Battle", "Spawned ${enemy.name} (Round $roundNumber)")
 
         // Re-init sprite
-        enemySprite = EnemySprite(game.worldViewport, enemyKind) // Fixed: passed viewport
-        playerSprite = PlayerSprite(game.worldViewport) // Fixed: passed viewport
+        enemySprite = EnemySprite(game.worldViewport, enemyKind)
+        playerSprite = PlayerSprite(game.worldViewport)
     }
 
     private fun scheduleNextEnemy(delaySeconds: Float) {
@@ -1047,7 +1045,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                 pendingGameOver = false
                 isGameOver = true
                 gameOverTable.isVisible = true
-                pauseUI.rootTable.isVisible = false
+                // pauseUI.rootTable.isVisible = false // Removed
             }
         }
 
@@ -1060,7 +1058,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // Draw World
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f)
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT) // Fixed: GL20.GL_COLOR_BUFFER_BIT
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
         tiledMapRenderer.setView(tiledMapCamera)
         tiledMapRenderer.render()
@@ -1068,8 +1066,11 @@ class BattleScreen(val game: Main) : KtxScreen {
         game.batch.use { batch ->
             // Draw characters
             // positions hardcoded for demo
-            playerSprite.draw(batch) // Fixed: removed extra args
-            enemySprite.draw(batch) // Fixed: removed extra args
+            playerSprite.draw(batch)
+            enemySprite.draw(batch)
+            
+            // Draw Pause UI on top
+            pauseUI.drawAndHandleInput(batch) // Added
         }
 
         // Draw UI
@@ -1106,7 +1107,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         }
 
         // If pause menu is open, hide combat menu
-        if (pauseUI.rootTable.isVisible) { // Fixed: check rootTable.isVisible if pauseUI itself isn't an actor
+        if (pauseUI.isPaused) { // Fixed: check isPaused
             menuTable.isVisible = false
             return
         }
@@ -1137,7 +1138,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         game.worldViewport.update(width, height, true)
         game.uiViewport.update(width, height, true)
         tiledMapCamera.setToOrtho(false, width.toFloat(), height.toFloat())
-        pauseUI.resize(width, height)
+        pauseUI.onResize() // Fixed: call onResize
     }
 
     override fun dispose() {
@@ -1149,6 +1150,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         inventory.dispose()
         if (this::playerSprite.isInitialized) playerSprite.dispose()
         if (this::enemySprite.isInitialized) enemySprite.dispose()
+        pauseUI.dispose() // Added dispose
     }
 
     private fun onePixel(color: Color): Texture {
