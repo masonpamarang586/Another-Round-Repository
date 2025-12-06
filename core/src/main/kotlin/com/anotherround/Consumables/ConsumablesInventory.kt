@@ -42,10 +42,6 @@ class ConsumablesInventory {
         items.add(potion)
     }
 
-    fun clear() {
-        items.clear()
-    }
-
     fun dispose() {
         potionsSpritesheet.dispose()
     }
