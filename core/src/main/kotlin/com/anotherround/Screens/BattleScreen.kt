@@ -5,6 +5,11 @@ import com.anotherround.combat.CombatManager
 import com.anotherround.combat.Action
 import com.anotherround.combat.SfxEvent
 import com.anotherround.Consumables.ConsumablesInventory
+import com.anotherround.Consumables.Potion
+import com.anotherround.Consumables.HealthPotion
+import com.anotherround.Consumables.DefensiveLacquer
+import com.anotherround.Consumables.FirePotion
+import com.anotherround.combat.StatusEffect
 import com.anotherround.GameLogic
 import com.anotherround.GameSession
 import com.anotherround.Main
@@ -342,10 +347,22 @@ class BattleScreen(val game: Main) : KtxScreen {
 
                 slotGroup.addListener(object: ClickListener() {
                     override fun clicked(event: InputEvent?, x: Float, y:Float) {
-                        val healAmount = inventory.useItem(consumable)
-                        player.heal(healAmount)
+                        when (consumable) {
+                            is HealthPotion -> {
+                                player.heal(consumable.healAmount)
+                                showToast("Healed for ${consumable.healAmount} HP")
+                            }
+                            is DefensiveLacquer -> {
+                                combat.addEffect(player, StatusEffect.DefenseBuff(consumable.blockPercent))
+                                showToast("Defensive Lacquer Applied!")
+                            }
+                            is FirePotion -> {
+                                combat.addEffect(enemy, StatusEffect.Burn(consumable.damagePerRound, consumable.durationRounds))
+                                showToast("Liquid Fire thrown at Enemy!")
+                            }
+                        }
+                        inventory.useItem(consumable)
                         sfxItemHeal.play(50f)
-                        showToast("Healed for $healAmount health")
                         updateItemsTable()
                     }
                 })
