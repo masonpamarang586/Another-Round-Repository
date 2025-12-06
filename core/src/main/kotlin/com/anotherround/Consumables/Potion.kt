@@ -19,7 +19,7 @@ data class HealthPotion(
     override val rarity: PotionRarity,
     override val textureRegion: TextureRegion
 ) : Potion(
-    name = "${rarity.label} Health Potion",
+    name = "Health Potion",
     description = when (rarity) {
         PotionRarity.COMMON -> "Heals 10 HP."
         PotionRarity.RARE -> "Heals 25 HP."
@@ -39,7 +39,7 @@ data class DefensiveLacquer(
     override val rarity: PotionRarity,
     override val textureRegion: TextureRegion
 ) : Potion(
-    name = "${rarity.label} Defensive Lacquer",
+    name = "Defensive Lacquer",
     description = when (rarity) {
         PotionRarity.COMMON -> "Blocks 20% of the next attack."
         PotionRarity.RARE -> "Blocks 35% of the next attack."
@@ -59,7 +59,7 @@ data class FirePotion(
     override val rarity: PotionRarity,
     override val textureRegion: TextureRegion
 ) : Potion(
-    name = "${rarity.label} Vial of Liquid Fire",
+    name = "Vial of Liquid Fire",
     description = when (rarity) {
         PotionRarity.COMMON -> "Deals 5 damage for 2 rounds."
         PotionRarity.RARE -> "Deals 10 damage for 2 rounds."

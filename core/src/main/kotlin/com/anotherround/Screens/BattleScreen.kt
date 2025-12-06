@@ -6,6 +6,7 @@ import com.anotherround.combat.Action
 import com.anotherround.combat.SfxEvent
 import com.anotherround.Consumables.ConsumablesInventory
 import com.anotherround.Consumables.Potion
+import com.anotherround.Consumables.PotionRarity
 import com.anotherround.Consumables.HealthPotion
 import com.anotherround.Consumables.DefensiveLacquer
 import com.anotherround.Consumables.FirePotion
@@ -342,6 +343,11 @@ class BattleScreen(val game: Main) : KtxScreen {
 
                 nameLabel = Label(consumable.name, nameLabelStyle)
                 nameLabel.setWrap(false)
+                when (consumable.rarity) {
+                    PotionRarity.COMMON -> nameLabel.color = Color.WHITE
+                    PotionRarity.RARE -> nameLabel.color = Color.CYAN
+                    PotionRarity.EPIC -> nameLabel.color = Color.PURPLE
+                }
                 descLabel = Label(consumable.description, descLabelStyle)
                 descLabel.setWrap(true)
 
@@ -358,7 +364,8 @@ class BattleScreen(val game: Main) : KtxScreen {
                             }
                             is FirePotion -> {
                                 combat.addEffect(enemy, StatusEffect.Burn(consumable.damagePerRound, consumable.durationRounds))
-                                showToast("Liquid Fire thrown at Enemy!")
+                                enemy.takeDamage(consumable.damagePerRound) // Instant damage
+                                showToast("Liquid Fire! ${consumable.damagePerRound} instant damage!")
                             }
                         }
                         inventory.useItem(consumable)
@@ -421,6 +428,11 @@ class BattleScreen(val game: Main) : KtxScreen {
 
                 // Set the text
                 nameLabel = Label(consumable.name, nameLabelStyle)
+                when (consumable.rarity) {
+                    PotionRarity.COMMON -> nameLabel.color = Color.WHITE
+                    PotionRarity.RARE -> nameLabel.color = Color.CYAN
+                    PotionRarity.EPIC -> nameLabel.color = Color.PURPLE
+                }
                 descLabel = Label(consumable.description, descLabelStyle)
                 descLabel.setWrap(true)
             } else {
