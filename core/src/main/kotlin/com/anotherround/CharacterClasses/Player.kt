@@ -8,5 +8,5 @@ class Player (
     override var attackStat: Int = 20,
     var currency: Int = 100
 ) : Character {
-    override val maxHealth: Int get() = 40
+    override var maxHealth: Int = 40
 }

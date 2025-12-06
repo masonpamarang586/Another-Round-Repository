@@ -524,6 +524,40 @@ class BattleScreen(val game: Main) : KtxScreen {
         equipmentSlots.helmet = armorInventory.firstOrNull { it.slot == ArmorSlot.HELMET }
         equipmentSlots.chest  = armorInventory.firstOrNull { it.slot == ArmorSlot.CHEST }
         equipmentSlots.boots  = armorInventory.firstOrNull { it.slot == ArmorSlot.BOOTS }
+        
+        recalculateStats()
+        // Start full health
+        player.health = player.maxHealth
+    }
+
+    private fun recalculateStats() {
+        var newMaxHp = 40
+        var newDef = 0
+        var newAtk = 20
+
+        equipmentSlots.helmet?.let {
+            newMaxHp += it.health
+            newDef += it.defense
+        }
+        equipmentSlots.chest?.let {
+            newMaxHp += it.health
+            newDef += it.defense
+        }
+        equipmentSlots.boots?.let {
+            newMaxHp += it.health
+            newDef += it.defense
+        }
+        equipmentSlots.weapon?.let {
+            newAtk += it.attack
+        }
+
+        player.maxHealth = newMaxHp
+        player.defenseStat = newDef
+        player.attackStat = newAtk
+        
+        if (player.health > player.maxHealth) {
+            player.health = player.maxHealth
+        }
     }
 
     /** Builds the equipment overlay window. */
@@ -1181,8 +1215,8 @@ class BattleScreen(val game: Main) : KtxScreen {
             pauseUI.drawAndHandleInput(game.batch)
 
             if (!pauseUI.isPaused) {
-                playerHealthLabel.setText("${player.health}")
-                enemyHealthLabel.setText("${enemy.health}")
+                playerHealthLabel.setText("${player.health}/${player.maxHealth}")
+                enemyHealthLabel.setText("${enemy.health}/${enemy.maxHealth}")
 
                 if (this::roundLabel.isInitialized) {
                     roundLabel.setText("Round: $roundNumber")
