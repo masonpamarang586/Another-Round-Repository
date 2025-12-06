@@ -177,15 +177,31 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // Restore Enemy
         try {
-            enemyKind = EnemyKind.valueOf(state.enemyKind)
+            val kindName = state.enemyKind
+            Gdx.app.log("LOAD", "Attempting to restore enemy: '$kindName' with Health: ${state.enemy.health}")
+            
+            enemyKind = EnemyKind.valueOf(kindName)
             enemy = EnemyFactory.create(enemyKind)
+            
             // Apply saved stats
-            enemy.health = state.enemy.health
+            if (state.enemy.health > 0) {
+                enemy.health = state.enemy.health
+            } else {
+                 // If saved enemy is dead, we probably want to spawn a new one or handle it.
+                 // For now, let's just respect the save, but ensure it doesn't break logic.
+                 Gdx.app.log("LOAD", "Saved enemy was dead (0 HP). Spawning new random enemy.")
+                 spawnRandomEnemy()
+                 return
+            }
+            
             // Re-spawn sprite
             if (this::enemySprite.isInitialized) enemySprite.dispose()
             enemySprite = EnemySprite(game.worldViewport, enemyKind)
+            
+            Gdx.app.log("LOAD", "Enemy restored successfully: ${enemy.name} (${enemy.health} HP)")
+            
         } catch (e: Exception) {
-            Gdx.app.error("LOAD", "Failed to restore enemy kind ${state.enemyKind}, spawning random", e)
+            Gdx.app.error("LOAD", "Failed to restore enemy kind '${state.enemyKind}', spawning random", e)
             spawnRandomEnemy()
         }
 
@@ -957,6 +973,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         setupCombat()
 
         Gdx.app.log("ENEMY", "Spawned ${enemy.name} of kind $enemyKind")
+        saveGame()
     }
 
     private fun setupCombat() {
@@ -1025,7 +1042,6 @@ class BattleScreen(val game: Main) : KtxScreen {
                     Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency} | Round $roundNumber")
                     showToast("+10 XP, +$$coins\nRound: $roundNumber", 1.5f)
                     scheduleNextEnemy(delaySeconds = 2f)
-                    saveGame() // Auto-save after round
                 }
                 if (defeated === player) {
                     playerSprite.playDeath()
@@ -1067,7 +1083,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
         sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
 
-        spawnRandomEnemy()
+        // Only spawn if not already set up (e.g. by loadSavedGame or startNewGame)
+        if (!this::enemy.isInitialized) {
+            spawnRandomEnemy()
+        }
 
         pauseUI.updateFont(font)
         pauseUI.onResize()

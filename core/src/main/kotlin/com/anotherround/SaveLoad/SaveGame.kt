@@ -12,6 +12,7 @@ data class CharacterSnapshot(
     var name: String = "",
     var level: Int = 1,
     var health: Int = 0,
+    var maxHealth: Int = 0,
     var defenseStat: Int = 0,
     var attackStat: Int = 0,
     val currency: Int = 0
@@ -21,6 +22,7 @@ data class CharacterSnapshot(
             name = c.name,
             level = c.level,
             health = c.health,
+            maxHealth = c.maxHealth,
             defenseStat = c.defenseStat,
             attackStat = c.attackStat,
             currency = currency
