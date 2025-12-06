@@ -19,6 +19,12 @@ import com.anotherround.Main
 import com.anotherround.MainMenuScreen
 import com.anotherround.SaveLoad.GameState
 import com.anotherround.SaveLoad.SaveGame
+import com.anotherround.SaveLoad.PotionData
+import com.anotherround.SaveLoad.ArmorData
+import com.anotherround.SaveLoad.WeaponData
+import com.anotherround.SaveLoad.CharacterSnapshot
+import com.anotherround.Equipment.DEFAULT_ARMOR_BLUEPRINTS
+import com.anotherround.Equipment.DEFAULT_WEAPON_BLUEPRINTS
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
@@ -58,6 +64,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     // equipment data
     private lateinit var armorTexture: Texture
+    private lateinit var itemIcons: Array<Array<TextureRegion>>
     private val armorInventory = mutableListOf<ArmorPiece>()
     private val weaponInventory = mutableListOf<Weapon>()
     private val equipmentSlots = EquipmentSlots()
@@ -138,18 +145,55 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         player.name = state.player.name
         player.health = state.player.health
+        player.maxHealth = 40 // Default, will be recalculated
         player.level = state.player.level
         player.defenseStat = state.player.defenseStat
         player.attackStat = state.player.attackStat
         player.currency = state.player.currency
 
-        spawnRandomEnemy()
+        // Ensure sprites are loaded
+        initEquipmentSprites()
 
+        // Potions
         inventory.loadFromSaveState(state.potions)
-        roundNumber = 0  // later you can load this from save too
+        
+        // Round
+        roundNumber = state.roundNumber
 
-        showToast("Loaded Game: ${state.player.name}", 1.5f)
+        // Restore Inventory
+        armorInventory.clear()
+        state.inventoryArmor.forEach { restoreArmor(it)?.let { item -> armorInventory.add(item) } }
+        
+        weaponInventory.clear()
+        state.inventoryWeapons.forEach { restoreWeapon(it)?.let { item -> weaponInventory.add(item) } }
+
+        // Restore Equipped
+        equipmentSlots.helmet = state.equippedHelmet?.let { restoreArmor(it) }
+        equipmentSlots.chest = state.equippedChest?.let { restoreArmor(it) }
+        equipmentSlots.boots = state.equippedBoots?.let { restoreArmor(it) }
+        equipmentSlots.weapon = state.equippedWeapon?.let { restoreWeapon(it) }
+
+        recalculateStats()
+        
+        // Restore Enemy
+        try {
+            enemyKind = EnemyKind.valueOf(state.enemyKind)
+            enemy = EnemyFactory.create(enemyKind)
+            // Apply saved stats
+            enemy.health = state.enemy.health
+            // Re-spawn sprite
+            if (this::enemySprite.isInitialized) enemySprite.dispose()
+            enemySprite = EnemySprite(game.worldViewport, enemyKind)
+        } catch (e: Exception) {
+            Gdx.app.error("LOAD", "Failed to restore enemy kind ${state.enemyKind}, spawning random", e)
+            spawnRandomEnemy()
+        }
+
+        setupCombat()
+        showToast("Loaded Game: round $roundNumber")
     }
+
+
 
     private var toastText: String? = null
     private var toastTimer = 0f
@@ -511,13 +555,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         armorTexture = Texture(Gdx.files.internal("items/64x64.png"))
         armorTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
 
-        val cells = TextureRegion.split(armorTexture, 64, 64)
+        itemIcons = TextureRegion.split(armorTexture, 64, 64)
 
         armorInventory.clear()
-        armorInventory.addAll(buildDefaultArmor(cells))
+        armorInventory.addAll(buildDefaultArmor(itemIcons))
 
         weaponInventory.clear()
-        weaponInventory.addAll(buildDefaultWeapons(cells))
+        weaponInventory.addAll(buildDefaultWeapons(itemIcons))
 
         // Default equipped items:
         equipmentSlots.weapon = weaponInventory.firstOrNull() // first weapon
@@ -981,6 +1025,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                     Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency} | Round $roundNumber")
                     showToast("+10 XP, +$$coins\nRound: $roundNumber", 1.5f)
                     scheduleNextEnemy(delaySeconds = 2f)
+                    saveGame() // Auto-save after round
                 }
                 if (defeated === player) {
                     playerSprite.playDeath()
@@ -1312,5 +1357,53 @@ class BattleScreen(val game: Main) : KtxScreen {
             armorTexture.dispose()
         }
         super.dispose()
+    }
+    private fun saveGame() {
+        if (currentSession == null) return
+        val state = GameState(
+            roundNumber = roundNumber,
+            enemyKind = if (this::enemyKind.isInitialized) enemyKind.name else "RedGrunt",
+            player = CharacterSnapshot.from(player, player.currency),
+            enemy = CharacterSnapshot.from(enemy, 0),
+            
+            potions = inventory.toSaveData(),
+            inventoryArmor = armorInventory.map { toArmorData(it) },
+            inventoryWeapons = weaponInventory.map { toWeaponData(it) },
+            
+            equippedHelmet = equipmentSlots.helmet?.let { toArmorData(it) },
+            equippedChest = equipmentSlots.chest?.let { toArmorData(it) },
+            equippedBoots = equipmentSlots.boots?.let { toArmorData(it) },
+            equippedWeapon = equipmentSlots.weapon?.let { toWeaponData(it) }
+        )
+        SaveGame.save(state, currentSession!!.slotId)
+        showToast("Auto-Saved!", 1f)
+    }
+
+    private fun toArmorData(piece: ArmorPiece) = ArmorData(
+        name = piece.name, slot = piece.slot.name, rarity = piece.rarity,
+        defense = piece.defense, health = piece.health
+    )
+
+    private fun restoreArmor(data: ArmorData): ArmorPiece? {
+        val bp = DEFAULT_ARMOR_BLUEPRINTS.find { it.name == data.name } ?: return null
+        return ArmorPiece(
+             name = bp.name, slot = bp.slot,
+             icon = itemIcons[bp.sprite.row][bp.sprite.col],
+             rarity = data.rarity, defense = data.defense, health = data.health
+        )
+    }
+
+    private fun toWeaponData(piece: Weapon) = WeaponData(
+        name = piece.name, type = piece.type.name, rarity = piece.rarity,
+        attack = piece.attack
+    )
+
+    private fun restoreWeapon(data: WeaponData): Weapon? {
+        val bp = DEFAULT_WEAPON_BLUEPRINTS.find { it.name == data.name } ?: return null
+        return Weapon(
+             name = bp.name, type = bp.type,
+             icon = itemIcons[bp.sprite.row][bp.sprite.col],
+             rarity = data.rarity, attack = data.attack
+        )
     }
 }

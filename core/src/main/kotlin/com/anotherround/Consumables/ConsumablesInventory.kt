@@ -3,6 +3,7 @@ package com.anotherround.Consumables
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.anotherround.SaveLoad.PotionData
 
 class ConsumablesInventory {
 
@@ -45,11 +46,33 @@ class ConsumablesInventory {
         // items.add(createFirePotion(PotionRarity.EPIC))
     }
 
-    fun loadFromSaveState(potionCount: Int) {
+    fun loadFromSaveState(data: List<PotionData>) {
         items.clear()
-        repeat(potionCount) {
-            // Defaulting to Common Health Potion for saved data to prevent crashes
-            items.add(createHealthPotion(PotionRarity.COMMON))
+        data.forEach { potionData ->
+            val rarity = try {
+                PotionRarity.valueOf(potionData.rarity)
+            } catch (e: Exception) {
+                PotionRarity.COMMON
+            }
+
+            val potion = when (potionData.type) {
+                "Health" -> createHealthPotion(rarity)
+                "Defense" -> createDefensivePotion(rarity)
+                "Fire" -> createFirePotion(rarity)
+                else -> createHealthPotion(rarity) // Fallback
+            }
+            items.add(potion)
+        }
+    }
+
+    fun toSaveData(): List<PotionData> {
+        return items.map {
+            val type = when (it) {
+                is HealthPotion -> "Health"
+                is DefensiveLacquer -> "Defense"
+                is FirePotion -> "Fire"
+            }
+            PotionData(type, it.rarity.name)
         }
     }
 
