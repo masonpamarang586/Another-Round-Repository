@@ -21,9 +21,9 @@ data class HealthPotion(
 ) : Potion(
     name = "Health Potion",
     description = when (rarity) {
-        PotionRarity.COMMON -> "Heals 10 HP."
-        PotionRarity.RARE -> "Heals 25 HP."
-        PotionRarity.EPIC -> "Heals 50 HP."
+        PotionRarity.COMMON -> "[${rarity.label}] Heals 10 HP."
+        PotionRarity.RARE -> "[${rarity.label}] Heals 25 HP."
+        PotionRarity.EPIC -> "[${rarity.label}] Heals 50 HP."
     },
     rarity = rarity,
     textureRegion = textureRegion
@@ -41,9 +41,9 @@ data class DefensiveLacquer(
 ) : Potion(
     name = "Defensive Lacquer",
     description = when (rarity) {
-        PotionRarity.COMMON -> "Blocks 20% of the next attack."
-        PotionRarity.RARE -> "Blocks 35% of the next attack."
-        PotionRarity.EPIC -> "Blocks 50% of the next attack."
+        PotionRarity.COMMON -> "[${rarity.label}] Blocks 20% of the next attack."
+        PotionRarity.RARE -> "[${rarity.label}] Blocks 35% of the next attack."
+        PotionRarity.EPIC -> "[${rarity.label}] Blocks 50% of the next attack."
     },
     rarity = rarity,
     textureRegion = textureRegion
@@ -61,9 +61,9 @@ data class FirePotion(
 ) : Potion(
     name = "Vial of Liquid Fire",
     description = when (rarity) {
-        PotionRarity.COMMON -> "Deals 5 damage for 2 rounds."
-        PotionRarity.RARE -> "Deals 10 damage for 2 rounds."
-        PotionRarity.EPIC -> "Deals 15 damage for 2 rounds."
+        PotionRarity.COMMON -> "[${rarity.label}] Deals 5 damage for 2 rounds."
+        PotionRarity.RARE -> "[${rarity.label}] Deals 10 damage for 2 rounds."
+        PotionRarity.EPIC -> "[${rarity.label}] Deals 15 damage for 2 rounds."
     },
     rarity = rarity,
     textureRegion = textureRegion

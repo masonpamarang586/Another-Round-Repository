@@ -61,6 +61,17 @@ class BattleScreen(val game: Main) : KtxScreen {
     private val weaponInventory = mutableListOf<Weapon>()
     private val equipmentSlots = EquipmentSlots()
 
+    private fun getColorForRarity(rarity: String): Color {
+        return when (rarity) {
+            "Common" -> Color.WHITE
+            "Uncommon" -> Color.GREEN
+            "Rare" -> Color.CYAN
+            "Epic" -> Color.PURPLE
+            "Legendary" -> Color.GOLD
+            else -> Color.WHITE
+        }
+    }
+
     // round number (starts at 0, increments each time an enemy is defeated)
     private var roundNumber = 0
 
@@ -600,9 +611,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         equipmentTable.addActor(equipmentPopupContainer)
     }
 
-    private fun showEquipmentPopup(itemName: String, statsText: String, index: Int) {
+    private fun showEquipmentPopup(itemName: String, statsText: String, index: Int, nameColor: Color = Color.BLACK) {
         selectedEquipmentIndex = index
         equipmentPopupNameLabel.setText(itemName)
+        equipmentPopupNameLabel.color = nameColor
         equipmentPopupLabel.setText(statsText)
         equipmentPopupContainer.isVisible = true
     }
@@ -642,6 +654,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
                 nameLabel = Label(piece.name, nameLabelStyle)
                 nameLabel.setFontScale(0.75f)
+                nameLabel.color = getColorForRarity(piece.rarity)
 
                 val descText = "Rarity: ${piece.rarity}\nDEF: ${piece.defense}   HP: ${piece.health}"
                 descLabel = Label(descText, descLabelStyle)
@@ -649,6 +662,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             } else {
                 nameLabel = Label("None", nameLabelStyle)
                 nameLabel.setFontScale(0.75f)
+                nameLabel.color = Color.WHITE
                 descLabel = Label("", descLabelStyle)
             }
 
@@ -679,6 +693,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
                 nameLabel = Label(weapon.name, nameLabelStyle)
                 nameLabel.setFontScale(0.75f)
+                nameLabel.color = getColorForRarity(weapon.rarity)
 
                 val descText = "Rarity: ${weapon.rarity}\nATK: ${weapon.attack}"
                 descLabel = Label(descText, descLabelStyle)
@@ -686,6 +701,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             } else {
                 nameLabel = Label("None", nameLabelStyle)
                 nameLabel.setFontScale(0.75f)
+                nameLabel.color = Color.WHITE
                 descLabel = Label("", descLabelStyle)
             }
 
@@ -737,11 +753,12 @@ class BattleScreen(val game: Main) : KtxScreen {
                     override fun clicked(event: InputEvent?, x: Float, y: Float) {
                         val name = item.name
                         val stats = "Rarity: ${item.rarity}\nDEF: ${item.defense}   HP: ${item.health}"
+                        val color = getColorForRarity(item.rarity)
 
                         if (selectedEquipmentIndex == i && equipmentPopupContainer.isVisible) {
                             hideEquipmentPopup()
                         } else {
-                            showEquipmentPopup(name, stats, i)
+                            showEquipmentPopup(name, stats, i, color)
                         }
                         // refresh highlight
                         updateEquipmentTable()
@@ -757,11 +774,12 @@ class BattleScreen(val game: Main) : KtxScreen {
                     override fun clicked(event: InputEvent?, x: Float, y: Float) {
                         val name = item.name
                         val stats = "Rarity: ${item.rarity}\nATK: ${item.attack}"
+                        val color = getColorForRarity(item.rarity)
 
                         if (selectedEquipmentIndex == i && equipmentPopupContainer.isVisible) {
                             hideEquipmentPopup()
                         } else {
-                            showEquipmentPopup(name, stats, i)
+                            showEquipmentPopup(name, stats, i, color)
                         }
                         // refresh highlight
                         updateEquipmentTable()
