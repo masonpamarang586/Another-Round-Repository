@@ -19,11 +19,11 @@ class ConsumablesInventory {
     private val healthPotionRegion by lazy { TextureRegion(potionsSpritesheet, 48, 32, 16, 16) }
 
     // Using the old mana potion icon (64, 32) for Defensive Lacquer for now to distinguish it.
-    private val defensivePotionRegion by lazy { TextureRegion(potionsSpritesheet, 64, 32, 16, 16) }
+    private val defensivePotionRegion by lazy { TextureRegion(potionsSpritesheet, 128, 112, 16, 16) }
 
     // I need a third icon for Fire Potion. I'll pick another spot on the sheet, e.g., 80, 32.
     // If it's invalid, it might show garbage, but it's better than nothing.
-    private val firePotionRegion by lazy { TextureRegion(potionsSpritesheet, 80, 32, 16, 16) }
+    private val firePotionRegion by lazy { TextureRegion(potionsSpritesheet, 80, 192, 16, 16) }
 
 
     fun getItems(): List<Potion> {
