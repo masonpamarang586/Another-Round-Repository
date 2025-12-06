@@ -1073,15 +1073,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         pauseUI.onResize()
 
         pauseUI.onSaveRequested = {
-            try {
-                val slotToSave = currentSession?.slotId ?: 1
-                SaveGame.save(player, enemy, inventory.getItems().size, slotToSave)
-                Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
-                showToast("Game Saved (Slot $slotToSave)", 1.5f)
-            } catch (t: Throwable) {
-                Gdx.app.error("SAVE", "Failed to save", t)
-                showToast("Save Failed", 1.5f)
-            }
+            saveGame()
         }
 
         pauseUI.onMainMenuRequested = {
