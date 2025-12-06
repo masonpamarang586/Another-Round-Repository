@@ -438,7 +438,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             }
                             is FirePotion -> {
                                 combat.addEffect(enemy, StatusEffect.Burn(consumable.damagePerRound, consumable.durationRounds))
-                                enemy.takeDamage(consumable.damagePerRound) // Instant damage
+                                enemy.takeTrueDamage(consumable.damagePerRound) // Instant damage (True Damage)
                                 showDamagePopup(enemy, consumable.damagePerRound)
                                 enemyHealthLabel.setText("${enemy.health}")
                                 showToast("Fire! ${consumable.damagePerRound} damage!")

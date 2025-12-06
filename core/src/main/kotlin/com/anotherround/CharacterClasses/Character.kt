@@ -25,6 +25,11 @@ interface Character {
         health = (health-dmg).coerceAtLeast(0)
         println("$name takes $dmg damage. HP: $before -> $health")
     }
+    fun takeTrueDamage(damage: Int) {
+        val before = health
+        health = (health - damage).coerceAtLeast(0)
+        println("$name takes $damage TRUE damage. HP: $before -> $health")
+    }
     fun heal(amount: Int) {
         health = (health+amount).coerceAtMost(maxHealth)
         println("Healed $amount hp")
