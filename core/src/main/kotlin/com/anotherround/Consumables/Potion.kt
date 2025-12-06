@@ -35,7 +35,7 @@ data class HealthPotion(
     }
 }
 
-data class DefensiveLacquer(
+data class DefensePotion(
     override val rarity: PotionRarity,
     override val textureRegion: TextureRegion
 ) : Potion(

@@ -10,7 +10,7 @@ import com.anotherround.Consumables.ConsumablesInventory
 import com.anotherround.Consumables.Potion
 import com.anotherround.Consumables.PotionRarity
 import com.anotherround.Consumables.HealthPotion
-import com.anotherround.Consumables.DefensiveLacquer
+import com.anotherround.Consumables.DefensePotion
 import com.anotherround.Consumables.FirePotion
 import com.anotherround.combat.StatusEffect
 import com.anotherround.GameLogic
@@ -156,14 +156,14 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // Potions
         inventory.loadFromSaveState(state.potions)
-        
+
         // Round
         roundNumber = state.roundNumber
 
         // Restore Inventory
         armorInventory.clear()
         state.inventoryArmor.forEach { restoreArmor(it)?.let { item -> armorInventory.add(item) } }
-        
+
         weaponInventory.clear()
         state.inventoryWeapons.forEach { restoreWeapon(it)?.let { item -> weaponInventory.add(item) } }
 
@@ -174,7 +174,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         equipmentSlots.weapon = state.equippedWeapon?.let { restoreWeapon(it) }
 
         recalculateStats()
-        
+
         // Restore Enemy
         try {
             enemyKind = EnemyKind.valueOf(state.enemyKind)
@@ -250,14 +250,14 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     private val playerHealthLabel by lazy {
         val label = TextButton("${player.health}", buttonStyle)
-        label.width = 550f
+        label.width = 700f
         label.height = 200f
         label
     }
 
     private val enemyHealthLabel by lazy {
         val label = TextButton("", buttonStyle)
-        label.width = 550f
+        label.width =700f
         label.height = 200f
         label
     }
@@ -416,16 +416,16 @@ class BattleScreen(val game: Main) : KtxScreen {
                                 playerHealthLabel.setText("${player.health}")
                                 showToast("Healed for ${consumable.healAmount} HP")
                             }
-                            is DefensiveLacquer -> {
+                            is DefensePotion -> {
                                 combat.addEffect(player, StatusEffect.DefenseBuff(consumable.blockPercent))
-                                showToast("Defensive Lacquer Applied!")
+                                showToast("Defense Applied!")
                             }
                             is FirePotion -> {
                                 combat.addEffect(enemy, StatusEffect.Burn(consumable.damagePerRound, consumable.durationRounds))
                                 enemy.takeDamage(consumable.damagePerRound) // Instant damage
                                 showDamagePopup(enemy, consumable.damagePerRound)
                                 enemyHealthLabel.setText("${enemy.health}")
-                                showToast("Liquid Fire! ${consumable.damagePerRound} instant damage!")
+                                showToast("Fire! ${consumable.damagePerRound} damage!")
                             }
                         }
                         inventory.useItem(consumable)
@@ -568,7 +568,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         equipmentSlots.helmet = armorInventory.firstOrNull { it.slot == ArmorSlot.HELMET }
         equipmentSlots.chest  = armorInventory.firstOrNull { it.slot == ArmorSlot.CHEST }
         equipmentSlots.boots  = armorInventory.firstOrNull { it.slot == ArmorSlot.BOOTS }
-        
+
         recalculateStats()
         // Start full health
         player.health = player.maxHealth
@@ -598,7 +598,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.maxHealth = newMaxHp
         player.defenseStat = newDef
         player.attackStat = newAtk
-        
+
         if (player.health > player.maxHealth) {
             player.health = player.maxHealth
         }
@@ -1091,9 +1091,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(enemyIcon_NotTurn)
         GameLogic.screen = this
 
-        playerHealthLabel.setSize(250f, 200f)
+        playerHealthLabel.setSize(300f, 200f)
 
-        enemyHealthLabel.setSize(250f, 200f)
+        enemyHealthLabel.setSize(300f, 200f)
 
         playerIcon.setSize(200f, 200f)
 
@@ -1128,18 +1128,18 @@ class BattleScreen(val game: Main) : KtxScreen {
     private fun showFloatingText(character: Character, text: String, color: Color) {
         val labelStyle = Label.LabelStyle(font, color)
         val popup = Label(text, labelStyle)
-        
+
         // Position roughly above the sprite
         // We need to project world coordinates to UI stage coordinates or just estimate
         // The sprites are drawn in world coordinates (projectionMatrix = worldViewport.camera.combined)
-        // The UI is drawn in UI coordinates. 
+        // The UI is drawn in UI coordinates.
         // Simple map:
         val x = if (character === player) Gdx.graphics.width * 0.25f else Gdx.graphics.width * 0.75f
         val y = Gdx.graphics.height * 0.6f
 
         popup.setPosition(x, y)
         popup.setFontScale(1.5f)
-        
+
         popup.addAction(Actions.sequence(
             Actions.parallel(
                 Actions.moveBy(0f, 100f, 1.5f, Interpolation.pow2Out),
@@ -1147,7 +1147,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             ),
             Actions.removeActor()
         ))
-        
+
         uiStage.addActor(popup)
     }
 
@@ -1172,14 +1172,14 @@ class BattleScreen(val game: Main) : KtxScreen {
         val iconY = Gdx.graphics.height - 400f
 
         // Player: Icon (50) -> Label (250)
-        playerIcon.setPosition(50f, iconY)
-        playerIcon_NotTurn.setPosition(50f, iconY)
-        playerHealthLabel.setPosition(250f, iconY)
+        playerIcon.setPosition(25f, iconY)
+        playerIcon_NotTurn.setPosition(25f, iconY)
+        playerHealthLabel.setPosition(225f, iconY)
 
         // Enemy: Icon (Width-500) -> Label (Width-300)
-        enemyIcon.setPosition(Gdx.graphics.width - 500f, iconY)
-        enemyIcon_NotTurn.setPosition(Gdx.graphics.width - 500f, iconY)
-        enemyHealthLabel.setPosition(Gdx.graphics.width - 300f, iconY)
+        enemyIcon.setPosition(Gdx.graphics.width - 525f, iconY)
+        enemyIcon_NotTurn.setPosition(Gdx.graphics.width - 525f, iconY)
+        enemyHealthLabel.setPosition(Gdx.graphics.width - 325f, iconY)
 
         positionRoundLabel()
     }
@@ -1357,18 +1357,18 @@ class BattleScreen(val game: Main) : KtxScreen {
             enemyKind = if (this::enemyKind.isInitialized) enemyKind.name else "RedGrunt",
             player = CharacterSnapshot.from(player, player.currency),
             enemy = CharacterSnapshot.from(enemy, 0),
-            
+
             potions = inventory.toSaveData(),
             inventoryArmor = armorInventory.map { toArmorData(it) },
             inventoryWeapons = weaponInventory.map { toWeaponData(it) },
-            
+
             equippedHelmet = equipmentSlots.helmet?.let { toArmorData(it) },
             equippedChest = equipmentSlots.chest?.let { toArmorData(it) },
             equippedBoots = equipmentSlots.boots?.let { toArmorData(it) },
             equippedWeapon = equipmentSlots.weapon?.let { toWeaponData(it) }
         )
         SaveGame.save(state, currentSession!!.slotId)
-        showToast("Auto-Saved!", 1f)
+        showToast("Saved!", 1f)
     }
 
     private fun toArmorData(piece: ArmorPiece) = ArmorData(
