@@ -8,7 +8,6 @@ class RedGrunt(
     override var attackStat: Int = 5
 ) : Character {
     override val maxHealth: Int get() = 25
-    override val activeEffects = mutableListOf<com.anotherround.combat.StatusEffect>()
 }
 
 class Phantom(
@@ -19,7 +18,6 @@ class Phantom(
     override var attackStat: Int = 13
 ) : Character {
     override val maxHealth: Int get() = 35
-    override val activeEffects = mutableListOf<com.anotherround.combat.StatusEffect>()
 }
 
 class EvilWizard(
@@ -30,7 +28,6 @@ class EvilWizard(
     override var attackStat: Int = 7
 ) : Character {
     override val maxHealth: Int get() = 35
-    override val activeEffects = mutableListOf<com.anotherround.combat.StatusEffect>()
 }
 
 class NightBorne(
@@ -41,5 +38,4 @@ class NightBorne(
     override var attackStat: Int = 17
 ) : Character {
     override val maxHealth: Int get() = 50
-    override val activeEffects = mutableListOf<com.anotherround.combat.StatusEffect>()
 }

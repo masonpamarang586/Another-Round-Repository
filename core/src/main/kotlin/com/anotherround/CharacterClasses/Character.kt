@@ -1,7 +1,5 @@
 package com.anotherround.CharacterClasses
 
-import com.anotherround.combat.StatusEffect
-
 enum class CharacterState { Idle, Attacking, Hurt, Dead }
 interface Character {
     //Stats
@@ -15,9 +13,6 @@ interface Character {
     var state: CharacterState
         get() = CharacterState.Idle
         set(_) {}
-
-    val activeEffects: MutableList<StatusEffect>
-
     // functions
     // shouldn't need a defend function, defending may just use the defenseStat attribute
     fun attack(target: Character): Int {

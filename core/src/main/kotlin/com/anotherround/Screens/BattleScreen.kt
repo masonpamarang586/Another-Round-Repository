@@ -100,7 +100,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.defenseStat = basePlayer.defenseStat
         player.attackStat = basePlayer.attackStat
         player.currency = basePlayer.currency
-        player.activeEffects.clear()
 
         inventory.loadDefaultPotions()
         roundNumber = 0
@@ -125,123 +124,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.defenseStat = state.player.defenseStat
         player.attackStat = state.player.attackStat
         player.currency = state.player.currency
-        
-        // Restore Active Effects
-        player.activeEffects.clear()
-        state.player.activeEffects.forEach { snap ->
-            player.activeEffects.add(com.anotherround.combat.StatusEffect(snap.name, snap.type, snap.duration, snap.value))
-        }
 
         spawnRandomEnemy()
-        
-        // Restore Enemy Effects
-        enemy.activeEffects.clear()
-        state.enemy.activeEffects.forEach { snap ->
-            enemy.activeEffects.add(com.anotherround.combat.StatusEffect(snap.name, snap.type, snap.duration, snap.value))
-        }
 
-        // Restore Round Number
-        roundNumber = state.roundNumber
-
-        // Restore Inventory (Potions)
-        inventory.getItems().clear()
-        state.inventory.forEach { snapshot ->
-            val potion = when (snapshot.type) {
-                com.anotherround.Consumables.PotionType.HEALTH -> com.anotherround.Consumables.PotionFactory.createHealthPotion(snapshot.rarity)
-                com.anotherround.Consumables.PotionType.DEFENSE -> com.anotherround.Consumables.PotionFactory.createDefensiveLacquer()
-                com.anotherround.Consumables.PotionType.ATTACK -> com.anotherround.Consumables.PotionFactory.createLiquidFire()
-            }
-            inventory.addItem(potion)
-        }
-
-        // Restore Equipment Inventory
-        armorInventory.clear()
-        state.armorInventory.forEach { snapshot ->
-            val blueprint = com.anotherround.Equipment.DEFAULT_ARMOR_BLUEPRINTS.find { it.name == snapshot.name }
-            if (blueprint != null && this::armorTexture.isInitialized) {
-                val cells = TextureRegion.split(armorTexture, 64, 64)
-                val region = cells[blueprint.sprite.row][blueprint.sprite.col]
-                armorInventory.add(ArmorPiece(
-                    name = snapshot.name,
-                    slot = snapshot.slot,
-                    icon = region,
-                    rarity = snapshot.rarity,
-                    defense = snapshot.defense,
-                    health = snapshot.health
-                ))
-            }
-        }
-
-        weaponInventory.clear()
-        state.weaponInventory.forEach { snapshot ->
-            val blueprint = com.anotherround.Equipment.DEFAULT_WEAPON_BLUEPRINTS.find { it.name == snapshot.name }
-            if (blueprint != null && this::armorTexture.isInitialized) {
-                val cells = TextureRegion.split(armorTexture, 64, 64)
-                val region = cells[blueprint.sprite.row][blueprint.sprite.col]
-                weaponInventory.add(Weapon(
-                    name = snapshot.name,
-                    type = snapshot.type,
-                    icon = region,
-                    rarity = snapshot.rarity,
-                    attack = snapshot.attack
-                ))
-            }
-        }
-
-        // Restore Equipped Items
-        equipmentSlots.weapon = state.equipped.weapon?.let { snap ->
-             val blueprint = com.anotherround.Equipment.DEFAULT_WEAPON_BLUEPRINTS.find { it.name == snap.name }
-             if (blueprint != null && this::armorTexture.isInitialized) {
-                val cells = TextureRegion.split(armorTexture, 64, 64)
-                val region = cells[blueprint.sprite.row][blueprint.sprite.col]
-                Weapon(snap.name, snap.type, region, snap.rarity, snap.attack)
-             } else null
-        }
-
-        equipmentSlots.helmet = state.equipped.helmet?.let { snap ->
-             val blueprint = com.anotherround.Equipment.DEFAULT_ARMOR_BLUEPRINTS.find { it.name == snap.name }
-             if (blueprint != null && this::armorTexture.isInitialized) {
-                val cells = TextureRegion.split(armorTexture, 64, 64)
-                val region = cells[blueprint.sprite.row][blueprint.sprite.col]
-                ArmorPiece(snap.name, snap.slot, region, snap.rarity, snap.defense, snap.health)
-             } else null
-        }
-
-        equipmentSlots.chest = state.equipped.chest?.let { snap ->
-             val blueprint = com.anotherround.Equipment.DEFAULT_ARMOR_BLUEPRINTS.find { it.name == snap.name }
-             if (blueprint != null && this::armorTexture.isInitialized) {
-                val cells = TextureRegion.split(armorTexture, 64, 64)
-                val region = cells[blueprint.sprite.row][blueprint.sprite.col]
-                ArmorPiece(snap.name, snap.slot, region, snap.rarity, snap.defense, snap.health)
-             } else null
-        }
-
-        equipmentSlots.boots = state.equipped.boots?.let { snap ->
-             val blueprint = com.anotherround.Equipment.DEFAULT_ARMOR_BLUEPRINTS.find { it.name == snap.name }
-             if (blueprint != null && this::armorTexture.isInitialized) {
-                val cells = TextureRegion.split(armorTexture, 64, 64)
-                val region = cells[blueprint.sprite.row][blueprint.sprite.col]
-                ArmorPiece(snap.name, snap.slot, region, snap.rarity, snap.defense, snap.health)
-             } else null
-        }
+        inventory.loadFromSaveState(state.potions)
+        roundNumber = 0  // later you can load this from save too
 
         showToast("Loaded Game: ${state.player.name}", 1.5f)
-    }
-
-    private fun performAutoSave() {
-        currentSession?.let { session ->
-            SaveGame.save(
-                player = player,
-                enemy = enemy,
-                roundNumber = roundNumber,
-                inventory = inventory.getItems(),
-                armorInventory = armorInventory,
-                weaponInventory = weaponInventory,
-                equipmentSlots = equipmentSlots,
-                slot = session.slotId
-            )
-            Gdx.app.log("BattleScreen", "Auto-saved to slot ${session.slotId}")
-        }
     }
 
     private var toastText: String? = null
@@ -429,7 +318,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         val itemPadding = (slotSize - itemSize) / 2f
 
         for (i in 0 until 8) {
-            val potion = inventory.getItems().getOrNull(i)
+            val consumable = inventory.getItems().getOrNull(i)
 
             val itemSlotBg = Image(skin.getDrawable("item-slot"))
             val slotGroup = Group()
@@ -440,48 +329,23 @@ class BattleScreen(val game: Main) : KtxScreen {
             val nameLabel: Label
             val descLabel: Label
 
-            if (potion != null) {
-                val itemImage = Image(potion.textureRegion)
+            if (consumable != null) {
+                val itemImage = Image(consumable.textureRegion)
                 itemImage.setSize(itemSize, itemSize)
                 slotGroup.addActor(itemImage)
                 itemImage.setPosition(itemPadding, itemPadding)
 
-                nameLabel = Label(potion.name, nameLabelStyle)
+                nameLabel = Label(consumable.name, nameLabelStyle)
                 nameLabel.setWrap(false)
-                descLabel = Label(potion.description, descLabelStyle)
+                descLabel = Label(consumable.description, descLabelStyle)
                 descLabel.setWrap(true)
 
                 slotGroup.addListener(object: ClickListener() {
                     override fun clicked(event: InputEvent?, x: Float, y:Float) {
-                        // Handle different potion types
-                        when (potion.type) {
-                            com.anotherround.Consumables.PotionType.HEALTH -> {
-                                player.heal(potion.effectValue)
-                                sfxItemHeal.play(50f)
-                                showToast("Healed ${potion.effectValue} HP")
-                            }
-                            com.anotherround.Consumables.PotionType.DEFENSE -> {
-                                player.activeEffects.add(com.anotherround.combat.StatusEffect(
-                                    name = "Defensive Lacquer",
-                                    type = com.anotherround.combat.EffectType.DEFENSE_BUFF,
-                                    duration = potion.duration,
-                                    value = potion.effectValue
-                                ))
-                                sfxItemHeal.play(50f)
-                                showToast("Applied Defense Buff")
-                            }
-                            com.anotherround.Consumables.PotionType.ATTACK -> {
-                                enemy.activeEffects.add(com.anotherround.combat.StatusEffect(
-                                    name = "Liquid Fire",
-                                    type = com.anotherround.combat.EffectType.DOT_FIRE,
-                                    duration = potion.duration,
-                                    value = potion.effectValue
-                                ))
-                                sfxItemHeal.play(50f) // Maybe different sound?
-                                showToast("Applied Liquid Fire to Enemy")
-                            }
-                        }
-                        inventory.useItem(potion)
+                        val healAmount = inventory.useItem(consumable)
+                        player.heal(healAmount)
+                        sfxItemHeal.play(50f)
+                        showToast("Healed for $healAmount health")
                         updateItemsTable()
                     }
                 })
@@ -520,7 +384,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // make 8 slots
         for (i in 0 until 8) {
-            val potion = inventory.getItems().getOrNull(i) // Get item for this slot
+            val consumable = inventory.getItems().getOrNull(i) // Get item for this slot
 
             // slot bg
             val itemSlotBg = Image(skin.getDrawable("item-slot"))
@@ -531,23 +395,19 @@ class BattleScreen(val game: Main) : KtxScreen {
             val nameLabel: Label
             val descLabel: Label
 
-            if (potion != null) {
+            if (consumable != null) {
                 // item icon
-                val itemImage = Image(potion.textureRegion)
+                val itemImage = Image(consumable.textureRegion)
                 itemImage.setSize(itemSize, itemSize)
                 slotGroup.addActor(itemImage)
                 itemImage.setPosition(itemPadding, itemPadding)
 
                 // Set the text
-                nameLabel = Label(potion.name, nameLabelStyle)
-                descLabel = Label(potion.description, descLabelStyle)
+                nameLabel = Label(consumable.name, nameLabelStyle)
+                descLabel = Label(consumable.description, descLabelStyle)
                 descLabel.setWrap(true)
             } else {
-                // Shop Logic: Sell random potions or specific ones?
-                // For now, let's just sell Small Health Potions for 10g
-                // Or maybe cycle through types?
-                // Let's make it simple: Buy Small Health Potion
-                nameLabel = Label("Small Health Potion", nameLabelStyle)
+                nameLabel = Label("Health Potion", nameLabelStyle)
                 descLabel = Label("Tap to buy for 10 gold", descLabelStyle)
                 slotGroup.clearListeners()
 
@@ -556,7 +416,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                         if (player.currency >= 10) {
                             player.currency -= 10
                             inventory.addItem(
-                                com.anotherround.Consumables.PotionFactory.createHealthPotion(com.anotherround.Consumables.PotionRarity.COMMON)
+                                inventory.createHealthPotion()
                             )
                             updateShopTable()
                         } else {
@@ -835,139 +695,198 @@ class BattleScreen(val game: Main) : KtxScreen {
 
             // highlight currently selected item
             if (selectedEquipmentIndex == i) {
-                slotBg.color = Color.YELLOW
-            } else {
-                slotBg.color = Color.WHITE
+                slotBg.color = Color(1f, 1f, 0.7f, 1f) // soft yellow tint
             }
 
-            if (item != null) {
-                val region = when (item) {
-                    is ArmorPiece -> item.icon
-                    is Weapon -> item.icon
-                    else -> null
-                }
-                if (region != null) {
-                    val icon = Image(region)
-                    icon.setSize(itemSize, itemSize)
-                    icon.setPosition(itemPadding, itemPadding)
-                    group.addActor(icon)
-                }
+            if (item is ArmorPiece) {
+                val icon = Image(item.icon)
+                icon.setSize(itemSize, itemSize)
+                icon.setPosition(itemPadding, itemPadding)
+                group.addActor(icon)
 
                 group.addListener(object : ClickListener() {
                     override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                        // show popup with stats and equip button
-                        val name = when (item) {
-                            is ArmorPiece -> item.name
-                            is Weapon -> item.name
-                            else -> "?"
+                        val name = item.name
+                        val stats = "Rarity: ${item.rarity}\nDEF: ${item.defense}   HP: ${item.health}"
+
+                        if (selectedEquipmentIndex == i && equipmentPopupContainer.isVisible) {
+                            hideEquipmentPopup()
+                        } else {
+                            showEquipmentPopup(name, stats, i)
                         }
-                        val stats = when (item) {
-                            is ArmorPiece -> "Slot: ${item.slot}\nDef: ${item.defense}\nHP: ${item.health}\nRarity: ${item.rarity}"
-                            is Weapon -> "Type: ${item.type}\nAtk: ${item.attack}\nRarity: ${item.rarity}"
-                            else -> ""
+                        // refresh highlight
+                        updateEquipmentTable()
+                    }
+                })
+            } else if (item is Weapon) {
+                val icon = Image(item.icon)
+                icon.setSize(itemSize, itemSize)
+                icon.setPosition(itemPadding, itemPadding)
+                group.addActor(icon)
+
+                group.addListener(object : ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                        val name = item.name
+                        val stats = "Rarity: ${item.rarity}\nATK: ${item.attack}"
+
+                        if (selectedEquipmentIndex == i && equipmentPopupContainer.isVisible) {
+                            hideEquipmentPopup()
+                        } else {
+                            showEquipmentPopup(name, stats, i)
                         }
-                        showEquipmentPopup(name, stats, i)
+                        // refresh highlight
+                        updateEquipmentTable()
+                    }
+                })
+            } else {
+                // empty slot
+                group.addListener(object : ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                        hideEquipmentPopup()
+                        updateEquipmentTable()
                     }
                 })
             }
 
             equipmentInventoryTable.add(group).size(slotSize).pad(5f)
+
             col++
             if (col >= itemsPerRow) {
-                col = 0
                 equipmentInventoryTable.row()
+                col = 0
             }
         }
     }
 
-    override fun show() {
-        // Load assets
-        initEquipmentSprites()
-        buildItemsTable()
-        buildEquipmentTable()
-        buildGameOverTable()
+    private var accumulator = 0f
 
-        // Input
-        Gdx.input.inputProcessor = uiStage
+    private fun updateFont() {
+        val buttonHeightFraction = 0.08f
+        val textToButtonHeight = 0.65f
 
-        // Build UI
-        uiStage.addActor(menuTable)
-        menuTable.setPosition(Gdx.graphics.width * 0.25f, Gdx.graphics.height * 0.25f)
-
-        uiStage.addActor(itemsTable)
-        itemsTable.isVisible = false
-
-        uiStage.addActor(equipmentTable)
-        equipmentTable.isVisible = false
-
-        uiStage.addActor(gameOverTable)
-
-        // Pause UI
-        pauseUI.build()
-        pauseUI.onResume = {
-            // nothing special
+        var parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
+            size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt()
+            if (size <= 0) size = 15
+            minFilter = Texture.TextureFilter.Nearest
+            magFilter = Texture.TextureFilter.Nearest
         }
-        pauseUI.onSaveRequested = {
-            try {
-                val slotToSave = currentSession?.slotId ?: 1
-                SaveGame.save(player, enemy, roundNumber, inventory.getItems(), armorInventory, weaponInventory, equipmentSlots, slotToSave)
-                Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
-                showToast("Game Saved (Slot $slotToSave)", 1.5f)
-            } catch (t: Throwable) {
-                Gdx.app.error("SAVE", "Failed to save", t)
-                showToast("Save Failed", 1.5f)
-            }
+
+        if (font.data.fontFile != null) font.dispose()
+
+        font = generator.generateFont(parameter)
+        font.color = Color.BLACK
+
+        parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
+            size = (Gdx.graphics.height * 0.04f * textToButtonHeight).toInt()
+            if (size <= 0) size = 12
+            minFilter = Texture.TextureFilter.Nearest
+            magFilter = Texture.TextureFilter.Nearest
         }
-        pauseUI.onExit = {
-            game.setScreen<MainMenuScreen>()
+
+        if (smallFont.data.fontFile != null) smallFont.dispose()
+        smallFont = generator.generateFont(parameter)
+        smallFont.color = Color.LIGHT_GRAY
+
+        if (this::nameLabelStyle.isInitialized) {
+            nameLabelStyle.font = font
+        } else {
+            nameLabelStyle = Label.LabelStyle(font, Color.WHITE)
         }
-        uiStage.addActor(pauseUI.rootTable)
 
-        // Player & Enemy Labels
-        uiStage.addActor(playerHealthLabel)
-        playerHealthLabel.setPosition(100f, Gdx.graphics.height - 250f)
+        if (this::descLabelStyle.isInitialized) {
+            descLabelStyle.font = smallFont
+        } else {
+            descLabelStyle = Label.LabelStyle(smallFont, Color.LIGHT_GRAY)
+        }
+    }
 
-        uiStage.addActor(enemyHealthLabel)
-        enemyHealthLabel.setPosition(Gdx.graphics.width - 500f, Gdx.graphics.height - 250f)
+    private fun scheduleNextEnemy(delaySeconds: Float = 2f) {
+        pendingNextEnemy = true
+        nextEnemyDelay = delaySeconds
+    }
 
-        // Round Label
-        val roundStyle = Label.LabelStyle(font, Color.YELLOW)
-        roundLabel = Label("Round 1", roundStyle)
-        roundLabel.setFontScale(1.5f)
-        roundLabel.setPosition(Gdx.graphics.width / 2f - 50f, Gdx.graphics.height - 100f)
-        uiStage.addActor(roundLabel)
+    private fun scheduleGameOver(delaySeconds: Float = 2f) {
+        pendingGameOver = true
+        gameOverDelay = delaySeconds
+    }
 
-        // Setup Combat
+    private fun showGameOverPopup() {
+        isGameOver = true
+        gameOverTable.isVisible = true
+    }
+
+    private fun spawnRandomEnemy() {
+        enemyKind = EnemyFactory.randomKind()
+        enemy = EnemyFactory.create(enemyKind)
+
+        if (this::enemySprite.isInitialized) {
+            enemySprite.dispose()
+        }
+        enemySprite = EnemySprite(game.worldViewport, enemyKind)
+
         setupCombat()
+
+        Gdx.app.log("ENEMY", "Spawned ${enemy.name} of kind $enemyKind")
     }
 
     private fun setupCombat() {
         combat = CombatManager(
             player = player,
-            enemy = enemy,
-            onLog = { msg -> Gdx.app.log("Combat", msg) },
+            enemy  = enemy,
+            onLog  = { msg -> Gdx.app.log("COMBAT", msg) },
+
             onActionStart = { action ->
-                if (action is Action.Attack) {
-                    if (action.attacker === player) {
-                        playerSprite.playAttack()
-                    } else {
-                        enemySprite.playAttack()
+                when (action) {
+                    is Action.Attack -> {
+                        if (action.attacker === player) {
+                            playerSprite.playAttack()
+                            combat.resolveDelay = playerSprite.attackDuration()
+                        } else if (action.attacker === enemy) {
+                            enemySprite.playAttack()
+                            combat.resolveDelay = enemySprite.attackDuration()
+                        }
                     }
                 }
             },
+
             onActionEnd = { action ->
-                // nothing special
-            },
-            onSfx = { event ->
-                when (event) {
-                    SfxEvent.PlayerAttack -> { /* played by animation? or here */ }
-                    SfxEvent.EnemyAttack -> { /* ... */ }
-                    SfxEvent.PlayerHurt -> playerSprite.playHurt()
-                    SfxEvent.EnemyHurt -> enemySprite.playHurt()
-                    SfxEvent.PlayerDeath -> { /* handled in onDefeat */ }
-                    SfxEvent.EnemyDeath -> { /* handled in onDefeat */ }
+                when (action) {
+                    is Action.Attack -> {
+                        if (action.attacker === player) {
+                            if (enemy.isAlive()) {
+                                enemySprite.playHurt()
+                                combat.pauseNextTurnFor(max(1.5f, enemySprite.hurtDuration()))
+                                playerIcon.remove()
+                                enemyIcon_NotTurn.remove()
+                                uiStage.addActor(playerIcon_NotTurn)
+                                uiStage.addActor(enemyIcon)
+                            } else {
+                                enemySprite.playDeath()
+                                combat.pauseNextTurnFor(enemySprite.deathDuration())
+                            }
+                        } else if (action.attacker === enemy) {
+                            playerSprite.playHurt()
+                            combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
+                            playerIcon_NotTurn.remove()
+                            enemyIcon.remove()
+                            uiStage.addActor(playerIcon)
+                            uiStage.addActor(enemyIcon_NotTurn)
+                        }
+                    }
                 }
             },
+
+            onSfx = { e ->
+                when (e) {
+                    SfxEvent.PlayerAttack -> sfxPlayerAttack.play(0.9f)
+                    SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
+                    SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
+                    SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
+                    SfxEvent.PlayerDeath  -> sfxEnemyDeath.play(1.0f)
+                    SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
+                }
+            },
+
             onDefeat = { defeated, by ->
                 if (defeated === enemy && by === player) {
                     val coins = 10
@@ -975,10 +894,6 @@ class BattleScreen(val game: Main) : KtxScreen {
                     roundNumber += 1  // increment round when enemy is defeated
                     Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency} | Round $roundNumber")
                     showToast("+10 XP, +$$coins\nRound: $roundNumber", 1.5f)
-                    
-                    // Auto-save after victory
-                    performAutoSave()
-
                     scheduleNextEnemy(delaySeconds = 2f)
                 }
                 if (defeated === player) {
@@ -988,55 +903,154 @@ class BattleScreen(val game: Main) : KtxScreen {
                     showToast("You were defeated...", 2f)
                     scheduleGameOver(delaySeconds = delay)
                 }
-            }
+            },
+
+            resolveDelay = 0f
         )
     }
 
-    private fun spawnRandomEnemy() {
-        val kinds = EnemyKind.values()
-        enemyKind = kinds.random()
+    override fun show() {
+        updateFont()
 
-        enemy = when (enemyKind) {
-            EnemyKind.Grunt -> RedGrunt()
-            EnemyKind.Phantom -> Phantom()
-            EnemyKind.EvilWizard -> EvilWizard()
-            EnemyKind.NightBorne -> NightBorne()
+        pauseUI.updateFont(font)
+        GameLogic.gameState = GameLogic.GameState.BATTLE
+
+        buildItemsTable()
+        initEquipmentSprites()
+        buildEquipmentTable()
+        buildGameOverTable()
+        updateEquipmentTable()
+
+        playerSprite = PlayerSprite(game.worldViewport)
+
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/battle-fighting-warrior-drums-372078.mp3"))
+        backgroundMusic.isLooping = true
+        backgroundMusic.volume = 1.5f
+        backgroundMusic.play()
+
+        sfxPlayerAttack = Gdx.audio.newSound(Gdx.files.internal("audio/violent-sword-slice-393839.mp3"))
+        sfxEnemyAttack  = Gdx.audio.newSound(Gdx.files.internal("audio/magical-hit-45356.mp3"))
+        sfxPlayerHurt   = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
+        sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
+        sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
+
+        spawnRandomEnemy()
+
+        pauseUI.updateFont(font)
+        pauseUI.onResize()
+
+        pauseUI.onSaveRequested = {
+            try {
+                val slotToSave = currentSession?.slotId ?: 1
+                SaveGame.save(player, enemy, inventory.getItems().size, slotToSave)
+                Gdx.app.log("SAVE", "Game saved to slot $slotToSave")
+                showToast("Game Saved (Slot $slotToSave)", 1.5f)
+            } catch (t: Throwable) {
+                Gdx.app.error("SAVE", "Failed to save", t)
+                showToast("Save Failed", 1.5f)
+            }
         }
-        // scale enemy stats by round number?
-        enemy.health += roundNumber * 5
-        enemy.attackStat += roundNumber
-        enemy.activeEffects.clear()
 
-        Gdx.app.log("Battle", "Spawned ${enemy.name} (Round $roundNumber)")
+        pauseUI.onMainMenuRequested = {
+            game.setScreen<MainMenuScreen>()
+        }
 
-        // Re-init sprite
-        enemySprite = EnemySprite(enemyKind)
-        playerSprite = PlayerSprite() // ensure player sprite is ready
+        Gdx.input.inputProcessor = uiStage
+        uiStage.addActor(menuTable)
+        uiStage.addActor(itemsTable)
+        uiStage.addActor(equipmentTable)
+        uiStage.addActor(gameOverTable)
+        uiStage.addActor(playerHealthLabel)
+        uiStage.addActor(enemyHealthLabel)
+        uiStage.addActor(playerIcon)
+        uiStage.addActor(enemyIcon_NotTurn)
+        GameLogic.screen = this
+
+        playerHealthLabel.setSize(250f, 200f)
+
+        enemyHealthLabel.setSize(250f, 200f)
+
+        playerIcon.setSize(200f, 200f)
+
+        playerIcon_NotTurn.setSize(200f, 200f)
+
+        enemyIcon.setSize(200f, 200f)
+
+        enemyIcon_NotTurn.setSize(200f, 200f)
+
+        // Round label at top of screen (UI actor)
+        roundLabel = Label("Round: $roundNumber", Label.LabelStyle(font, Color.WHITE))
+        uiStage.addActor(roundLabel)
+        positionRoundLabel()
     }
 
-    private fun scheduleNextEnemy(delaySeconds: Float) {
-        pendingNextEnemy = true
-        nextEnemyDelay = delaySeconds
+    private fun positionRoundLabel() {
+        if (!this::roundLabel.isInitialized) return
+        roundLabel.setPosition(
+            (Gdx.graphics.width - roundLabel.prefWidth) / 2f,
+            Gdx.graphics.height - roundLabel.prefHeight - 20f
+        )
     }
 
-    private fun scheduleGameOver(delaySeconds: Float) {
-        pendingGameOver = true
-        gameOverDelay = delaySeconds
+    override fun resume() {
+        updateFont()
+    }
+
+    override fun resize(width: Int, height: Int) {
+        updateFont()
+
+        game.worldViewport.update(width, height, true)
+        game.worldViewport.camera.update()
+        game.uiViewport.update(width, height, true)
+        game.uiViewport.camera.update()
+
+        pauseUI.updateFont(this.font)
+        pauseUI.onResize()
+
+        menuTable.setPosition(Gdx.graphics.width / 2f, Gdx.graphics.height / 2f * 0.1f)
+        menuTable.bottom()
+
+        val iconY = Gdx.graphics.height - 400f
+
+        // Player: Icon (50) -> Label (250)
+        playerIcon.setPosition(50f, iconY)
+        playerIcon_NotTurn.setPosition(50f, iconY)
+        playerHealthLabel.setPosition(250f, iconY)
+
+        // Enemy: Icon (Width-500) -> Label (Width-300)
+        enemyIcon.setPosition(Gdx.graphics.width - 500f, iconY)
+        enemyIcon_NotTurn.setPosition(Gdx.graphics.width - 500f, iconY)
+        enemyHealthLabel.setPosition(Gdx.graphics.width - 300f, iconY)
+
+        positionRoundLabel()
     }
 
     override fun render(delta: Float) {
-        // Logic
-        if (!isGameOver) {
-            combat.update(delta)
+        input(delta)
+        logic(delta)
+        draw(delta)
+    }
+
+    fun input(delta: Float) { }
+
+    fun logic(delta: Float) {
+        if (isGameOver) {
+            return
+        }
+        combat.update(delta)
+        playerSprite.update(delta)
+        enemySprite.update(delta)
+
+        if (toastTimer > 0f) {
+            toastTimer -= delta
+            if (toastTimer <= 0f) toastText = null
         }
 
-        // Timers
         if (pendingNextEnemy) {
             nextEnemyDelay -= delta
             if (nextEnemyDelay <= 0f) {
                 pendingNextEnemy = false
                 spawnRandomEnemy()
-                setupCombat() // re-link combat manager to new enemy
             }
         }
 
@@ -1044,118 +1058,137 @@ class BattleScreen(val game: Main) : KtxScreen {
             gameOverDelay -= delta
             if (gameOverDelay <= 0f) {
                 pendingGameOver = false
-                isGameOver = true
-                gameOverTable.isVisible = true
-                pauseUI.rootTable.isVisible = false
-            }
-        }
-
-        if (toastText != null) {
-            toastTimer -= delta
-            if (toastTimer <= 0f) {
-                toastText = null
-            }
-        }
-
-        // Draw World
-        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f)
-        Gdx.gl.glClear(Gdx.gl.GL_COLOR_BUFFER_BIT)
-
-        tiledMapRenderer.setView(tiledMapCamera)
-        tiledMapRenderer.render()
-
-        game.batch.use { batch ->
-            // Draw characters
-            // positions hardcoded for demo
-            playerSprite.draw(batch, 200f, 300f, delta)
-            enemySprite.draw(batch, 800f, 300f, delta)
-        }
-
-        // Draw UI
-        updateUI()
-        uiStage.act(delta)
-        uiStage.draw()
-
-        // Draw Toast
-        if (toastText != null) {
-            game.batch.use { batch ->
-                font.color = Color.YELLOW
-                font.data.setScale(2f)
-                toastLayout.setText(font, toastText)
-                font.draw(batch, toastText,
-                    (Gdx.graphics.width - toastLayout.width) / 2f,
-                    Gdx.graphics.height / 2f + 100f)
-                font.data.setScale(1f)
-                font.color = Color.WHITE
+                showGameOverPopup()
             }
         }
     }
 
-    private fun updateUI() {
-        playerHealthLabel.setText("HP: ${player.health}/${player.maxHealth}")
-        enemyHealthLabel.setText("${enemy.name}: ${enemy.health}/${enemy.maxHealth}")
-        roundLabel.setText("Round $roundNumber")
+    fun draw(delta: Float) {
+        drawGame(delta)
+        drawUI(delta)
+    }
 
-        // Show/Hide menus based on state
+    fun drawGame(delta: Float) {
+        game.worldViewport.apply()
+        game.batch.projectionMatrix = game.worldViewport.camera.combined
+
+        game.batch.use {
+            tiledMapCamera.setToOrtho(false, 10f, 20f)
+            tiledMapCamera.update()
+            tiledMapRenderer.setView(tiledMapCamera)
+            tiledMapRenderer.render()
+
+            playerSprite.draw(it)
+            enemySprite.draw(it)
+        }
+    }
+
+    fun drawUI(delta: Float) {
+        uiStage.act(delta)
+
+        game.uiViewport.apply()
+        game.batch.projectionMatrix = game.uiViewport.camera.combined
+
+        game.batch.use {
+            pauseUI.drawAndHandleInput(game.batch)
+
+            if (!pauseUI.isPaused) {
+                playerHealthLabel.setText("${player.health}")
+                enemyHealthLabel.setText("${enemy.health}")
+
+                if (this::roundLabel.isInitialized) {
+                    roundLabel.setText("Round: $roundNumber")
+                }
+            }
+
+            toastText?.let { msg ->
+                val alpha = if (toastTimer < 0.3f) toastTimer / 0.3f else 1f
+                val oldColor = game.batch.color.cpy()
+                game.batch.setColor(1f, 1f, 1f, alpha)
+
+                toastLayout.setText(font, msg)
+                val x = (Gdx.graphics.width  - toastLayout.width)  / 2f
+                val y = (Gdx.graphics.height - 144f)
+                font.draw(game.batch, toastLayout, x, y)
+
+                game.batch.color = oldColor
+            }
+        }
         if (isGameOver) {
             menuTable.isVisible = false
+            playerHealthLabel.isVisible = false
+            enemyHealthLabel.isVisible = false
             itemsTable.isVisible = false
-            equipmentTable.isVisible = false
+            playerIcon.isVisible = false
+            enemyIcon.isVisible = false
+            playerIcon_NotTurn.isVisible = false
+            enemyIcon_NotTurn.isVisible = false
+
+            uiStage.draw()
             return
         }
+        if (!pauseUI.isPaused) {
+            val showingOverlay = isShowingItems || isShowingEquipment
 
-        // If pause menu is open, hide combat menu
-        if (pauseUI.isVisible) {
-            menuTable.isVisible = false
-            return
+            menuTable.isVisible = !showingOverlay
+            playerHealthLabel.isVisible = !showingOverlay
+            enemyHealthLabel.isVisible = !showingOverlay
+            playerIcon.isVisible = !showingOverlay
+            enemyIcon.isVisible = !showingOverlay
+            playerIcon_NotTurn.isVisible = !showingOverlay
+            enemyIcon_NotTurn.isVisible = !showingOverlay
+
+            itemsTable.isVisible = isShowingItems
+            equipmentTable.isVisible = isShowingEquipment
+
+            uiStage.draw()
         }
-
-        // If items or equipment open, hide main menu
-        if (isShowingItems) {
-            itemsTable.isVisible = true
-            menuTable.isVisible = false
-            equipmentTable.isVisible = false
-        } else if (isShowingEquipment) {
-            equipmentTable.isVisible = true
-            menuTable.isVisible = false
-            itemsTable.isVisible = false
-        } else {
-            itemsTable.isVisible = false
-            equipmentTable.isVisible = false
-            menuTable.isVisible = true
-        }
-
-        // Disable buttons if not player turn
-        val isPlayerTurn = (combat.turn == com.anotherround.combat.Turn.PLAYER)
-        attackButton.isDisabled = !isPlayerTurn
-        itemsButton.isDisabled = !isPlayerTurn
-        // equipmentButton.isDisabled = !isPlayerTurn // maybe allow equipment change anytime?
     }
 
-    override fun resize(width: Int, height: Int) {
-        game.worldViewport.update(width, height, true)
-        game.uiViewport.update(width, height, true)
-        tiledMapCamera.setToOrtho(false, width.toFloat(), height.toFloat())
-        pauseUI.resize(width, height)
+    fun getWidthInPixels(): Float {
+        return game.worldViewport.worldWidth / game.worldViewport.screenWidth
+    }
+
+    fun getHeightInPixels(): Float {
+        return game.worldViewport.worldHeight / game.worldViewport.screenHeight
+    }
+
+    override fun hide() {
+        backgroundMusic.stop()
+    }
+
+    private fun onePixel(color: Color): TextureRegionDrawable {
+        val pm = com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888)
+        pm.setColor(color)
+        pm.fill()
+        val t = Texture(pm)
+        pm.dispose()
+        return TextureRegionDrawable(t)
     }
 
     override fun dispose() {
+        font.dispose()
+        smallFont.dispose()
+        generator.dispose()
         worldStage.dispose()
         uiStage.dispose()
         tiledMap.dispose()
         tiledMapRenderer.dispose()
-        if (this::armorTexture.isInitialized) armorTexture.dispose()
+        pauseUI.dispose()
+        playerSprite.dispose()
+        enemySprite.dispose()
+        backgroundMusic.dispose()
+        sfxPlayerAttack.dispose()
+        sfxEnemyAttack.dispose()
+        sfxPlayerHurt.dispose()
+        sfxEnemyHurt.dispose()
+        sfxEnemyDeath.dispose()
+        sfxItemHeal.dispose()
+        sfxItemFail.dispose()
         inventory.dispose()
-        if (this::playerSprite.isInitialized) playerSprite.dispose()
-        if (this::enemySprite.isInitialized) enemySprite.dispose()
-    }
-
-    private fun onePixel(color: Color): Texture {
-        val pixmap = com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888)
-        pixmap.setColor(color)
-        pixmap.fill()
-        val t = Texture(pixmap)
-        pixmap.dispose()
-        return t
+        if (this::armorTexture.isInitialized) {
+            armorTexture.dispose()
+        }
+        super.dispose()
     }
 }
