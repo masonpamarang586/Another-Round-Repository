@@ -17,10 +17,10 @@ class ConsumablesInventory {
     // Assuming standard health potion is at 48, 32.
     // I will reuse this region for all Health potions for now as I don't have new assets.
     private val healthPotionRegion by lazy { TextureRegion(potionsSpritesheet, 48, 32, 16, 16) }
-    
+
     // Using the old mana potion icon (64, 32) for Defensive Lacquer for now to distinguish it.
     private val defensivePotionRegion by lazy { TextureRegion(potionsSpritesheet, 64, 32, 16, 16) }
-    
+
     // I need a third icon for Fire Potion. I'll pick another spot on the sheet, e.g., 80, 32.
     // If it's invalid, it might show garbage, but it's better than nothing.
     private val firePotionRegion by lazy { TextureRegion(potionsSpritesheet, 80, 32, 16, 16) }
@@ -69,7 +69,7 @@ class ConsumablesInventory {
         return items.map {
             val type = when (it) {
                 is HealthPotion -> "Health"
-                is DefensiveLacquer -> "Defense"
+                is DefensePotion -> "Defense"
                 is FirePotion -> "Fire"
             }
             PotionData(type, it.rarity.name)
@@ -93,7 +93,7 @@ class ConsumablesInventory {
         textureRegion = healthPotionRegion
     )
 
-    fun createDefensivePotion(rarity: PotionRarity = PotionRarity.COMMON) = DefensiveLacquer(
+    fun createDefensivePotion(rarity: PotionRarity = PotionRarity.COMMON) = DefensePotion(
         rarity = rarity,
         textureRegion = defensivePotionRegion
     )
