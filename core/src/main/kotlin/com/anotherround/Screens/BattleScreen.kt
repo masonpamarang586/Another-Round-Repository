@@ -1178,8 +1178,8 @@ class BattleScreen(val game: Main) : KtxScreen {
             val showingOverlay = isShowingItems || isShowingEquipment
 
             menuTable.isVisible = !showingOverlay
-            playerHealthLabel.isVisible = true // Keep visible
-            enemyHealthLabel.isVisible = true // Keep visible
+            playerHealthLabel.isVisible = !showingOverlay
+            enemyHealthLabel.isVisible = !showingOverlay
             playerIcon.isVisible = !showingOverlay
             enemyIcon.isVisible = !showingOverlay
             playerIcon_NotTurn.isVisible = !showingOverlay
