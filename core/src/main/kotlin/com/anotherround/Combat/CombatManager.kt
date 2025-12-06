@@ -29,6 +29,8 @@ class CombatManager(
 
     private val onDefeat: (defeated: Character, by: Character) -> Unit = { _, _ -> },
 
+    private val onDamage: (Character, Int) -> Unit = { _, _ -> },
+
     var resolveDelay: Float = 5.0f
 ) {
     var turn: Turn = Turn.PLAYER
@@ -83,6 +85,7 @@ class CombatManager(
 
         if (totalBurnDamage > 0) {
             character.takeDamage(totalBurnDamage)
+            onDamage(character, totalBurnDamage) // <--- ADDED
             onLog("${character.name} takes $totalBurnDamage burn damage!")
             // Check for death from burn
             if (!character.isAlive()) {
@@ -206,6 +209,7 @@ class CombatManager(
                 }
 
                 action.defender.health = (action.defender.health - dealt).coerceAtLeast(0)
+                onDamage(action.defender, dealt) // <--- ADDED
                 onLog("${action.attacker.name} attacks ${action.defender.name} for $dealt. " +
                     "${action.defender.name} HP=${action.defender.health}")
                 val defenderIsPlayer = (action.defender === player)

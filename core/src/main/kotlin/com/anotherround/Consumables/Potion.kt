@@ -39,7 +39,7 @@ data class DefensiveLacquer(
     override val rarity: PotionRarity,
     override val textureRegion: TextureRegion
 ) : Potion(
-    name = "Defensive Lacquer",
+    name = "Defense Potion",
     description = when (rarity) {
         PotionRarity.COMMON -> "[${rarity.label}] Blocks 20% of the next attack."
         PotionRarity.RARE -> "[${rarity.label}] Blocks 35% of the next attack."
@@ -59,7 +59,7 @@ data class FirePotion(
     override val rarity: PotionRarity,
     override val textureRegion: TextureRegion
 ) : Potion(
-    name = "Vial of Liquid Fire",
+    name = "Fire Potion",
     description = when (rarity) {
         PotionRarity.COMMON -> "[${rarity.label}] Deals 5 damage for 2 rounds."
         PotionRarity.RARE -> "[${rarity.label}] Deals 10 damage for 2 rounds."

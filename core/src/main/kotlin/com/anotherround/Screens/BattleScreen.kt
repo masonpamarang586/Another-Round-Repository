@@ -1,6 +1,8 @@
 package com.anotherround.Screens
 
 import com.anotherround.CharacterClasses.*
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.math.Interpolation
 import com.anotherround.combat.CombatManager
 import com.anotherround.combat.Action
 import com.anotherround.combat.SfxEvent
@@ -30,7 +32,6 @@ import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
@@ -312,7 +313,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         val backButton = TextButton("Return", buttonStyle)
         backButton.addListener(object: ClickListener() {
-            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+            override fun clicked(event: InputEvent?, x: Float, y:Float) {
                 if (isShowingItems) {
                     isShowingItems = false
                 }
@@ -376,6 +377,8 @@ class BattleScreen(val game: Main) : KtxScreen {
                             is FirePotion -> {
                                 combat.addEffect(enemy, StatusEffect.Burn(consumable.damagePerRound, consumable.durationRounds))
                                 enemy.takeDamage(consumable.damagePerRound) // Instant damage
+                                showDamagePopup(enemy, consumable.damagePerRound)
+                                enemyHealthLabel.setText("${enemy.health}")
                                 showToast("Liquid Fire! ${consumable.damagePerRound} instant damage!")
                             }
                         }
@@ -951,7 +954,9 @@ class BattleScreen(val game: Main) : KtxScreen {
                     scheduleGameOver(delaySeconds = delay)
                 }
             },
-
+            onDamage = { character, amount ->
+                showDamagePopup(character, amount)
+            },
             resolveDelay = 0f
         )
     }
@@ -1037,6 +1042,32 @@ class BattleScreen(val game: Main) : KtxScreen {
             (Gdx.graphics.width - roundLabel.prefWidth) / 2f,
             Gdx.graphics.height - roundLabel.prefHeight - 20f
         )
+    }
+
+    private fun showDamagePopup(character: Character, amount: Int) {
+        val labelStyle = Label.LabelStyle(font, Color.RED)
+        val popup = Label("-$amount", labelStyle)
+        
+        // Position roughly above the sprite
+        // We need to project world coordinates to UI stage coordinates or just estimate
+        // The sprites are drawn in world coordinates (projectionMatrix = worldViewport.camera.combined)
+        // The UI is drawn in UI coordinates. 
+        // Simple map:
+        val x = if (character === player) Gdx.graphics.width * 0.25f else Gdx.graphics.width * 0.75f
+        val y = Gdx.graphics.height * 0.6f
+
+        popup.setPosition(x, y)
+        popup.setFontScale(1.5f)
+        
+        popup.addAction(Actions.sequence(
+            Actions.parallel(
+                Actions.moveBy(0f, 100f, 1.5f, Interpolation.pow2Out),
+                Actions.fadeOut(1.5f)
+            ),
+            Actions.removeActor()
+        ))
+        
+        uiStage.addActor(popup)
     }
 
     override fun resume() {
