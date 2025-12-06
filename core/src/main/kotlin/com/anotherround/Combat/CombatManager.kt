@@ -65,20 +65,22 @@ class CombatManager(
 
     private fun processBurnEffects(character: Character) {
         val effects = statusEffects[character] ?: return
-        val burns = effects.filterIsInstance<StatusEffect.Burn>()
-        if (burns.isEmpty()) return
-
+        
+        val it = effects.iterator()
         var totalBurnDamage = 0
-        val it = burns.iterator()
+
         while (it.hasNext()) {
-            val burn = it.next()
-            totalBurnDamage += burn.damagePerRound
-            burn.roundsLeft--
-            if (burn.roundsLeft <= 0) {
-                it.remove()
-                onLog("${character.name}'s burn fades.")
+            val effect = it.next()
+            if (effect is StatusEffect.Burn) {
+                totalBurnDamage += effect.damagePerRound
+                effect.roundsLeft--
+                if (effect.roundsLeft <= 0) {
+                    it.remove()
+                    onLog("${character.name}'s burn fades.")
+                }
             }
         }
+
         if (totalBurnDamage > 0) {
             character.takeDamage(totalBurnDamage)
             onLog("${character.name} takes $totalBurnDamage burn damage!")
