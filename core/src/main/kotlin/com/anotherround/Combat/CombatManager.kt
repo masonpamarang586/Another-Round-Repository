@@ -29,6 +29,8 @@ class CombatManager(
 
     private val onDefeat: (defeated: Character, by: Character) -> Unit = { _, _ -> },
 
+    private val onDamage: (Character, Int) -> Unit = { _, _ -> },
+
     var resolveDelay: Float = 5.0f
 ) {
     var turn: Turn = Turn.PLAYER
@@ -55,6 +57,70 @@ class CombatManager(
         return true
     }
 
+    private val statusEffects = mutableMapOf<Character, MutableList<StatusEffect>>()
+
+    fun addEffect(target: Character, effect: StatusEffect) {
+        val effects = statusEffects.getOrPut(target) { mutableListOf() }
+        effects.add(effect)
+        onLog("${target.name} gains ${effect.name}!")
+    }
+
+    private fun processBurnEffects(character: Character) {
+        val effects = statusEffects[character] ?: return
+        
+        val it = effects.iterator()
+        var totalBurnDamage = 0
+
+        while (it.hasNext()) {
+            val effect = it.next()
+            if (effect is StatusEffect.Burn) {
+                totalBurnDamage += effect.damagePerRound
+                effect.roundsLeft--
+                if (effect.roundsLeft <= 0) {
+                    it.remove()
+                    onLog("${character.name}'s burn fades.")
+                }
+            }
+        }
+
+        if (totalBurnDamage > 0) {
+            character.takeDamage(totalBurnDamage)
+            onDamage(character, totalBurnDamage) // <--- ADDED
+            onLog("${character.name} takes $totalBurnDamage burn damage!")
+            // Check for death from burn
+            if (!character.isAlive()) {
+                 onLog("${character.name} burned to death!")
+                 onDefeat(character, if (character === player) enemy else player)
+            } else {
+                 onSfx(if (character === player) SfxEvent.PlayerHurt else SfxEvent.EnemyHurt)
+            }
+        }
+    }
+
+    private fun getDefenseReduction(character: Character): Float {
+        val effects = statusEffects[character] ?: return 0f
+        val defenseBuffs = effects.filterIsInstance<StatusEffect.DefenseBuff>()
+        if (defenseBuffs.isEmpty()) return 0f
+
+        // Simplistic stacking: use the highest reduction, or sum?
+        // Use highest single reduction for now to avoid >100% block issues easily
+        val maxReduction = defenseBuffs.maxOf { it.reductionPercent }
+        
+        // Decrement stack
+        val it = effects.iterator()
+        while (it.hasNext()) {
+            val effect = it.next()
+            if (effect is StatusEffect.DefenseBuff) {
+                effect.durationStack--
+                if (effect.durationStack <= 0) {
+                    it.remove()
+                    onLog("${character.name}'s defense buff fades.")
+                }
+            }
+        }
+        return maxReduction
+    }
+
     fun update(delta: Float) {
         if (isOver()) {
             turn = Turn.OVER
@@ -68,6 +134,10 @@ class CombatManager(
 
         // If it's the enemy's turn and nothing is queued, queue a simple attack.
         if (turn == Turn.ENEMY && pending == null && timer <= 0f) {
+            // Process start of turn effects for enemy
+            // Assuming effects process at start of turn? Or end? 
+            // Let's do start of turn logic for burn just before they act
+             // processBurnEffects(enemy) // Moving this to finishAndAdvance to process consistently each round/turn transition
             pending = Action.Attack(enemy, player)
         }
 
@@ -104,6 +174,14 @@ class CombatManager(
 
         if (isOver()) { turn = Turn.OVER; return }
 
+        // Process End of Turn Effects (Burn) for the actor who just finished
+        if (action is Action.Attack) {
+            processBurnEffects(action.attacker)
+        }
+        
+        // Check death again after burn
+        if (isOver()) { turn = Turn.OVER; return }
+
         // Alternate turns based on who just acted
         turn = when (action) {
             is Action.Attack ->
@@ -114,8 +192,18 @@ class CombatManager(
     private fun resolve(action: Action) {
         when (action) {
             is Action.Attack -> {
-                val dealt = action.attacker.attack(action.defender)
+                var dealt = action.attacker.attack(action.defender)
+                
+                // Apply Defense Buff
+                val reduction = getDefenseReduction(action.defender)
+                if (reduction > 0f) {
+                    val original = dealt
+                    dealt = (dealt * (1f - reduction)).toInt()
+                    onLog("Damage reduced by ${(reduction*100).toInt()}% ($original -> $dealt)")
+                }
+
                 action.defender.health = (action.defender.health - dealt).coerceAtLeast(0)
+                onDamage(action.defender, dealt) // <--- ADDED
                 onLog("${action.attacker.name} attacks ${action.defender.name} for $dealt. " +
                     "${action.defender.name} HP=${action.defender.health}")
                 val defenderIsPlayer = (action.defender === player)
