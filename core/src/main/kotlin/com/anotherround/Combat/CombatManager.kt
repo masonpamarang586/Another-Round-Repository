@@ -174,25 +174,19 @@ class CombatManager(
 
         if (isOver()) { turn = Turn.OVER; return }
 
+        // Process End of Turn Effects (Burn) for the actor who just finished
+        if (action is Action.Attack) {
+            processBurnEffects(action.attacker)
+        }
+        
+        // Check death again after burn
+        if (isOver()) { turn = Turn.OVER; return }
+
         // Alternate turns based on who just acted
         turn = when (action) {
             is Action.Attack ->
                 if (action.attacker === player) Turn.ENEMY else Turn.PLAYER
         }
-        
-        // Process burn at start of new turn holder? 
-        // Or process at end of round?
-        // "Damage for 2 rounds". 
-        // Simple approach: Apply burn to the character whose turn it IS NOT (end of their turn) or whose turn it IS (start of their turn).
-        // Let's apply burn to the character who is ABOUT TO ACT.
-        if (turn == Turn.PLAYER) {
-             processBurnEffects(player)
-        } else if (turn == Turn.ENEMY) {
-             processBurnEffects(enemy)
-        }
-        
-        // Check death again after burn
-        if (isOver()) { turn = Turn.OVER; return }
     }
 
     private fun resolve(action: Action) {

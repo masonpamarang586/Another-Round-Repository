@@ -368,6 +368,8 @@ class BattleScreen(val game: Main) : KtxScreen {
                         when (consumable) {
                             is HealthPotion -> {
                                 player.heal(consumable.healAmount)
+                                showHealPopup(player, consumable.healAmount)
+                                playerHealthLabel.setText("${player.health}")
                                 showToast("Healed for ${consumable.healAmount} HP")
                             }
                             is DefensiveLacquer -> {
@@ -1045,8 +1047,16 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     private fun showDamagePopup(character: Character, amount: Int) {
-        val labelStyle = Label.LabelStyle(font, Color.RED)
-        val popup = Label("-$amount", labelStyle)
+        showFloatingText(character, "-$amount", Color.RED)
+    }
+
+    private fun showHealPopup(character: Character, amount: Int) {
+        showFloatingText(character, "+$amount", Color.GREEN)
+    }
+
+    private fun showFloatingText(character: Character, text: String, color: Color) {
+        val labelStyle = Label.LabelStyle(font, color)
+        val popup = Label(text, labelStyle)
         
         // Position roughly above the sprite
         // We need to project world coordinates to UI stage coordinates or just estimate
