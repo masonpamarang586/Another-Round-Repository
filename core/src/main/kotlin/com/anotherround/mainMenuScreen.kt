@@ -15,6 +15,11 @@ import ktx.app.KtxScreen
 import ktx.graphics.use
 import com.anotherround.SaveLoad.SaveGame
 import com.anotherround.Screens.BattleScreen
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import com.anotherround.Screens.DictionaryScreen
+
 
 class MainMenuScreen(private val game: Main) : KtxScreen {
 
@@ -67,6 +72,13 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         }
         updateSlotLabels()
         layoutBottomMenu()
+
+        val dictionaryButton = TextButton("Dictionary", skin)
+        dictionaryButton.addListener(object : ChangeListener(){
+            override fun changed(event: ChangeEvent?, actor: Actor) {
+                game.setScreen<DictionaryScreen>(game)
+            }
+        })
     }
 
     override fun render(delta: Float) {
