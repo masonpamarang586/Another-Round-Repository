@@ -35,6 +35,13 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import ktx.app.KtxScreen
 import ktx.graphics.use
 import kotlin.math.max
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.anotherround.Equipment.ArmorPiece
+import com.anotherround.Equipment.ArmorSlot
+import com.anotherround.Equipment.EquipmentSlots
+import com.anotherround.Equipment.buildDefaultArmor
+import com.anotherround.Equipment.Weapon
+import com.anotherround.Equipment.buildDefaultWeapons
 
 class BattleScreen(val game: Main) : KtxScreen {
 
@@ -42,6 +49,14 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     private val inventory = ConsumablesInventory()
 
+    // equipment data
+    private lateinit var armorTexture: Texture
+    private val armorInventory = mutableListOf<ArmorPiece>()
+    private val weaponInventory = mutableListOf<Weapon>()
+    private val equipmentSlots = EquipmentSlots()
+
+    // round number (starts at 0, increments each time an enemy is defeated)
+    private var roundNumber = 0
 
     private val player = Player(name = "Hero")
 
@@ -70,15 +85,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.currentSession = session
         Gdx.app.log("BattleScreen", "Starting new game for ${session.playerName} in slot ${session.slotId}")
 
-        isGameOver = false
-        pendingGameOver = false
-        gameOverDelay = 0f
-        pendingNextEnemy = false
-        nextEnemyDelay = 0f
-        isShowingItems = false
-        toastText = null
-
-        // reset stats to default for new game
         val basePlayer = Player(name = session.playerName)
         player.name = basePlayer.name
         player.level = basePlayer.level
@@ -88,6 +94,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.currency = basePlayer.currency
 
         inventory.loadDefaultPotions()
+        roundNumber = 0
 
         if (this::playerSprite.isInitialized) {
             playerSprite.revive()
@@ -103,25 +110,24 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.currentSession = GameSession(slot, state.player.name)
         Gdx.app.log("BattleScreen", "Loading game for ${state.player.name} from slot $slot")
 
-        // Apply saved stats to the player
         player.name = state.player.name
         player.health = state.player.health
         player.level = state.player.level
         player.defenseStat = state.player.defenseStat
         player.attackStat = state.player.attackStat
         player.currency = state.player.currency
-        // Apply saved stats to the enemy
 
         spawnRandomEnemy()
 
         inventory.loadFromSaveState(state.potions)
+        roundNumber = 0  // later you can load this from save too
 
         showToast("Loaded Game: ${state.player.name}", 1.5f)
     }
 
     private var toastText: String? = null
     private var toastTimer = 0f
-    private val toastLayout by lazy { com.badlogic.gdx.graphics.g2d.GlyphLayout()}
+    private val toastLayout by lazy { com.badlogic.gdx.graphics.g2d.GlyphLayout() }
     private fun showToast(text: String, seconds: Float = 1.5f) {
         toastText = text
         toastTimer = seconds
@@ -180,7 +186,7 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     private val enemyHealthLabel by lazy {
-        val label = TextButton("", buttonStyle) // come back to this, I may have broke something -mason
+        val label = TextButton("", buttonStyle)
         label.width = 400f
         label.height = 200f
         label
@@ -188,6 +194,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     lateinit var attackButton: TextButton
     lateinit var itemsButton: TextButton
+    lateinit var equipmentButton: TextButton
 
     private val menuTable by lazy {
         val table = Table()
@@ -206,23 +213,37 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.itemsButton = itemsButton
         itemsButton.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                if (combat.canOpenMenu() && !isShowingItems) {
+                if (combat.canOpenMenu() && !isShowingItems && !isShowingEquipment) {
                     isShowingItems = true
-                    if (isShopping) {
-                        updateShopTable()
-                    } else {
-                        updateItemsTable()
-                    }
+                    isShowingEquipment = false
+                    updateItemsTable()
                 }
             }
         })
-        table.add(itemsButton).pad(100f).width(400f).height(200f)
+        table.add(itemsButton).pad(10f).width(400f).height(200f)
+        table.row()
+
+        val equipmentButton = TextButton("Equipment", buttonStyle)
+        this.equipmentButton = equipmentButton
+
+        equipmentButton.label.setFontScale(0.8f)
+
+        equipmentButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                if (combat.canOpenMenu() && !isShowingEquipment && !isShowingItems) {
+                    isShowingEquipment = true
+                    isShowingItems = false
+                    updateEquipmentTable()
+                }
+            }
+        })
+        table.add(equipmentButton).padTop(0f).width(400f).height(200f)
 
         table
     }
 
     private var isShowingItems = false
-    private var isShopping = false
+    private var isShowingEquipment = false
 
     private lateinit var coinsLabel: TextButton
 
@@ -231,11 +252,23 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var nameLabelStyle: Label.LabelStyle
     private lateinit var descLabelStyle: Label.LabelStyle
 
-    private lateinit var coinsLabel: TextButton
+    // equipment UI tables
+    private lateinit var equipmentTable: Table
+    private lateinit var equipmentEquippedTable: Table
+    private lateinit var equipmentInventoryTable: Table
+
+    // popup for inventory stats
+    private lateinit var equipmentPopupContainer: Table
+    private lateinit var equipmentPopupNameLabel: Label
+    private lateinit var equipmentPopupLabel: Label
+    private var selectedEquipmentIndex: Int? = null
+
+    // round label
+    private lateinit var roundLabel: Label
 
     private fun buildItemsTable() {
         nameLabelStyle = Label.LabelStyle(font, Color.WHITE)
-        descLabelStyle = Label.LabelStyle(smallFont, Color.LIGHT_GRAY) // Use small font
+        descLabelStyle = Label.LabelStyle(smallFont, Color.LIGHT_GRAY)
 
         sfxItemHeal  = Gdx.audio.newSound(Gdx.files.internal("audio/item-use.mp3"))
         sfxItemFail  = Gdx.audio.newSound(Gdx.files.internal("audio/item-fail.mp3"))
@@ -276,11 +309,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         val itemSize = 160f
         val itemPadding = (slotSize - itemSize) / 2f
 
-        // make 8 slots
         for (i in 0 until 8) {
-            val consumable = inventory.getItems().getOrNull(i) // Get item for this slot
+            val consumable = inventory.getItems().getOrNull(i)
 
-            // slot bg
             val itemSlotBg = Image(skin.getDrawable("item-slot"))
             val slotGroup = Group()
             slotGroup.addActor(itemSlotBg)
@@ -291,14 +322,13 @@ class BattleScreen(val game: Main) : KtxScreen {
             val descLabel: Label
 
             if (consumable != null) {
-                // item icon
                 val itemImage = Image(consumable.textureRegion)
                 itemImage.setSize(itemSize, itemSize)
                 slotGroup.addActor(itemImage)
                 itemImage.setPosition(itemPadding, itemPadding)
 
-                // Set the text
                 nameLabel = Label(consumable.name, nameLabelStyle)
+                nameLabel.setWrap(false)
                 descLabel = Label(consumable.description, descLabelStyle)
                 descLabel.setWrap(true)
 
@@ -308,7 +338,6 @@ class BattleScreen(val game: Main) : KtxScreen {
                         player.heal(healAmount)
                         sfxItemHeal.play(50f)
                         showToast("Healed for $healAmount health")
-
                         updateItemsTable()
                     }
                 })
@@ -325,14 +354,13 @@ class BattleScreen(val game: Main) : KtxScreen {
                 })
             }
 
-            //  table for text and title
             val textTable = Table()
             textTable.add(nameLabel).left().padBottom(10f)
             textTable.row()
             textTable.add(descLabel).left().expandX().fillX()
 
             itemsListTable.add(slotGroup).size(slotSize).pad(10f)
-            itemsListTable.add(textTable).width(Gdx.graphics.width * 0.5f).padLeft(50f) // Give text 50% of screen width
+            itemsListTable.add(textTable).width(Gdx.graphics.width * 0.5f).padLeft(50f)
             itemsListTable.row()
         }
 
@@ -409,29 +437,307 @@ class BattleScreen(val game: Main) : KtxScreen {
             background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
             isVisible = false
         }
-      }
+    }
 
-        val inner = Table()
+    /** Load armor and weapon icons + stats from the 64x64 sprite sheet. */
+    private fun initEquipmentSprites() {
+        if (this::armorTexture.isInitialized) return
 
-        val titleLabel = Label("GAME OVER", Label.LabelStyle(font, Color.WHITE))
-        val newGameButton = TextButton("New Game", buttonStyle)
+        armorTexture = Texture(Gdx.files.internal("items/64x64.png"))
+        armorTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
 
-        newGameButton.addListener(object : ClickListener() {
+        val cells = TextureRegion.split(armorTexture, 64, 64)
+
+        armorInventory.clear()
+        armorInventory.addAll(buildDefaultArmor(cells))
+
+        weaponInventory.clear()
+        weaponInventory.addAll(buildDefaultWeapons(cells))
+
+        // Default equipped items:
+        equipmentSlots.weapon = weaponInventory.firstOrNull() // first weapon
+        equipmentSlots.helmet = armorInventory.firstOrNull { it.slot == ArmorSlot.HELMET }
+        equipmentSlots.chest  = armorInventory.firstOrNull { it.slot == ArmorSlot.CHEST }
+        equipmentSlots.boots  = armorInventory.firstOrNull { it.slot == ArmorSlot.BOOTS }
+    }
+
+    /** Builds the equipment overlay window. */
+    private fun buildEquipmentTable() {
+        if (!this::nameLabelStyle.isInitialized) {
+            nameLabelStyle = Label.LabelStyle(font, Color.WHITE)
+        }
+        if (!this::descLabelStyle.isInitialized) {
+            descLabelStyle = Label.LabelStyle(smallFont, Color.LIGHT_GRAY)
+        }
+
+        equipmentTable = Table()
+        equipmentTable.setFillParent(true)
+        equipmentTable.background(TextureRegionDrawable(onePixel(Color(0f, 0f, 0f, 0.7f))))
+        equipmentTable.center()
+
+        val innerTable = Table()
+        innerTable.defaults().pad(10f)
+        equipmentTable.add(innerTable).expand().center()
+
+        val titleLabel = Label("Equipment", nameLabelStyle)
+        innerTable.add(titleLabel).padBottom(20f)
+        innerTable.row()
+
+        equipmentEquippedTable = Table()
+        equipmentEquippedTable.defaults().pad(8f)
+        innerTable.add(equipmentEquippedTable).padBottom(25f)
+        innerTable.row()
+
+        val inventoryLabel = Label("Inventory", nameLabelStyle)
+        innerTable.add(inventoryLabel).padBottom(10f)
+        innerTable.row()
+
+        equipmentInventoryTable = Table()
+        equipmentInventoryTable.defaults().pad(10f)
+        innerTable.add(equipmentInventoryTable).padBottom(20f)
+        innerTable.row()
+
+        val backButton = TextButton("Return", buttonStyle)
+        backButton.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                if (!isGameOver) return
-                val session = currentSession ?: GameSession(1, player.name)
-                startNewGame(session)
-                gameOverTable.isVisible = false
+                if (isShowingEquipment) {
+                    isShowingEquipment = false
+                }
             }
         })
+        innerTable.add(backButton).width(400f).height(200f).padTop(5f)
 
-        inner.add(titleLabel).padBottom(40f)
-        inner.row()
-        inner.add(newGameButton).width(400f).height(200f)
+        // popup overlay for item stats
+        equipmentPopupContainer = Table()
+        equipmentPopupContainer.setFillParent(true)
+        equipmentPopupContainer.isVisible = false
 
-        gameOverTable.add(inner)
-        uiStage.addActor(gameOverTable)
+        equipmentPopupContainer.top()
+
+        val popupInner = Table()
+        popupInner.background = skin.getDrawable("button-normal")
+        popupInner.pad(40f)
+
+        val popupNameStyle = Label.LabelStyle(nameLabelStyle.font, Color.BLACK)
+        val popupStatsStyle = Label.LabelStyle(descLabelStyle.font, Color.BLACK)
+
+        equipmentPopupNameLabel = Label("", popupNameStyle).apply {
+            setFontScale(0.9f)
+        }
+
+        // description
+        equipmentPopupLabel = Label("", popupStatsStyle).apply {
+            setWrap(true)
+            setFontScale(0.9f)
+        }
+
+        // item name on top and then stats under it
+        popupInner.add(equipmentPopupNameLabel)
+            .padBottom(8f)
+            .padLeft(25f)
+            .left()
+            .row()
+
+        popupInner.add(equipmentPopupLabel)
+            .width(Gdx.graphics.width * 0.6f)
+            .padLeft(25f)
+            .left()
+
+        equipmentPopupContainer.add(popupInner)
+            .expandX()
+            .padTop(100f)
+            .center()
+
+        equipmentTable.addActor(equipmentPopupContainer)
     }
+
+    private fun showEquipmentPopup(itemName: String, statsText: String, index: Int) {
+        selectedEquipmentIndex = index
+        equipmentPopupNameLabel.setText(itemName)
+        equipmentPopupLabel.setText(statsText)
+        equipmentPopupContainer.isVisible = true
+    }
+
+    private fun hideEquipmentPopup() {
+        selectedEquipmentIndex = null
+        if (this::equipmentPopupContainer.isInitialized) {
+            equipmentPopupContainer.isVisible = false
+        }
+    }
+
+    /** Top: Weapon + 3 armor slots. Bottom: 12 inventory icons (4x3), armor and weapons mixed. */
+    private fun updateEquipmentTable() {
+        equipmentEquippedTable.clearChildren()
+        equipmentInventoryTable.clearChildren()
+
+        val slotSize = 200f
+        val itemSize = 160f
+        val itemPadding = (slotSize - itemSize) / 2f
+
+        // ------------ EQUIPPED SECTION ------------
+
+        fun addEquippedArmorRow(piece: ArmorPiece?) {
+            val slotBg = Image(skin.getDrawable("item-slot"))
+            val slotGroup = Group()
+            slotGroup.addActor(slotBg)
+            slotBg.setSize(slotSize, slotSize)
+
+            val nameLabel: Label
+            val descLabel: Label
+
+            if (piece != null) {
+                val icon = Image(piece.icon)
+                icon.setSize(itemSize, itemSize)
+                icon.setPosition(itemPadding, itemPadding)
+                slotGroup.addActor(icon)
+
+                nameLabel = Label(piece.name, nameLabelStyle)
+                nameLabel.setFontScale(0.75f)
+
+                val descText = "Rarity: ${piece.rarity}\nDEF: ${piece.defense}   HP: ${piece.health}"
+                descLabel = Label(descText, descLabelStyle)
+                descLabel.setWrap(true)
+            } else {
+                nameLabel = Label("None", nameLabelStyle)
+                nameLabel.setFontScale(0.75f)
+                descLabel = Label("", descLabelStyle)
+            }
+
+            val textTable = Table()
+            textTable.add(nameLabel).left().padBottom(4f).width(Gdx.graphics.width * 0.5f)
+            textTable.row()
+            textTable.add(descLabel).left().width(Gdx.graphics.width * 0.5f)
+
+            equipmentEquippedTable.add(slotGroup).size(slotSize).pad(5f)
+            equipmentEquippedTable.add(textTable).padLeft(20f)
+            equipmentEquippedTable.row()
+        }
+
+        fun addEquippedWeaponRow(weapon: Weapon?) {
+            val slotBg = Image(skin.getDrawable("item-slot"))
+            val slotGroup = Group()
+            slotGroup.addActor(slotBg)
+            slotBg.setSize(slotSize, slotSize)
+
+            val nameLabel: Label
+            val descLabel: Label
+
+            if (weapon != null) {
+                val icon = Image(weapon.icon)
+                icon.setSize(itemSize, itemSize)
+                icon.setPosition(itemPadding, itemPadding)
+                slotGroup.addActor(icon)
+
+                nameLabel = Label(weapon.name, nameLabelStyle)
+                nameLabel.setFontScale(0.75f)
+
+                val descText = "Rarity: ${weapon.rarity}\nATK: ${weapon.attack}"
+                descLabel = Label(descText, descLabelStyle)
+                descLabel.setWrap(true)
+            } else {
+                nameLabel = Label("None", nameLabelStyle)
+                nameLabel.setFontScale(0.75f)
+                descLabel = Label("", descLabelStyle)
+            }
+
+            val textTable = Table()
+            textTable.add(nameLabel).left().padBottom(4f).width(Gdx.graphics.width * 0.5f)
+            textTable.row()
+            textTable.add(descLabel).left().width(Gdx.graphics.width * 0.5f)
+
+            equipmentEquippedTable.add(slotGroup).size(slotSize).pad(5f)
+            equipmentEquippedTable.add(textTable).padLeft(20f)
+            equipmentEquippedTable.row()
+        }
+
+        addEquippedWeaponRow(equipmentSlots.weapon)
+        addEquippedArmorRow(equipmentSlots.helmet)
+        addEquippedArmorRow(equipmentSlots.chest)
+        addEquippedArmorRow(equipmentSlots.boots)
+
+        // ------------ INVENTORY SECTION (12 slots, armor + weapons mixed) ------------
+
+        val combined = mutableListOf<Any>()
+        combined.addAll(armorInventory)
+        combined.addAll(weaponInventory)
+
+        val maxSlots = 12
+        val itemsPerRow = 4
+        var col = 0
+
+        for (i in 0 until maxSlots) {
+            val item = combined.getOrNull(i)
+
+            val slotBg = Image(skin.getDrawable("item-slot"))
+            val group = Group()
+            group.addActor(slotBg)
+            slotBg.setSize(slotSize, slotSize)
+
+            // highlight currently selected item
+            if (selectedEquipmentIndex == i) {
+                slotBg.color = Color(1f, 1f, 0.7f, 1f) // soft yellow tint
+            }
+
+            if (item is ArmorPiece) {
+                val icon = Image(item.icon)
+                icon.setSize(itemSize, itemSize)
+                icon.setPosition(itemPadding, itemPadding)
+                group.addActor(icon)
+
+                group.addListener(object : ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                        val name = item.name
+                        val stats = "Rarity: ${item.rarity}\nDEF: ${item.defense}   HP: ${item.health}"
+
+                        if (selectedEquipmentIndex == i && equipmentPopupContainer.isVisible) {
+                            hideEquipmentPopup()
+                        } else {
+                            showEquipmentPopup(name, stats, i)
+                        }
+                        // refresh highlight
+                        updateEquipmentTable()
+                    }
+                })
+            } else if (item is Weapon) {
+                val icon = Image(item.icon)
+                icon.setSize(itemSize, itemSize)
+                icon.setPosition(itemPadding, itemPadding)
+                group.addActor(icon)
+
+                group.addListener(object : ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                        val name = item.name
+                        val stats = "Rarity: ${item.rarity}\nATK: ${item.attack}"
+
+                        if (selectedEquipmentIndex == i && equipmentPopupContainer.isVisible) {
+                            hideEquipmentPopup()
+                        } else {
+                            showEquipmentPopup(name, stats, i)
+                        }
+                        // refresh highlight
+                        updateEquipmentTable()
+                    }
+                })
+            } else {
+                // empty slot
+                group.addListener(object : ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                        hideEquipmentPopup()
+                        updateEquipmentTable()
+                    }
+                })
+            }
+
+            equipmentInventoryTable.add(group).size(slotSize).pad(5f)
+
+            col++
+            if (col >= itemsPerRow) {
+                equipmentInventoryTable.row()
+                col = 0
+            }
+        }
+    }
+
     private var accumulator = 0f
 
     private fun updateFont() {
@@ -441,7 +747,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         var parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
             size = (Gdx.graphics.height * buttonHeightFraction * textToButtonHeight).toInt()
             if (size <= 0) size = 15
-            println("Generated font size: $size")
             minFilter = Texture.TextureFilter.Nearest
             magFilter = Texture.TextureFilter.Nearest
         }
@@ -452,7 +757,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         font.color = Color.BLACK
 
         parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
-            size = (Gdx.graphics.height * 0.04f * textToButtonHeight).toInt() // Smaller font
+            size = (Gdx.graphics.height * 0.04f * textToButtonHeight).toInt()
             if (size <= 0) size = 12
             minFilter = Texture.TextureFilter.Nearest
             magFilter = Texture.TextureFilter.Nearest
@@ -474,6 +779,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             descLabelStyle = Label.LabelStyle(smallFont, Color.LIGHT_GRAY)
         }
     }
+
     private fun scheduleNextEnemy(delaySeconds: Float = 2f) {
         pendingNextEnemy = true
         nextEnemyDelay = delaySeconds
@@ -490,17 +796,14 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     private fun spawnRandomEnemy() {
-        // choose enemy kind & build model + sprite
         enemyKind = EnemyFactory.randomKind()
         enemy = EnemyFactory.create(enemyKind)
 
-        // dispose old sprite if present
         if (this::enemySprite.isInitialized) {
             enemySprite.dispose()
         }
         enemySprite = EnemySprite(game.worldViewport, enemyKind)
 
-        // rebuild combat so it uses the new enemy
         setupCombat()
 
         Gdx.app.log("ENEMY", "Spawned ${enemy.name} of kind $enemyKind")
@@ -568,17 +871,9 @@ class BattleScreen(val game: Main) : KtxScreen {
                 if (defeated === enemy && by === player) {
                     val coins = 10
                     player.currency += coins
-                    Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency}")
-                    showToast("+10 XP, +$$coins", 1.5f)
-
-                    GameLogic.battles++
-                    if (GameLogic.battles == 1) {
-                        GameLogic.battles = 0
-                        isShopping = true
-                        isShowingItems = true
-                    }
-
-                    // after death animation, spawn another random enemy
+                    roundNumber += 1  // increment round when enemy is defeated
+                    Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency} | Round $roundNumber")
+                    showToast("+10 XP, +$$coins\nRound: $roundNumber", 1.5f)
                     scheduleNextEnemy(delaySeconds = 2f)
                 }
                 if (defeated === player) {
@@ -593,6 +888,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             resolveDelay = 0f
         )
     }
+
     override fun show() {
         updateFont()
 
@@ -600,7 +896,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         GameLogic.gameState = GameLogic.GameState.BATTLE
 
         buildItemsTable()
-        buildGameOverTable()
+        initEquipmentSprites()
+        buildEquipmentTable()
+        updateEquipmentTable()
 
         playerSprite = PlayerSprite(game.worldViewport)
 
@@ -636,10 +934,10 @@ class BattleScreen(val game: Main) : KtxScreen {
             game.setScreen<MainMenuScreen>()
         }
 
-        // Enable input for UI
         Gdx.input.inputProcessor = uiStage
         uiStage.addActor(menuTable)
         uiStage.addActor(itemsTable)
+        uiStage.addActor(equipmentTable)
         uiStage.addActor(playerHealthLabel)
         uiStage.addActor(enemyHealthLabel)
         uiStage.addActor(playerIcon)
@@ -649,10 +947,8 @@ class BattleScreen(val game: Main) : KtxScreen {
         playerHealthLabel.setSize(250f, 200f)
         playerHealthLabel.addAction(Actions.moveBy(150f, 0f))
 
-
         enemyHealthLabel.setSize(250f, 200f)
         enemyHealthLabel.addAction(Actions.moveBy(50f, 0f))
-
 
         playerIcon.setSize(200f, 200f)
         playerIcon.addAction(Actions.moveBy(49f, 2000f))
@@ -665,6 +961,19 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         enemyIcon_NotTurn.setSize(200f, 200f)
         enemyIcon_NotTurn.addAction(Actions.moveBy(580f, 2000f))
+
+        // Round label at top of screen (UI actor)
+        roundLabel = Label("Round: $roundNumber", Label.LabelStyle(font, Color.WHITE))
+        uiStage.addActor(roundLabel)
+        positionRoundLabel()
+    }
+
+    private fun positionRoundLabel() {
+        if (!this::roundLabel.isInitialized) return
+        roundLabel.setPosition(
+            (Gdx.graphics.width - roundLabel.prefWidth) / 2f,
+            Gdx.graphics.height - roundLabel.prefHeight - 20f
+        )
     }
 
     override fun resume() {
@@ -679,7 +988,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         game.uiViewport.update(width, height, true)
         game.uiViewport.camera.update()
 
-        //ui
         pauseUI.updateFont(this.font)
         pauseUI.onResize()
 
@@ -687,8 +995,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         menuTable.bottom()
 
         playerHealthLabel.setPosition(100f, Gdx.graphics.height - 400f)
-
         enemyHealthLabel.setPosition(Gdx.graphics.width - 100f - enemyHealthLabel.width, Gdx.graphics.height - 400f)
+
+        positionRoundLabel()
     }
 
     override fun render(delta: Float) {
@@ -697,16 +1006,8 @@ class BattleScreen(val game: Main) : KtxScreen {
         draw(delta)
     }
 
-    /**
-     * TODO: Handles the user's input.
-     */
-    fun input(delta: Float) {
+    fun input(delta: Float) { }
 
-    }
-
-    /**
-     * TODO: Handles the game logic.
-     */
     fun logic(delta: Float) {
         if (isGameOver) {
             return
@@ -737,37 +1038,26 @@ class BattleScreen(val game: Main) : KtxScreen {
         }
     }
 
-    /**
-     * Draws everything.
-     */
     fun draw(delta: Float) {
         drawGame(delta)
         drawUI(delta)
     }
 
-    /**
-     * Draws the game.
-     */
     fun drawGame(delta: Float) {
         game.worldViewport.apply()
         game.batch.projectionMatrix = game.worldViewport.camera.combined
 
         game.batch.use {
-            // Draw the world
             tiledMapCamera.setToOrtho(false, 10f, 20f)
             tiledMapCamera.update()
             tiledMapRenderer.setView(tiledMapCamera)
             tiledMapRenderer.render()
 
-            // TODO: Draw the sprites
             playerSprite.draw(it)
             enemySprite.draw(it)
         }
     }
 
-    /**
-     * Draws the UI.
-     */
     fun drawUI(delta: Float) {
         uiStage.act(delta)
 
@@ -775,13 +1065,15 @@ class BattleScreen(val game: Main) : KtxScreen {
         game.batch.projectionMatrix = game.uiViewport.camera.combined
 
         game.batch.use {
-            // pauseUI is drawn manually
             pauseUI.drawAndHandleInput(game.batch)
 
             if (!pauseUI.isPaused) {
-                // update health text
                 playerHealthLabel.setText("${player.health}")
                 enemyHealthLabel.setText("${enemy.health}")
+
+                if (this::roundLabel.isInitialized) {
+                    roundLabel.setText("Round: $roundNumber")
+                }
             }
 
             toastText?.let { msg ->
@@ -807,31 +1099,27 @@ class BattleScreen(val game: Main) : KtxScreen {
             return
         }
         if (!pauseUI.isPaused) {
-            // set visibility
-            menuTable.isVisible = !isShowingItems
-            playerHealthLabel.isVisible = !isShowingItems
-            enemyHealthLabel.isVisible = !isShowingItems
+            val showingOverlay = isShowingItems || isShowingEquipment
+
+            menuTable.isVisible = !showingOverlay
+            playerHealthLabel.isVisible = !showingOverlay
+            enemyHealthLabel.isVisible = !showingOverlay
+            playerIcon.isVisible = !showingOverlay
+            enemyIcon.isVisible = !showingOverlay
+            playerIcon_NotTurn.isVisible = !showingOverlay
+            enemyIcon_NotTurn.isVisible = !showingOverlay
+
             itemsTable.isVisible = isShowingItems
-            playerIcon.isVisible = !isShowingItems
-            enemyIcon.isVisible = !isShowingItems
-            playerIcon_NotTurn.isVisible = !isShowingItems
-            enemyIcon_NotTurn.isVisible = !isShowingItems
+            equipmentTable.isVisible = isShowingEquipment
 
             uiStage.draw()
         }
     }
 
-
-    /**
-     * Gets the pixel ratio width.
-     */
     fun getWidthInPixels(): Float {
         return game.worldViewport.worldWidth / game.worldViewport.screenWidth
     }
 
-    /**
-     * Gets the pixel ratio height.
-     */
     fun getHeightInPixels(): Float {
         return game.worldViewport.worldHeight / game.worldViewport.screenHeight
     }
@@ -869,6 +1157,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         sfxItemHeal.dispose()
         sfxItemFail.dispose()
         inventory.dispose()
+        if (this::armorTexture.isInitialized) {
+            armorTexture.dispose()
+        }
         super.dispose()
     }
 }
