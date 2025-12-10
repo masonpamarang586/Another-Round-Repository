@@ -12,7 +12,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.utils.Align
@@ -56,12 +58,18 @@ class DictionaryScreen(val game: Main) : KtxScreen {
             over = skin.getDrawable("button-normal-over")
         }
 
-        val dictionaryLabel = Label("Dictionary", skin)
+        val backgroundColor = Image(Texture((Gdx.files.internal("ui/dictionary_bgColor.png"))))
+
+        stage.addActor(backgroundColor)
+        backgroundColor.setSize(2000f, 5000f)
+        backgroundColor.setPosition(0f, 0f)
+
+        /*val dictionaryLabel = Label("Dictionary", skin)
         dictionaryLabel.setPosition(500f, 2000f)
         dictionaryLabel.color = Color.BROWN
         dictionaryLabel.setFontScale(10f)
         dictionaryLabel.setAlignment(Align.center)
-        stage.addActor(dictionaryLabel)
+        stage.addActor(dictionaryLabel)*/
     }
 
     override fun render(delta: Float) {

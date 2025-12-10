@@ -75,6 +75,7 @@ phantom/png/summonDeath.png
 phantom/png/summonIdle.png
 phantom/summons1.aseprite
 test.tpproj
+ui/dictionary_bgColor.png
 ui/enemyIcon.png
 ui/enemyIcon_noTurn.png
 ui/font-list.fnt
