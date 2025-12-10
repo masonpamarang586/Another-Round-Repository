@@ -1184,35 +1184,56 @@ class BattleScreen(val game: Main) : KtxScreen {
                             combat.resolveDelay = enemySprite.attackDuration()
                         }
                     }
+                    is Action.Defend -> {
+                         combat.resolveDelay = 1.5f
+                         showToast("${action.target.name} Braces!", 1.5f)
+                    }
+                    is Action.ApplyBurn -> {
+                         combat.resolveDelay = 1.5f
+                         showToast("${action.applier.name} casts Burn!", 1.5f)
+                    }
                     else -> { /***/ }
                 }
             },
 
             onActionEnd = { action ->
-                when (action) {
-                    is Action.Attack -> {
-                        if (action.attacker === player) {
-                            if (enemy.isAlive()) {
-                                enemySprite.playHurt()
-                                combat.pauseNextTurnFor(max(1.5f, enemySprite.hurtDuration()))
-                                playerIcon.remove()
-                                enemyIcon_NotTurn.remove()
-                                uiStage.addActor(playerIcon_NotTurn)
-                                uiStage.addActor(enemyIcon)
-                            } else {
-                                enemySprite.playDeath()
-                                combat.pauseNextTurnFor(enemySprite.deathDuration())
-                            }
-                        } else if (action.attacker === enemy) {
-                            playerSprite.playHurt()
-                            combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
-                            playerIcon_NotTurn.remove()
-                            enemyIcon.remove()
-                            uiStage.addActor(playerIcon)
-                            uiStage.addActor(enemyIcon_NotTurn)
+                
+                // Determine who just acted
+                val attacker = when(action) {
+                    is Action.Attack -> action.attacker
+                    is Action.ApplyBurn -> action.applier
+                    is Action.Defend -> action.target // Self-target
+                }
+
+                // 1. Play hurt animations/Death logic ONLY on Attack
+                if (action is Action.Attack) {
+                    if (action.attacker === player) {
+                        if (enemy.isAlive()) {
+                            enemySprite.playHurt()
+                            combat.pauseNextTurnFor(max(1.5f, enemySprite.hurtDuration()))
+                        } else {
+                            enemySprite.playDeath()
+                            combat.pauseNextTurnFor(enemySprite.deathDuration())
                         }
+                    } else if (action.attacker === enemy) {
+                        playerSprite.playHurt()
+                        combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
                     }
-                    else -> { /***/ }
+                }
+                
+                // 2. SWAP Turn Icons (Using attacker to determine who finished turn)
+                if (attacker === player) {
+                     // Player finished acting -> Enemy Turn
+                     playerIcon.remove()
+                     enemyIcon_NotTurn.remove()
+                     uiStage.addActor(playerIcon_NotTurn)
+                     uiStage.addActor(enemyIcon)
+                } else { 
+                     // Enemy finished acting -> Player Turn
+                     playerIcon_NotTurn.remove()
+                     enemyIcon.remove()
+                     uiStage.addActor(playerIcon)
+                     uiStage.addActor(enemyIcon_NotTurn)
                 }
             },
 
