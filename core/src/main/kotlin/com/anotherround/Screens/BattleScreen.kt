@@ -1432,9 +1432,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     private fun restoreArmor(data: ArmorData): ArmorPiece? {
         val bp = DEFAULT_ARMOR_BLUEPRINTS.find { it.name == data.name } ?: return null
         return ArmorPiece(
-             name = bp.name, slot = bp.slot,
-             icon = itemIcons[bp.sprite.row][bp.sprite.col],
-             rarity = data.rarity, defense = data.defense, health = data.health
+            name = bp.name, slot = bp.slot,
+            icon = itemIcons[bp.sprite.row][bp.sprite.col],
+            rarity = data.rarity, defense = data.defense, health = data.health
         )
     }
 
@@ -1446,9 +1446,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     private fun restoreWeapon(data: WeaponData): Weapon? {
         val bp = DEFAULT_WEAPON_BLUEPRINTS.find { it.name == data.name } ?: return null
         return Weapon(
-             name = bp.name, type = bp.type,
-             icon = itemIcons[bp.sprite.row][bp.sprite.col],
-             rarity = data.rarity, attack = data.attack
+            name = bp.name, type = bp.type,
+            icon = itemIcons[bp.sprite.row][bp.sprite.col],
+            rarity = data.rarity, attack = data.attack
         )
     }
 }
