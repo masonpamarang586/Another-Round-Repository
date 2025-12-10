@@ -15,18 +15,29 @@ data class CharacterSnapshot(
     var maxHealth: Int = 0,
     var defenseStat: Int = 0,
     var attackStat: Int = 0,
-    val currency: Int = 0
+    val currency: Int = 0,
+    val currentXp: Int = 0,
+    val xpToNextLevel: Int = 0
 ) {
     companion object {
-        fun from(c: Character, currency: Int = 0) = CharacterSnapshot(
-            name = c.name,
-            level = c.level,
-            health = c.health,
-            maxHealth = c.maxHealth,
-            defenseStat = c.defenseStat,
-            attackStat = c.attackStat,
-            currency = currency
-        )
+        fun from(c: Character, currency: Int = 0): CharacterSnapshot {
+            val (xp, xpNext) = if (c is Player) {
+                c.currentXp to c.xpToNextLevel
+            } else {
+                0 to 0
+            }
+            return CharacterSnapshot(
+                name        = c.name,
+                level       = c.level,
+                health      = c.health,
+                maxHealth = c.maxHealth,
+                defenseStat = c.defenseStat,
+                attackStat  = c.attackStat,
+                currency    = currency,
+                currentXp   = xp,
+                xpToNextLevel    = xpNext
+            )
+        }
     }
 }
 
@@ -55,15 +66,15 @@ data class GameState(
     var savedAtEpochSec: Long = 0L,
     var roundNumber: Int = 0,
     var enemyKind: String = "RedGrunt", // Store the enum name
-    
+
     var player: CharacterSnapshot = CharacterSnapshot(),
     var enemy: CharacterSnapshot = CharacterSnapshot(),
-    
+
     // Inventory
     var potions: List<PotionData> = emptyList(),
     var inventoryArmor: List<ArmorData> = emptyList(),
     var inventoryWeapons: List<WeaponData> = emptyList(),
-    
+
     // Equipped
     var equippedHelmet: ArmorData? = null,
     var equippedChest: ArmorData? = null,

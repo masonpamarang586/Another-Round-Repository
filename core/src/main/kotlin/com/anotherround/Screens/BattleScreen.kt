@@ -83,8 +83,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     // round number (starts at 0, increments each time an enemy is defeated)
     private var roundNumber = 0
 
+    // player info
     private val player = Player(name = "Hero")
-
+    private lateinit var playerLevelLabel: Label
     // current enemy & its type
     private lateinit var enemy: Character
     private lateinit var enemyKind: EnemyKind
@@ -118,6 +119,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         isShowingItems = false
         toastText = null
 
+        if (this::gameOverTable.isInitialized) {
+            gameOverTable.isVisible = false
+        }
         val basePlayer = Player(name = session.playerName)
         player.name = basePlayer.name
         player.level = basePlayer.level
@@ -143,6 +147,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         this.currentSession = GameSession(slot, state.player.name)
         Gdx.app.log("BattleScreen", "Loading game for ${state.player.name} from slot $slot")
 
+        isGameOver = false
+        pendingGameOver = false
+        gameOverDelay = 0f
+        if (this::gameOverTable.isInitialized) {
+            gameOverTable.isVisible = false
+        }
+
         player.name = state.player.name
         player.health = state.player.health
         player.maxHealth = 40 // Default, will be recalculated
@@ -151,6 +162,12 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.attackStat = state.player.attackStat
         player.currency = state.player.currency
 
+        player.currentXp = state.player.currentXp
+        player.xpToNextLevel = if (state.player.xpToNextLevel > 0) {
+            state.player.xpToNextLevel
+        } else {
+            player.xpRequiredFor(player.level)
+        }
         // Ensure sprites are loaded
         initEquipmentSprites()
 
@@ -179,10 +196,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         try {
             val kindName = state.enemyKind
             Gdx.app.log("LOAD", "Attempting to restore enemy: '$kindName' with Health: ${state.enemy.health}")
-            
+
             enemyKind = EnemyKind.valueOf(kindName)
             enemy = EnemyFactory.create(enemyKind)
-            
+
             // Apply saved stats
             if (state.enemy.health > 0) {
                 enemy.health = state.enemy.health
@@ -193,13 +210,13 @@ class BattleScreen(val game: Main) : KtxScreen {
                  spawnRandomEnemy()
                  return
             }
-            
+
             // Re-spawn sprite
             if (this::enemySprite.isInitialized) enemySprite.dispose()
             enemySprite = EnemySprite(game.worldViewport, enemyKind)
-            
+
             Gdx.app.log("LOAD", "Enemy restored successfully: ${enemy.name} (${enemy.health} HP)")
-            
+
         } catch (e: Exception) {
             Gdx.app.error("LOAD", "Failed to restore enemy kind '${state.enemyKind}', spawning random", e)
             spawnRandomEnemy()
@@ -228,6 +245,7 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var sfxEnemyDeath: Sound
     private lateinit var sfxItemHeal: Sound
     private lateinit var sfxItemFail: Sound
+    private lateinit var sfxLevelUp: Sound
 
     private val worldStage = Stage(game.worldViewport)
     private val uiStage = Stage(game.uiViewport)
@@ -445,7 +463,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             }
                         }
                         inventory.useItem(consumable)
-                        sfxItemHeal.play(50f)
+                        sfxItemHeal.play(0.9f)
                         updateItemsTable()
                     }
                 })
@@ -456,7 +474,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
                 slotGroup.addListener(object: ClickListener() {
                     override fun clicked(event: InputEvent?, x: Float, y:Float) {
-                        sfxItemFail.play(50f)
+                        sfxItemFail.play(0.9f)
                         showToast("Slot is empty")
                     }
                 })
@@ -594,6 +612,11 @@ class BattleScreen(val game: Main) : KtxScreen {
         var newMaxHp = 40
         var newDef = 0
         var newAtk = 20
+
+        val lvl = player.level.coerceAtLeast(1)
+        newMaxHp += (lvl - 1) * 5
+        newAtk += (lvl - 1) * 2
+        newDef += (lvl - 1) * 1
 
         equipmentSlots.helmet?.let {
             newMaxHp += it.health
@@ -993,6 +1016,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             combat.resolveDelay = enemySprite.attackDuration()
                         }
                     }
+                    else -> { /***/ }
                 }
             },
 
@@ -1020,6 +1044,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             uiStage.addActor(enemyIcon_NotTurn)
                         }
                     }
+                    else -> { /***/ }
                 }
             },
 
@@ -1029,8 +1054,9 @@ class BattleScreen(val game: Main) : KtxScreen {
                     SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
                     SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
                     SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
-                    SfxEvent.PlayerDeath  -> sfxEnemyDeath.play(1.0f)
-                    SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
+                    SfxEvent.PlayerDeath  -> sfxEnemyDeath.play(0.9f)
+                    SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(0.9f)
+                    SfxEvent.LevelUp      -> sfxLevelUp.play(0.9f)
                 }
             },
 
@@ -1042,6 +1068,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                     Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency} | Round $roundNumber")
                     showToast("+10 XP, +$$coins\nRound: $roundNumber", 1.5f)
                     scheduleNextEnemy(delaySeconds = 2f)
+                    saveGame() // Auto-save after round
                 }
                 if (defeated === player) {
                     playerSprite.playDeath()
@@ -1053,6 +1080,15 @@ class BattleScreen(val game: Main) : KtxScreen {
             },
             onDamage = { character, amount ->
                 showDamagePopup(character, amount)
+            },
+            onLevelUp = { newLevel, PlayerRef ->
+                if (this::playerLevelLabel.isInitialized) {
+                    playerLevelLabel.setText("Lvl $newLevel")
+                }
+                playerHealthLabel.setText("${PlayerRef.health}/${PlayerRef.maxHealth}")
+
+                showToast("Level up! You are now Lvl $newLevel", 2.0f)
+                sfxLevelUp.play(0.9f)
             },
             resolveDelay = 0f
         )
@@ -1074,7 +1110,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/battle-fighting-warrior-drums-372078.mp3"))
         backgroundMusic.isLooping = true
-        backgroundMusic.volume = 1.5f
+        backgroundMusic.volume = 0.3f
         backgroundMusic.play()
 
         sfxPlayerAttack = Gdx.audio.newSound(Gdx.files.internal("audio/violent-sword-slice-393839.mp3"))
@@ -1082,6 +1118,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         sfxPlayerHurt   = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
         sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
         sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
+        sfxLevelUp      = Gdx.audio.newSound(Gdx.files.internal("audio/level-up-06-370051.mp3"))
+        if (!this::enemyKind.isInitialized) {
+            spawnRandomEnemy()
+        }
 
         // Only spawn if not already set up (e.g. by loadSavedGame or startNewGame)
         if (!this::enemy.isInitialized) {
@@ -1109,6 +1149,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(playerIcon)
         uiStage.addActor(enemyIcon_NotTurn)
         GameLogic.screen = this
+        playerLevelLabel = Label("Lvl ${player.level}", Label.LabelStyle(font, Color.WHITE))
+        uiStage.addActor(playerLevelLabel)
+        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
 
         playerHealthLabel.setSize(300f, 200f)
 
@@ -1194,6 +1237,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         playerIcon.setPosition(25f, iconY)
         playerIcon_NotTurn.setPosition(25f, iconY)
         playerHealthLabel.setPosition(225f, iconY)
+
+        // Player: XP Label
+        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
 
         // Enemy: Icon (Width-500) -> Label (Width-300)
         enemyIcon.setPosition(Gdx.graphics.width - 525f, iconY)
@@ -1332,7 +1378,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     override fun hide() {
-        backgroundMusic.stop()
+        if (this::backgroundMusic.isInitialized) {
+            backgroundMusic.stop()
+        }
     }
 
     private fun onePixel(color: Color): TextureRegionDrawable {
@@ -1363,6 +1411,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         sfxEnemyDeath.dispose()
         sfxItemHeal.dispose()
         sfxItemFail.dispose()
+        sfxLevelUp.dispose()
         inventory.dispose()
         if (this::armorTexture.isInitialized) {
             armorTexture.dispose()
