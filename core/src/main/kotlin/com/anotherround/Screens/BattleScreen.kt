@@ -86,6 +86,7 @@ class BattleScreen(val game: Main) : KtxScreen {
     // player info
     private val player = Player(name = "Hero")
     private lateinit var playerLevelLabel: Label
+    private lateinit var enemyLevelLabel: Label
     // current enemy & its type
     private lateinit var enemy: Character
     private lateinit var enemyKind: EnemyKind
@@ -239,13 +240,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         }
         
         if (this::enemyLevelLabel.isInitialized) {
-             enemyLevelLabel.isVisible = !showingOverlay
-             enemyLevelLabel.setText("Lvl ${enemy.level}") // Update text just in case
-             // Position above enemy sprite
-             if (this::enemySprite.isInitialized) {
-                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(enemySprite.x + 0.5f, enemySprite.y + 1.2f, 0f))
-                 enemyLevelLabel.setPosition(screenPos.x - enemyLevelLabel.prefWidth / 2, screenPos.y)
-             }
+             enemyLevelLabel.setText("Lvl ${enemy.level}")
         }
         
         showToast("Loaded Game: round $roundNumber")
@@ -326,8 +321,7 @@ class BattleScreen(val game: Main) : KtxScreen {
     lateinit var equipmentButton: TextButton
     
     // Level Labels
-    lateinit var playerLevelLabel: Label
-    lateinit var enemyLevelLabel: Label
+
 
     private val menuTable by lazy {
         val table = Table()
