@@ -17,6 +17,7 @@ import ktx.app.KtxGame
 import ktx.app.KtxScreen
 import ktx.async.KtxAsync
 import com.anotherround.Screens.CampfireScreen
+import com.anotherround.Screens.DictionaryScreen
 
 data class GameSession(val slotId: Int, var playerName: String)
 
@@ -37,6 +38,7 @@ class Main : KtxGame<KtxScreen>() {
         addScreen(MainMenuScreen(this))
         addScreen(BattleScreen(this))
         addScreen(CampfireScreen(this))
+        addScreen(DictionaryScreen(this))
         setScreen<MainMenuScreen>()
 
         super.create()

@@ -19,6 +19,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.anotherround.Screens.DictionaryScreen
+import javax.swing.event.ChangeEvent
 
 
 class MainMenuScreen(private val game: Main) : KtxScreen {
@@ -34,7 +35,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
 
     private lateinit var newGameBtn: TextButton
     private lateinit var loadGameBtn: TextButton
-    private lateinit var settingsBtn: TextButton
+    private lateinit var dictionaryBtn: TextButton
 
     private lateinit var overlayRoot: Table
     private lateinit var titleLabel: Label
@@ -73,12 +74,14 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         updateSlotLabels()
         layoutBottomMenu()
 
-        val dictionaryButton = TextButton("Dictionary", skin)
-        dictionaryButton.addListener(object : ChangeListener(){
-            override fun changed(event: ChangeEvent?, actor: Actor) {
-                game.setScreen<DictionaryScreen>(game)
+        /*val dictionaryButton = TextButton("Dictionary", skin)
+        dictionaryButton.addListener(object : ChangeListener()  {
+            override fun changed(event: ChangeEvent, actor: Actor){
+                game.getScreen<DictionaryScreen>()
+                game.setScreen<DictionaryScreen>()
             }
-        })
+        })*/
+
     }
 
     override fun render(delta: Float) {
@@ -159,7 +162,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         }
         if (this::newGameBtn.isInitialized) newGameBtn.style = mainStyle
         if (this::loadGameBtn.isInitialized) loadGameBtn.style = mainStyle
-        if (this::settingsBtn.isInitialized) settingsBtn.style = mainStyle
+        if (this::dictionaryBtn.isInitialized) dictionaryBtn.style = mainStyle
 
         val slotStyle = TextButton.TextButtonStyle().apply {
             font = this@MainMenuScreen.font
@@ -199,11 +202,11 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
 
         newGameBtn = TextButton("New Game", style)
         loadGameBtn = TextButton("Load Game", style)
-        settingsBtn = TextButton("Settings", style)
+        dictionaryBtn = TextButton("Dictionary", style)
 
         newGameBtn.addListener(click { openSlots(Submenu.NEW) })
         loadGameBtn.addListener(click { openSlots(Submenu.LOAD) })
-        settingsBtn.addListener(click { Gdx.app.log("Menu", "Settings clicked") })
+        dictionaryBtn.addListener(click {  game.getScreen<DictionaryScreen>(); game.setScreen<DictionaryScreen>() })
 
         val table = Table()
 
@@ -211,7 +214,7 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
         table.row()
         table.add(loadGameBtn).padTop(40f).width(800f).height(250f)
         table.row()
-        table.add(settingsBtn).padTop(40f).width(800f).height(250f)
+        table.add(dictionaryBtn).padTop(40f).width(800f).height(250f)
         stage.addActor(table)
         table.name = "bottomMenu"
     }
