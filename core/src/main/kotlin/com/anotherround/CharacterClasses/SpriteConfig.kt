@@ -10,9 +10,9 @@ data class SpriteConfig(
     val framesAreReversed: Boolean = false,
 
     val idleFps: Float = 4f,
-    val hurtFps: Float = 10f,
-    val deathFps: Float = 10f,
-    val attackFps: Float = 10f,
+    val hurtFps: Float = 4f,
+    val deathFps: Float = 12f,
+    val attackFps: Float = 8f,
 
     val drawWidth: Float = 3f,
     val drawHeight: Float = 3f,

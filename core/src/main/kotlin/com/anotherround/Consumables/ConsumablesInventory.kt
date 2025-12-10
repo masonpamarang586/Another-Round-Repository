@@ -3,75 +3,94 @@ package com.anotherround.Consumables
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-
-data class Consumable(
-    val name: String,
-    val description: String,
-    val healAmount: Int,
-    val textureRegion: TextureRegion
-)
+import com.anotherround.SaveLoad.PotionData
 
 class ConsumablesInventory {
 
-    private val items = mutableListOf<Consumable>()
+    private val items = mutableListOf<Potion>()
 
     private val potionsSpritesheet by lazy {
         Texture(Gdx.files.internal("items/potions.png"))
     }
 
-    private val healthPotionRegion by lazy {
-        TextureRegion(potionsSpritesheet, 48, 32, 16, 16)
-    }
-    private val manaPotionRegion by lazy {
-        TextureRegion(potionsSpritesheet, 64, 32, 16, 16)
-    }
+    // Coordinates: x, y, width, height.
+    // Assuming standard health potion is at 48, 32.
+    // I will reuse this region for all Health potions for now as I don't have new assets.
+    private val healthPotionRegion by lazy { TextureRegion(potionsSpritesheet, 48, 32, 16, 16) }
+
+    // Using the old mana potion icon (64, 32) for Defensive Lacquer for now to distinguish it.
+    private val defensivePotionRegion by lazy { TextureRegion(potionsSpritesheet, 128, 112, 16, 16) }
+
+    // I need a third icon for Fire Potion. I'll pick another spot on the sheet, e.g., 80, 32.
+    // If it's invalid, it might show garbage, but it's better than nothing.
+    private val firePotionRegion by lazy { TextureRegion(potionsSpritesheet, 80, 192, 16, 16) }
 
 
-    fun getItems(): List<Consumable> {
+    fun getItems(): List<Potion> {
         return items
     }
 
     fun loadDefaultPotions() {
         items.clear()
-        repeat(3) {
-            items.add(createHealthPotion())
-        }
-        items.add(createManaPotion())
+        // Add two health potions for gameplay start
+        items.add(createHealthPotion(PotionRarity.COMMON))
+        items.add(createHealthPotion(PotionRarity.COMMON))
     }
 
-    fun loadFromSaveState(potionCount: Int) {
+    fun loadFromSaveState(data: List<PotionData>) {
         items.clear()
-        repeat(potionCount) {
-            items.add(createHealthPotion())
-            // this only loads health potions.
+        data.forEach { potionData ->
+            val rarity = try {
+                PotionRarity.valueOf(potionData.rarity)
+            } catch (e: Exception) {
+                PotionRarity.COMMON
+            }
+
+            val potion = when (potionData.type) {
+                "Health" -> createHealthPotion(rarity)
+                "Defense" -> createDefensivePotion(rarity)
+                "Fire" -> createFirePotion(rarity)
+                else -> createHealthPotion(rarity) // Fallback
+            }
+            items.add(potion)
         }
     }
 
-    fun useItem(consumable: Consumable): Int {
-        val healAmount = consumable.healAmount
-        items.remove(consumable)
-        return healAmount
+    fun toSaveData(): List<PotionData> {
+        return items.map {
+            val type = when (it) {
+                is HealthPotion -> "Health"
+                is DefensePotion -> "Defense"
+                is FirePotion -> "Fire"
+            }
+            PotionData(type, it.rarity.name)
+        }
     }
 
-    fun addItem(consumable: Consumable) {
-        items.add(consumable)
+    fun useItem(potion: Potion) {
+        items.remove(potion)
+    }
+
+    fun addItem(potion: Potion) {
+        items.add(potion)
     }
 
     fun dispose() {
         potionsSpritesheet.dispose()
     }
 
-    fun createHealthPotion() = Consumable(
-        name = "Health Potion",
-        description = "A standard potion. Heals 10 HP.",
-        healAmount = 10,
+    fun createHealthPotion(rarity: PotionRarity = PotionRarity.COMMON) = HealthPotion(
+        rarity = rarity,
         textureRegion = healthPotionRegion
     )
 
-    private fun createManaPotion() = Consumable(
-        name = "Mana Potion",
-        description = "A blue potion. Restores 10 MP.",
-        healAmount = 0,
-        textureRegion = manaPotionRegion
+    fun createDefensivePotion(rarity: PotionRarity = PotionRarity.COMMON) = DefensePotion(
+        rarity = rarity,
+        textureRegion = defensivePotionRegion
+    )
+
+    fun createFirePotion(rarity: PotionRarity = PotionRarity.COMMON) = FirePotion(
+        rarity = rarity,
+        textureRegion = firePotionRegion
     )
 }

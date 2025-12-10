@@ -12,34 +12,78 @@ data class CharacterSnapshot(
     var name: String = "",
     var level: Int = 1,
     var health: Int = 0,
+    var maxHealth: Int = 0,
     var defenseStat: Int = 0,
     var attackStat: Int = 0,
-    val currency: Int = 0
+    val currency: Int = 0,
+    val currentXp: Int = 0,
+    val xpToNextLevel: Int = 0
 ) {
     companion object {
-        fun from(c: Character, currency: Int = 0) = CharacterSnapshot(
-            name = c.name,
-            level = c.level,
-            health = c.health,
-            defenseStat = c.defenseStat,
-            attackStat = c.attackStat,
-            currency = currency
-        )
+        fun from(c: Character, currency: Int = 0): CharacterSnapshot {
+            val (xp, xpNext) = if (c is Player) {
+                c.currentXp to c.xpToNextLevel
+            } else {
+                0 to 0
+            }
+            return CharacterSnapshot(
+                name        = c.name,
+                level       = c.level,
+                health      = c.health,
+                maxHealth = c.maxHealth,
+                defenseStat = c.defenseStat,
+                attackStat  = c.attackStat,
+                currency    = currency,
+                currentXp   = xp,
+                xpToNextLevel    = xpNext
+            )
+        }
     }
 }
 
+data class PotionData(
+    val type: String = "", // "Health", "Defense", "Fire"
+    val rarity: String = "Common"
+)
+
+data class ArmorData(
+    val name: String = "",
+    val slot: String = "", // "HELMET", "CHEST", ...
+    val rarity: String = "Common",
+    val defense: Int = 0,
+    val health: Int = 0
+)
+
+data class WeaponData(
+    val name: String = "",
+    val type: String = "", // "SWORD", "MACE", ...
+    val rarity: String = "Common",
+    val attack: Int = 0
+)
+
 data class GameState(
-    var version: Int = 1,
+    var version: Int = 2,
     var savedAtEpochSec: Long = 0L,
+    var roundNumber: Int = 0,
+    var enemyKind: String = "RedGrunt", // Store the enum name
+
     var player: CharacterSnapshot = CharacterSnapshot(),
     var enemy: CharacterSnapshot = CharacterSnapshot(),
-    var potions: Int = 1
+
+    // Inventory
+    var potions: List<PotionData> = emptyList(),
+    var inventoryArmor: List<ArmorData> = emptyList(),
+    var inventoryWeapons: List<WeaponData> = emptyList(),
+
+    // Equipped
+    var equippedHelmet: ArmorData? = null,
+    var equippedChest: ArmorData? = null,
+    var equippedBoots: ArmorData? = null,
+    var equippedWeapon: WeaponData? = null
 )
 
 /**
- * Save/Load helper. By default we use:
- * - ANDROID & DESKTOP: external storage (readable outside the app)
- * - iOS: local storage (external isn't supported)
+ * Save/Load helper.
  */
 object SaveGame {
     private const val DIR = "AnotherRound/saves"
@@ -54,7 +98,6 @@ object SaveGame {
         prettyPrint(true)
     }
 
-    // Where to store saves depending on platform
     private fun storageRoot(): FileHandle {
         return Gdx.files.local(DIR)
     }
@@ -65,22 +108,15 @@ object SaveGame {
         return dir.child("$FILE_PREFIX$slot$FILE_EXT")
     }
 
-    // Save current state to the given slot (default slot 1)
     @Synchronized
-    fun save(player: Player, enemy: Character, potions: Int, slot: Int = 1) {
+    fun save(state: GameState, slot: Int = 1) {
         val fh = fileForSlot(slot)
-
-        val state = GameState(
-            player = CharacterSnapshot.from(player, player.currency),
-            enemy = CharacterSnapshot.from(enemy, 0),
-            potions = potions
-        )
+        state.savedAtEpochSec = System.currentTimeMillis() / 1000
         val text = json.prettyPrint(state)
         fh.writeString(text, false, Charsets.UTF_8.name())
         Gdx.app.log("SAVE", "Saved slot $slot -> ${fh.path()}")
     }
 
-    // Load state from slot or return null if missing/corrupt
     @Synchronized
     fun loadOrNull(slot: Int = 1): GameState? {
         val fh = fileForSlot(slot)
