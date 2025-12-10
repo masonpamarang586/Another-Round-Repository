@@ -1077,7 +1077,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
         sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
 
-        spawnRandomEnemy()
+        if (!this::enemyKind.isInitialized) {
+            spawnRandomEnemy()
+        }
 
         pauseUI.updateFont(font)
         pauseUI.onResize()
