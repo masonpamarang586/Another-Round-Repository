@@ -83,8 +83,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     // round number (starts at 0, increments each time an enemy is defeated)
     private var roundNumber = 0
 
+    // player info
     private val player = Player(name = "Hero")
-
+    private lateinit var playerLevelLabel: Label
     // current enemy & its type
     private lateinit var enemy: Character
     private lateinit var enemyKind: EnemyKind
@@ -161,6 +162,12 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.attackStat = state.player.attackStat
         player.currency = state.player.currency
 
+        player.currentXp = state.player.currentXp
+        player.xpToNextLevel = if (state.player.xpToNextLevel > 0) {
+            state.player.xpToNextLevel
+        } else {
+            player.xpRequiredFor(player.level)
+        }
         // Ensure sprites are loaded
         initEquipmentSprites()
 
@@ -222,6 +229,7 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var sfxEnemyDeath: Sound
     private lateinit var sfxItemHeal: Sound
     private lateinit var sfxItemFail: Sound
+    private lateinit var sfxLevelUp: Sound
 
     private val worldStage = Stage(game.worldViewport)
     private val uiStage = Stage(game.uiViewport)
@@ -588,6 +596,11 @@ class BattleScreen(val game: Main) : KtxScreen {
         var newMaxHp = 40
         var newDef = 0
         var newAtk = 20
+
+        val lvl = player.level.coerceAtLeast(1)
+        newMaxHp += (lvl - 1) * 5
+        newAtk += (lvl - 1) * 2
+        newDef += (lvl - 1) * 1
 
         equipmentSlots.helmet?.let {
             newMaxHp += it.health
@@ -1026,6 +1039,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                     SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
                     SfxEvent.PlayerDeath  -> sfxEnemyDeath.play(0.9f)
                     SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(0.9f)
+                    SfxEvent.LevelUp      -> sfxLevelUp.play(0.9f)
                 }
             },
 
@@ -1049,6 +1063,15 @@ class BattleScreen(val game: Main) : KtxScreen {
             },
             onDamage = { character, amount ->
                 showDamagePopup(character, amount)
+            },
+            onLevelUp = { newLevel, PlayerRef ->
+                if (this::playerLevelLabel.isInitialized) {
+                    playerLevelLabel.setText("Lvl $newLevel")
+                }
+                playerHealthLabel.setText("${PlayerRef.health}/${PlayerRef.maxHealth}")
+
+                showToast("Level up! You are now Lvl $newLevel", 2.0f)
+                sfxLevelUp.play(0.9f)
             },
             resolveDelay = 0f
         )
@@ -1078,7 +1101,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         sfxPlayerHurt   = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
         sfxEnemyHurt    = Gdx.audio.newSound(Gdx.files.internal("audio/male_hurt7-48124.mp3"))
         sfxEnemyDeath   = Gdx.audio.newSound(Gdx.files.internal("audio/sword-clattering-to-the-ground-393838.mp3"))
-
+        sfxLevelUp      = Gdx.audio.newSound(Gdx.files.internal("audio/level-up-06-370051.mp3"))
         if (!this::enemyKind.isInitialized) {
             spawnRandomEnemy()
         }
@@ -1104,6 +1127,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(playerIcon)
         uiStage.addActor(enemyIcon_NotTurn)
         GameLogic.screen = this
+        playerLevelLabel = Label("Lvl ${player.level}", Label.LabelStyle(font, Color.WHITE))
+        uiStage.addActor(playerLevelLabel)
+        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
 
         playerHealthLabel.setSize(300f, 200f)
 
@@ -1189,6 +1215,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         playerIcon.setPosition(25f, iconY)
         playerIcon_NotTurn.setPosition(25f, iconY)
         playerHealthLabel.setPosition(225f, iconY)
+
+        // Player: XP Label
+        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
 
         // Enemy: Icon (Width-500) -> Label (Width-300)
         enemyIcon.setPosition(Gdx.graphics.width - 525f, iconY)
@@ -1360,6 +1389,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         sfxEnemyDeath.dispose()
         sfxItemHeal.dispose()
         sfxItemFail.dispose()
+        sfxLevelUp.dispose()
         inventory.dispose()
         if (this::armorTexture.isInitialized) {
             armorTexture.dispose()

@@ -1,7 +1,11 @@
 package com.anotherround.combat
 
 import com.anotherround.CharacterClasses.Character
+import com.anotherround.CharacterClasses.EvilWizard
+import com.anotherround.CharacterClasses.NightBorne
+import com.anotherround.CharacterClasses.Phantom
 import com.anotherround.CharacterClasses.Player
+import com.anotherround.CharacterClasses.RedGrunt
 import kotlin.math.max
 import kotlin.random.Random
 import kotlin.math.roundToInt
@@ -10,7 +14,8 @@ enum class Turn { PLAYER, ENEMY, OVER }
 enum class SfxEvent {
     PlayerAttack, EnemyAttack,
     PlayerHurt, EnemyHurt,
-    PlayerDeath, EnemyDeath
+    PlayerDeath, EnemyDeath,
+    LevelUp
 }
 
 
@@ -40,6 +45,8 @@ class CombatManager(
     private val onDefeat: (defeated: Character, by: Character) -> Unit = { _, _ -> },
 
     private val onDamage: (Character, Int) -> Unit = { _, _ -> },
+
+    val onLevelUp: (newLevel: Int, player: Player) -> Unit = { _, _ -> },
 
     var resolveDelay: Float = 5.0f
 ) {
@@ -280,6 +287,24 @@ class CombatManager(
                     onLog("${action.defender.name} is defeated!")
                     onSfx(if (defenderIsPlayer) SfxEvent.PlayerDeath else SfxEvent.EnemyDeath)
                     onDefeat(action.defender, action.attacker)
+
+                    val winnerIsPlayer = (action.attacker === player)
+                    if (winnerIsPlayer && player is Player) {
+                        val playerRef = player as Player
+                        val xpGained = when (enemy) {
+                            is RedGrunt -> enemy.xpReward + enemy.level * 2
+                            is Phantom  -> enemy.xpReward + enemy.level * 2
+                            is EvilWizard -> enemy.xpReward + enemy.level * 2
+                            is NightBorne -> enemy.xpReward + enemy.level * 2
+                            else -> 5
+                        }
+
+                        onLog("You gain $xpGained XP.")
+                        playerRef.gainXp(xpGained) { newLevel ->
+                            onLog("You reached level $newLevel!")
+                            onLevelUp(newLevel, playerRef)
+                        }
+                    }
                 } else {
                     onSfx(if (defenderIsPlayer) SfxEvent.PlayerHurt else SfxEvent.EnemyHurt)
                 }
