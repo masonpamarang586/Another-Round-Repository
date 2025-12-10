@@ -12,7 +12,7 @@ class RedGrunt(
 
 class Phantom(
     override val name: String = "Phantom",
-    override var level: Int = 2,
+    override var level: Int = 1,
     override var maxHealth: Int = 45,
     override var health: Int = maxHealth,
     override var defenseStat: Int = 8,
@@ -22,7 +22,7 @@ class Phantom(
 
 class EvilWizard(
     override val name: String = "EvilWizard",
-    override var level: Int = 2,
+    override var level: Int = 1,
     override var maxHealth: Int = 45,
     override var health: Int = maxHealth,
     override var defenseStat: Int = 5,
@@ -32,7 +32,7 @@ class EvilWizard(
 
 class NightBorne(
     override val name: String = "NightBorne",
-    override var level: Int = 2,
+    override var level: Int = 1,
     override var maxHealth: Int = 60,
     override var health: Int = maxHealth,
     override var defenseStat: Int = 15,
