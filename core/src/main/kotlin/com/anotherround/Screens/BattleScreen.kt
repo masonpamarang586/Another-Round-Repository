@@ -361,10 +361,11 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var equipmentEquippedTable: Table
     private lateinit var equipmentInventoryTable: Table
 
-    // popup for inventory stats
+    // popup overlay for item stats
     private lateinit var equipmentPopupContainer: Table
     private lateinit var equipmentPopupNameLabel: Label
     private lateinit var equipmentPopupLabel: Label
+    private lateinit var equipmentEquipButton: TextButton
     private var selectedEquipmentIndex: Int? = null
 
     // round label
@@ -712,6 +713,17 @@ class BattleScreen(val game: Main) : KtxScreen {
             setWrap(true)
             setFontScale(0.9f)
         }
+        
+        // Equip button
+        equipmentEquipButton = TextButton("Equip", buttonStyle)
+        equipmentEquipButton.label.setFontScale(0.8f) // slightly smaller text
+        equipmentEquipButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                selectedEquipmentIndex?.let { index ->
+                    onEquipItem(index)
+                }
+            }
+        })
 
         // item name on top and then stats under it
         popupInner.add(equipmentPopupNameLabel)
@@ -724,6 +736,12 @@ class BattleScreen(val game: Main) : KtxScreen {
             .width(Gdx.graphics.width * 0.6f)
             .padLeft(25f)
             .left()
+            .row()
+            
+        popupInner.add(equipmentEquipButton)
+            .width(300f).height(120f)
+            .padTop(20f)
+            .center()
 
         equipmentPopupContainer.add(popupInner)
             .expandX()
@@ -731,6 +749,61 @@ class BattleScreen(val game: Main) : KtxScreen {
             .center()
 
         equipmentTable.addActor(equipmentPopupContainer)
+    }
+    
+    /**
+     * Replaces the logic for equipping item from existing inventory list.
+     */
+    private fun onEquipItem(index: Int) {
+        val combined = mutableListOf<Any>()
+        combined.addAll(armorInventory)
+        combined.addAll(weaponInventory)
+        
+        val itemToEquip = combined.getOrNull(index) ?: return
+        
+        // Logic:
+        // 1. Remove from inventory
+        // 2. Unequip old item (move to inventory)
+        // 3. Equip new item
+        
+        if (itemToEquip is ArmorPiece) {
+            val oldItem = when (itemToEquip.slot) {
+                ArmorSlot.HELMET -> equipmentSlots.helmet
+                ArmorSlot.CHEST -> equipmentSlots.chest
+                ArmorSlot.BOOTS -> equipmentSlots.boots
+            }
+            
+            // Remove from inventory
+            armorInventory.remove(itemToEquip)
+            
+            // Add old item back
+            oldItem?.let { armorInventory.add(it) }
+            
+            // Set new item
+            when (itemToEquip.slot) {
+                ArmorSlot.HELMET -> equipmentSlots.helmet = itemToEquip
+                ArmorSlot.CHEST -> equipmentSlots.chest = itemToEquip
+                ArmorSlot.BOOTS -> equipmentSlots.boots = itemToEquip
+            }
+            
+        } else if (itemToEquip is Weapon) {
+            val oldItem = equipmentSlots.weapon
+            
+            // Remove from inventory
+            weaponInventory.remove(itemToEquip)
+            
+            // Add old
+            oldItem?.let { weaponInventory.add(it) }
+            
+            // Set new
+            equipmentSlots.weapon = itemToEquip
+        }
+        
+        recalculateStats()
+        hideEquipmentPopup()
+        updateEquipmentTable()
+        playerHealthLabel.setText("${player.health}/${player.maxHealth}")
+        showToast("Equipped: ${if (itemToEquip is ArmorPiece) itemToEquip.name else (itemToEquip as Weapon).name}")
     }
 
     private fun showEquipmentPopup(itemName: String, statsText: String, index: Int, nameColor: Color = Color.BLACK) {
