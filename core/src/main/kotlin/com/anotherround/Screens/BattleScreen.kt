@@ -439,7 +439,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             }
                         }
                         inventory.useItem(consumable)
-                        sfxItemHeal.play(50f)
+                        sfxItemHeal.play(0.9f)
                         updateItemsTable()
                     }
                 })
@@ -450,7 +450,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
                 slotGroup.addListener(object: ClickListener() {
                     override fun clicked(event: InputEvent?, x: Float, y:Float) {
-                        sfxItemFail.play(50f)
+                        sfxItemFail.play(0.9f)
                         showToast("Slot is empty")
                     }
                 })
@@ -986,6 +986,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             combat.resolveDelay = enemySprite.attackDuration()
                         }
                     }
+                    else -> { /***/ }
                 }
             },
 
@@ -1013,6 +1014,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             uiStage.addActor(enemyIcon_NotTurn)
                         }
                     }
+                    else -> { /***/ }
                 }
             },
 
@@ -1022,8 +1024,8 @@ class BattleScreen(val game: Main) : KtxScreen {
                     SfxEvent.EnemyAttack  -> sfxEnemyAttack.play(0.9f)
                     SfxEvent.PlayerHurt   -> sfxPlayerHurt.play(0.9f)
                     SfxEvent.EnemyHurt    -> sfxEnemyHurt.play(0.9f)
-                    SfxEvent.PlayerDeath  -> sfxEnemyDeath.play(1.0f)
-                    SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(1.0f)
+                    SfxEvent.PlayerDeath  -> sfxEnemyDeath.play(0.9f)
+                    SfxEvent.EnemyDeath   -> sfxEnemyDeath.play(0.9f)
                 }
             },
 
@@ -1068,7 +1070,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/battle-fighting-warrior-drums-372078.mp3"))
         backgroundMusic.isLooping = true
-        backgroundMusic.volume = 1.5f
+        backgroundMusic.volume = 0.3f
         backgroundMusic.play()
 
         sfxPlayerAttack = Gdx.audio.newSound(Gdx.files.internal("audio/violent-sword-slice-393839.mp3"))
@@ -1325,7 +1327,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     override fun hide() {
-        backgroundMusic.stop()
+        if (this::backgroundMusic.isInitialized) {
+            backgroundMusic.stop()
+        }
     }
 
     private fun onePixel(color: Color): TextureRegionDrawable {
