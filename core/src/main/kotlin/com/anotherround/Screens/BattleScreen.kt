@@ -1298,12 +1298,54 @@ class BattleScreen(val game: Main) : KtxScreen {
         // --- 1. POTION DROP (Indepedent) ---
         // 70% Chance
         if (kotlin.random.Random.nextFloat() <= 0.70f) {
-             // Simple weighting for potions
-             val roll = kotlin.random.Random.nextFloat()
+             
+             // Dynamic Rarity Weights (Same as Equipment)
+             val wCommon = 100
+             val wUncommon = (round - 3).coerceAtLeast(0) * 1 
+             val wRare = (round - 9).coerceAtLeast(0) * 1
+             val wEpic = (round - 19).coerceAtLeast(0) * 1
+             
+             val totalWeight = wCommon + wUncommon + wRare + wEpic
+             val rollRarity = kotlin.random.Random.nextInt(totalWeight)
+             
+             var current = 0
+             var selectedRarity = PotionRarity.COMMON
+             
+             if (rollRarity < (current + wCommon)) { selectedRarity = PotionRarity.COMMON }
+             else {
+                 current += wCommon
+                 if (rollRarity < (current + wUncommon)) { 
+                     // PotionRarity doesn't have Uncommon, mapping to Rare for now? 
+                     // Wait, PotionRarity enum only has COMMON, RARE, EPIC.
+                     // Mapping "Uncommon" weight to "Rare" or skipping?
+                     // Let's check PotionRarity enum.
+                     // It is: COMMON, RARE, EPIC.
+                     // I will map the "Uncommon" weight to RARE for potions, or just use 3 tiers.
+                     // Let's just use 3 tiers for simplicity: Common, Rare (starts round 5), Epic (starts round 15).
+                     // Adjusted formula for 3 tiers:
+                     selectedRarity = PotionRarity.RARE // Placeholder if logic falls through, fix below
+                 }
+             }
+             
+             // RE-DOING LOGIC FOR 3 TIERS (Common, Rare, Epic)
+             // Common: 100
+             // Rare: (Round - 4) * 1
+             // Epic: (Round - 14) * 1
+             
+             val wRare3 = (round - 4).coerceAtLeast(0) * 1
+             val wEpic3 = (round - 14).coerceAtLeast(0) * 1
+             val total3 = 100 + wRare3 + wEpic3
+             val roll3 = kotlin.random.Random.nextInt(total3)
+             
+             val finalRarity = if (roll3 < 100) PotionRarity.COMMON
+                               else if (roll3 < 100 + wRare3) PotionRarity.RARE
+                               else PotionRarity.EPIC
+
+             val rollType = kotlin.random.Random.nextFloat()
              val potion = when {
-                 roll < 0.60f -> inventory.createHealthPotion()
-                 roll < 0.80f -> inventory.createDefensivePotion()
-                 else -> inventory.createFirePotion()
+                 rollType < 0.60f -> inventory.createHealthPotion(finalRarity)
+                 rollType < 0.80f -> inventory.createDefensivePotion(finalRarity)
+                 else -> inventory.createFirePotion(finalRarity)
              }
              inventory.addItem(potion)
              showToast("Found ${potion.name}!", 2f)
@@ -1311,26 +1353,26 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // --- 2. EQUIPMENT DROP (Indepedent) ---
         // 100% Chance (Guaranteed)
-        if (kotlin.random.Random.nextFloat() <= 0.80f) {
+        if (kotlin.random.Random.nextFloat() <= 0.70f) {
 
             // Dynamic Rarity Weights based on Round
             // User Request: Start very small (e.g. 1%) and grow as rounds progress.
             // Formula: Weight = (Round - StartThreshold) * Multiplier
-            
+
             val wCommon = 100
-            
-            // Start Round 4. At Round 5, weight is (5-3)=2. 2/102 ≈ 2%. 
-            val wUncommon = (round - 3).coerceAtLeast(0) * 1 
-            
+
+            // Start Round 4. At Round 5, weight is (5-3)=2. 2/102 ≈ 2%.
+            val wUncommon = (round - 3).coerceAtLeast(0) * 1
+
             // Start Round 10.
             val wRare = (round - 9).coerceAtLeast(0) * 1
-            
+
             // Start Round 20.
             val wEpic = (round - 19).coerceAtLeast(0) * 1
-            
+
             // Start Round 30.
             val wLegendary = (round - 29).coerceAtLeast(0) * 1
-            
+
             val totalWeight = wCommon + wUncommon + wRare + wEpic + wLegendary
             val roll = kotlin.random.Random.nextInt(totalWeight)
 
