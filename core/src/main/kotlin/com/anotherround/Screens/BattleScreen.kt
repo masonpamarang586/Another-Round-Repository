@@ -1103,6 +1103,28 @@ class BattleScreen(val game: Main) : KtxScreen {
         enemyKind = EnemyFactory.randomKind()
         enemy = EnemyFactory.create(enemyKind)
 
+        // --- BALANCED SCALING ALGORITHM ---
+        // Scale enemy based on round number.
+        // Formula: Base + (Curve * Round)
+        // We ensure a minimum round of 1 to avoid negative scaling glitches.
+        val r = roundNumber.coerceAtLeast(1) - 1
+
+        val hpScale = 3         // +3 HP per round
+        val atkScale = 0.75f    // +0.75 Atk per round (3 Atk every 4 rounds)
+        val defScale = 0.2f     // +0.2 Def per round (1 Def every 5 rounds)
+        
+        val extraHp = (r * hpScale)
+        val extraAtk = (r * atkScale).toInt()
+        val extraDef = (r * defScale).toInt()
+
+        enemy.maxHealth += extraHp
+        enemy.health = enemy.maxHealth // Heal to full
+        enemy.attackStat += extraAtk
+        enemy.defenseStat += extraDef
+        
+        // Scale Level (cosmetic/info)
+        enemy.level += (r / 5)
+
         if (this::enemySprite.isInitialized) {
             enemySprite.dispose()
         }
@@ -1110,7 +1132,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         setupCombat()
 
-        Gdx.app.log("ENEMY", "Spawned ${enemy.name} of kind $enemyKind")
+        Gdx.app.log("ENEMY", "Spawned ${enemy.name} (Lvl ${enemy.level}) - HP:${enemy.maxHealth} ATK:${enemy.attackStat} DEF:${enemy.defenseStat}")
         saveGame()
     }
 

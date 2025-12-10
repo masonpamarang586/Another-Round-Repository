@@ -8,7 +8,7 @@ interface Character {
     var health: Int
     var defenseStat: Int
     var attackStat: Int
-    val maxHealth: Int
+    var maxHealth: Int
 
     var state: CharacterState
         get() = CharacterState.Idle
