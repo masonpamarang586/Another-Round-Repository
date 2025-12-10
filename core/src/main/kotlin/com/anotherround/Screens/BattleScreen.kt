@@ -1126,7 +1126,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         
         // Simulating level growth based on rounds.
         // Round 1 = 0 extra levels. Round 2 = 1 extra level.
-        val levelsGained = roundNumber.coerceAtLeast(1) - 1
+        // CAP: Enemy level should never exceed Player level.
+        // Since Enemy starts at Level 1, max added levels = Player.Level - 1.
+        
+        val potentialLevels = roundNumber.coerceAtLeast(1) - 1
+        val maxLevels = (player.level - 1).coerceAtLeast(0)
+        
+        val levelsGained = potentialLevels.coerceAtMost(maxLevels)
         
         var addedHp = 0
         var addedAtk = 0
