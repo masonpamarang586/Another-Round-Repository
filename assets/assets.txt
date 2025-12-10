@@ -7,6 +7,7 @@ audio/item-use.mp3
 audio/level-up-06-370051.mp3
 audio/magical-hit-45356.mp3
 audio/male_hurt7-48124.mp3
+audio/mystic-fantasy-ambience-441255.mp3
 audio/sword-clattering-to-the-ground-393838.mp3
 audio/violent-sword-slice-393839.mp3
 backgrounds/mainmenu_sheet.png
