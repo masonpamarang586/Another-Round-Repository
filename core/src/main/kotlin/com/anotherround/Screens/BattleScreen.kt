@@ -241,6 +241,12 @@ class BattleScreen(val game: Main) : KtxScreen {
         
         if (this::enemyLevelLabel.isInitialized) {
              enemyLevelLabel.setText("Lvl ${enemy.level}")
+                         
+             if (this::enemySprite.isInitialized) {
+                 val topY = enemySprite.y + enemySprite.cfg.drawHeight
+                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(enemySprite.x + 0.5f, topY + 0.5f, 0f))
+                 enemyLevelLabel.setPosition(screenPos.x - enemyLevelLabel.prefWidth / 2, screenPos.y)
+             }
         }
         
         showToast("Loaded Game: round $roundNumber")
@@ -1261,108 +1267,81 @@ class BattleScreen(val game: Main) : KtxScreen {
     }
 
     private fun rollForDrop(round: Int) {
-        val dropChance = 0.40f // 40% chance overall
+        // --- 1. POTION DROP (Indepedent) ---
+        // 70% Chance
+        if (kotlin.random.Random.nextFloat() <= 0.70f) {
+             // Simple weighting for potions
+             val roll = kotlin.random.Random.nextFloat()
+             val potion = when {
+                 roll < 0.60f -> inventory.createHealthPotion()
+                 roll < 0.80f -> DefensePotion()
+                 else -> FirePotion()
+             }
+             inventory.addItem(potion)
+             showToast("Found ${potion.name}!", 2f)
+        }
 
-        if (kotlin.random.Random.nextFloat() > dropChance) return
-
-        // 1. Determine Rarity
-        // Base: Common 60, Uncommon 25, Rare 10, Epic 4, Legendary 1
-        // Every 5 rounds, reduce Common by 5, increase others.
-        
-        val bonus = (round / 5).coerceAtMost(10) // Cap scaling at round 50
-        
-        var wCommon = 60 - (bonus * 4)
-        var wUncommon = 25 + (bonus * 2)
-        var wRare = 10 + (bonus * 1)
-        var wEpic = 4 + (bonus * 1)
-        var wLegendary = 1 
-        // add remaining to legendary if common drops too low, or just normalize.
-        
-        if (wCommon < 0) wCommon = 0
-        
-        val totalWeight = wCommon + wUncommon + wRare + wEpic + wLegendary
-        val roll = kotlin.random.Random.nextInt(totalWeight)
-        
-        var current = 0
-        var selectedRarityString = "Common"
-        
-        if (roll < (current + wCommon)) {
-            selectedRarityString = "Common"
-        } else {
-            current += wCommon
-            if (roll < (current + wUncommon)) {
-                selectedRarityString = "Uncommon"
-            } else {
-                current += wUncommon
-                if (roll < (current + wRare)) {
-                    selectedRarityString = "Rare"
-                } else {
-                    current += wRare
-                    if (roll < (current + wEpic)) {
-                        selectedRarityString = "Epic"
-                    } else {
-                        selectedRarityString = "Legendary"
+        // --- 2. EQUIPMENT DROP (Indepedent) ---
+        // 50% Chance
+        if (kotlin.random.Random.nextFloat() <= 0.50f) {
+            
+            // Rarity Gating based on Round Number
+            // Round 1-3: Common
+            // Round 4-9: +Uncommon
+            // Round 10-19: +Rare
+            // Round 20+: +Epic/Legendary
+            
+            val canUncommon = round >= 4
+            val canRare = round >= 10
+            val canEpic = round >= 20
+            
+            // Weights
+            val wCommon = 100
+            val wUncommon = if (canUncommon) 60 else 0
+            val wRare = if (canRare) 30 else 0
+            val wEpic = if (canEpic) 10 else 0
+            val wLegendary = if (canEpic) 5 else 0 // Unlocks with Epic for now
+            
+            val totalWeight = wCommon + wUncommon + wRare + wEpic + wLegendary
+            val roll = kotlin.random.Random.nextInt(totalWeight)
+            
+            var current = 0
+            var selectedRarity = "Common"
+            
+            if (roll < (current + wCommon)) { selectedRarity = "Common" }
+            else {
+                current += wCommon
+                if (roll < (current + wUncommon)) { selectedRarity = "Uncommon" }
+                else {
+                    current += wUncommon
+                    if (roll < (current + wRare)) { selectedRarity = "Rare" }
+                    else {
+                        current += wRare
+                        if (roll < (current + wEpic)) { selectedRarity = "Epic" }
+                        else { selectedRarity = "Legendary" }
                     }
                 }
             }
-        }
-        
-        // 2. Determine Type (Potion vs Equipment)
-        val isPotion = kotlin.random.Random.nextFloat() < 0.4f
-        
-        if (isPotion) {
-            val rarityEnum = try { PotionRarity.valueOf(selectedRarityString.uppercase()) } catch(e:Exception) { PotionRarity.COMMON }
-            // Random potion type
-            val typeRoll = kotlin.random.Random.nextFloat()
-            val potion = when {
-                typeRoll < 0.6f -> inventory.createHealthPotion(rarityEnum)
-                typeRoll < 0.8f -> inventory.createDefensivePotion(rarityEnum)
-                else -> inventory.createFirePotion(rarityEnum)
-            }
-            inventory.addItem(potion)
-            showToast("Dropped: ${potion.name}!", 2.0f)
-            sfxItemHeal.play(0.8f)
             
-        } else {
-            // Equipment (Armor or Weapon)
-            val isWeapon = kotlin.random.Random.nextBoolean()
-            
-            if (isWeapon) {
-                val candidates = DEFAULT_WEAPON_BLUEPRINTS.filter { it.rarity.equals(selectedRarityString, ignoreCase = true) }
-                val blueprint = candidates.randomOrNull() ?: DEFAULT_WEAPON_BLUEPRINTS.first() // Fallback
-                
-                if (!this::itemIcons.isInitialized) initEquipmentSprites()
-                
-                val region = itemIcons[blueprint.sprite.row][blueprint.sprite.col]
-                val weapon = Weapon(
-                    name = blueprint.name,
-                    type = blueprint.type,
-                    icon = region,
-                    rarity = blueprint.rarity,
-                    attack = blueprint.attack
-                )
-                weaponInventory.add(weapon)
-                showToast("Dropped: ${weapon.name}!", 2.0f)
-                 sfxItemHeal.play(0.8f)
-                 
+            // Pick Item Type (50/50 Armor/Weapon)
+            if (kotlin.random.Random.nextBoolean()) {
+                // ARMOR
+                val validArmor = DEFAULT_ARMOR_BLUEPRINTS.filter { it.rarity == selectedRarity }
+                if (validArmor.isNotEmpty()) {
+                    val blueprint = validArmor.random()
+                    val piece = buildDefaultArmor(blueprint, itemIcons)
+                    armorInventory.add(piece)
+                    showToast("Found ${piece.name}!", 2f) // Queue toasts? might overlap
+                }
             } else {
-                val candidates = DEFAULT_ARMOR_BLUEPRINTS.filter { it.rarity.equals(selectedRarityString, ignoreCase = true) }
-                val blueprint = candidates.randomOrNull() ?: DEFAULT_ARMOR_BLUEPRINTS.first()
-                
-                if (!this::itemIcons.isInitialized) initEquipmentSprites()
-                
-                val region = itemIcons[blueprint.sprite.row][blueprint.sprite.col]
-                val armor = ArmorPiece(
-                    name = blueprint.name,
-                    slot = blueprint.slot,
-                    icon = region,
-                    rarity = blueprint.rarity,
-                    defense = blueprint.defense,
-                    health = blueprint.health
-                )
-                armorInventory.add(armor)
-                showToast("Dropped: ${armor.name}!", 2.0f)
-                 sfxItemHeal.play(0.8f)
+                // WEAPON
+                val validWeapons = DEFAULT_WEAPON_BLUEPRINTS.filter { it.rarity == selectedRarity }
+                if (validWeapons.isNotEmpty()) {
+                    val blueprint = validWeapons.random()
+                    val weapon = buildDefaultWeapons(blueprint, itemIcons)
+                    weaponInventory.add(weapon)
+                    showToast("Found ${weapon.name}!", 2f)
+                }
             }
         }
     }
@@ -1648,7 +1627,8 @@ class BattleScreen(val game: Main) : KtxScreen {
              playerLevelLabel.isVisible = !showingOverlay
              // Position above player sprite
              if (this::playerSprite.isInitialized) {
-                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(playerSprite.x + 0.5f, playerSprite.y + 1.2f, 0f))
+                 val topY = playerSprite.y + playerSprite.cfg.drawHeight
+                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(playerSprite.x + 0.5f, topY + 0.5f, 0f))
                  playerLevelLabel.setPosition(screenPos.x - playerLevelLabel.prefWidth / 2, screenPos.y)
              }
         }
@@ -1658,7 +1638,8 @@ class BattleScreen(val game: Main) : KtxScreen {
              enemyLevelLabel.setText("Lvl ${enemy.level}") // Update text just in case
              // Position above enemy sprite
              if (this::enemySprite.isInitialized) {
-                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(enemySprite.x + 0.5f, enemySprite.y + 1.2f, 0f))
+                 val topY = enemySprite.y + enemySprite.cfg.drawHeight
+                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(enemySprite.x + 0.5f, topY + 0.5f, 0f))
                  enemyLevelLabel.setPosition(screenPos.x - enemyLevelLabel.prefWidth / 2, screenPos.y)
              }
         }
