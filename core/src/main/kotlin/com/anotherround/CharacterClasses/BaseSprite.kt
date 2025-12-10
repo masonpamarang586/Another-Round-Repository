@@ -59,10 +59,12 @@ open class BaseSprite(
         }
     }
 
-    fun draw(batch: Batch) {
-        val x = viewport.worldWidth * 0.5f + cfg.offsetX - cfg.drawWidth * 0.5f
-        val y = viewport.worldHeight * 0.5f + cfg.offsetY - cfg.drawHeight * 0.5f
+    val x: Float
+        get() = viewport.worldWidth * 0.5f + cfg.offsetX - cfg.drawWidth * 0.5f
+    val y: Float
+        get() = viewport.worldHeight * 0.5f + cfg.offsetY - cfg.drawHeight * 0.5f
 
+    fun draw(batch: Batch) {
         val reg = when(state) {
             State.Idle -> frameAt(idleAnim)
             State.Hurt -> frameAt(hurtAnim)

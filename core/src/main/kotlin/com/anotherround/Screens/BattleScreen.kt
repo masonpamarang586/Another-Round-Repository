@@ -86,6 +86,7 @@ class BattleScreen(val game: Main) : KtxScreen {
     // player info
     private val player = Player(name = "Hero")
     private lateinit var playerLevelLabel: Label
+    private lateinit var enemyLevelLabel: Label
     // current enemy & its type
     private lateinit var enemy: Character
     private lateinit var enemyKind: EnemyKind
@@ -131,6 +132,16 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.currency = basePlayer.currency
 
         inventory.loadDefaultPotions()
+
+        // Clear equipment for new game
+        armorInventory.clear()
+        weaponInventory.clear()
+        equipmentSlots.helmet = null
+        equipmentSlots.chest = null
+        equipmentSlots.boots = null
+        equipmentSlots.weapon = null
+        recalculateStats()
+
         roundNumber = 0
 
         if (this::playerSprite.isInitialized) {
@@ -194,19 +205,50 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // Restore Enemy
         try {
-            enemyKind = EnemyKind.valueOf(state.enemyKind)
+            val kindName = state.enemyKind
+            Gdx.app.log("LOAD", "Attempting to restore enemy: '$kindName' with Health: ${state.enemy.health}")
+
+            enemyKind = EnemyKind.valueOf(kindName)
             enemy = EnemyFactory.create(enemyKind)
+
             // Apply saved stats
-            enemy.health = state.enemy.health
+            if (state.enemy.health > 0) {
+                enemy.health = state.enemy.health
+            } else {
+                 // If saved enemy is dead, we probably want to spawn a new one or handle it.
+                 // For now, let's just respect the save, but ensure it doesn't break logic.
+                 Gdx.app.log("LOAD", "Saved enemy was dead (0 HP). Spawning new random enemy.")
+                 spawnRandomEnemy()
+                 return
+            }
+
             // Re-spawn sprite
             if (this::enemySprite.isInitialized) enemySprite.dispose()
             enemySprite = EnemySprite(game.worldViewport, enemyKind)
+
+            Gdx.app.log("LOAD", "Enemy restored successfully: ${enemy.name} (${enemy.health} HP)")
+
         } catch (e: Exception) {
-            Gdx.app.error("LOAD", "Failed to restore enemy kind ${state.enemyKind}, spawning random", e)
+            Gdx.app.error("LOAD", "Failed to restore enemy kind '${state.enemyKind}', spawning random", e)
             spawnRandomEnemy()
         }
 
         setupCombat()
+
+        if (this::playerLevelLabel.isInitialized) {
+            playerLevelLabel.setText("Lvl: ${player.level}")
+        }
+
+        if (this::enemyLevelLabel.isInitialized) {
+             enemyLevelLabel.setText("Lvl: ${enemy.level}")
+
+             if (this::enemySprite.isInitialized) {
+                 val topY = enemySprite.y + enemySprite.cfg.drawHeight
+                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(enemySprite.x + 0.5f, topY + 0.5f, 0f))
+                 enemyLevelLabel.setPosition(screenPos.x - enemyLevelLabel.prefWidth / 2, screenPos.y)
+             }
+        }
+
         showToast("Loaded Game: round $roundNumber")
     }
 
@@ -284,6 +326,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     lateinit var itemsButton: TextButton
     lateinit var equipmentButton: TextButton
 
+    // Level Labels
+
+
     private val menuTable by lazy {
         val table = Table()
         val attackButton = TextButton("Attack", buttonStyle)
@@ -345,10 +390,11 @@ class BattleScreen(val game: Main) : KtxScreen {
     private lateinit var equipmentEquippedTable: Table
     private lateinit var equipmentInventoryTable: Table
 
-    // popup for inventory stats
+    // popup overlay for item stats
     private lateinit var equipmentPopupContainer: Table
     private lateinit var equipmentPopupNameLabel: Label
     private lateinit var equipmentPopupLabel: Label
+    private lateinit var equipmentEquipButton: TextButton
     private var selectedEquipmentIndex: Int? = null
 
     // round label
@@ -440,7 +486,7 @@ class BattleScreen(val game: Main) : KtxScreen {
                             }
                             is FirePotion -> {
                                 combat.addEffect(enemy, StatusEffect.Burn(consumable.damagePerRound, consumable.durationRounds))
-                                enemy.takeDamage(consumable.damagePerRound) // Instant damage
+                                enemy.takeTrueDamage(consumable.damagePerRound) // Instant damage (True Damage)
                                 showDamagePopup(enemy, consumable.damagePerRound)
                                 enemyHealthLabel.setText("${enemy.health}")
                                 showToast("Fire! ${consumable.damagePerRound} damage!")
@@ -574,22 +620,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         armorTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
 
         itemIcons = TextureRegion.split(armorTexture, 64, 64)
-
-        armorInventory.clear()
-        armorInventory.addAll(buildDefaultArmor(itemIcons))
-
-        weaponInventory.clear()
-        weaponInventory.addAll(buildDefaultWeapons(itemIcons))
-
-        // Default equipped items:
-        equipmentSlots.weapon = weaponInventory.firstOrNull() // first weapon
-        equipmentSlots.helmet = armorInventory.firstOrNull { it.slot == ArmorSlot.HELMET }
-        equipmentSlots.chest  = armorInventory.firstOrNull { it.slot == ArmorSlot.CHEST }
-        equipmentSlots.boots  = armorInventory.firstOrNull { it.slot == ArmorSlot.BOOTS }
-
-        recalculateStats()
-        // Start full health
-        player.health = player.maxHealth
     }
 
     private fun recalculateStats() {
@@ -697,6 +727,30 @@ class BattleScreen(val game: Main) : KtxScreen {
             setFontScale(0.9f)
         }
 
+
+        // Equip button
+        equipmentEquipButton = TextButton("Equip", buttonStyle)
+        equipmentEquipButton.label.setFontScale(0.8f) // slightly smaller text
+        equipmentEquipButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                selectedEquipmentIndex?.let { index ->
+                    onEquipItem(index)
+                }
+            }
+        })
+
+        // Discard button
+        val discardButton = TextButton("Discard", buttonStyle)
+        discardButton.label.setFontScale(0.8f)
+        discardButton.label.color = Color.RED
+        discardButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                selectedEquipmentIndex?.let { index ->
+                    onDiscardItem(index)
+                }
+            }
+        })
+
         // item name on top and then stats under it
         popupInner.add(equipmentPopupNameLabel)
             .padBottom(8f)
@@ -708,6 +762,16 @@ class BattleScreen(val game: Main) : KtxScreen {
             .width(Gdx.graphics.width * 0.6f)
             .padLeft(25f)
             .left()
+            .row()
+
+        // Buttons row
+        val buttonTable = Table()
+        buttonTable.add(equipmentEquipButton).width(250f).height(100f).padRight(20f)
+        buttonTable.add(discardButton).width(250f).height(100f)
+
+        popupInner.add(buttonTable)
+            .padTop(20f)
+            .center()
 
         equipmentPopupContainer.add(popupInner)
             .expandX()
@@ -715,6 +779,80 @@ class BattleScreen(val game: Main) : KtxScreen {
             .center()
 
         equipmentTable.addActor(equipmentPopupContainer)
+    }
+
+    /**
+     * Replaces the logic for equipping item from existing inventory list.
+     */
+    private fun onEquipItem(index: Int) {
+        val combined = mutableListOf<Any>()
+        combined.addAll(armorInventory)
+        combined.addAll(weaponInventory)
+
+        val itemToEquip = combined.getOrNull(index) ?: return
+
+        // Logic:
+        // 1. Remove from inventory
+        // 2. Unequip old item (move to inventory)
+        // 3. Equip new item
+
+        if (itemToEquip is ArmorPiece) {
+            val oldItem = when (itemToEquip.slot) {
+                ArmorSlot.HELMET -> equipmentSlots.helmet
+                ArmorSlot.CHEST -> equipmentSlots.chest
+                ArmorSlot.BOOTS -> equipmentSlots.boots
+            }
+
+            // Remove from inventory
+            armorInventory.remove(itemToEquip)
+
+            // Add old item back
+            oldItem?.let { armorInventory.add(it) }
+
+            // Set new item
+            when (itemToEquip.slot) {
+                ArmorSlot.HELMET -> equipmentSlots.helmet = itemToEquip
+                ArmorSlot.CHEST -> equipmentSlots.chest = itemToEquip
+                ArmorSlot.BOOTS -> equipmentSlots.boots = itemToEquip
+            }
+
+        } else if (itemToEquip is Weapon) {
+            val oldItem = equipmentSlots.weapon
+
+            // Remove from inventory
+            weaponInventory.remove(itemToEquip)
+
+            // Add old
+            oldItem?.let { weaponInventory.add(it) }
+
+            // Set new
+            equipmentSlots.weapon = itemToEquip
+        }
+
+        recalculateStats()
+        hideEquipmentPopup()
+        updateEquipmentTable()
+        playerHealthLabel.setText("${player.health}/${player.maxHealth}")
+        showToast("Equipped: ${if (itemToEquip is ArmorPiece) itemToEquip.name else (itemToEquip as Weapon).name}")
+    }
+
+    private fun onDiscardItem(index: Int) {
+        val combined = mutableListOf<Any>()
+        combined.addAll(armorInventory)
+        combined.addAll(weaponInventory)
+
+        val item = combined.getOrNull(index) ?: return
+
+        if (item is ArmorPiece) {
+            armorInventory.remove(item)
+            showToast("Discarded ${item.name}")
+        } else if (item is Weapon) {
+            weaponInventory.remove(item)
+            showToast("Discarded ${item.name}")
+        }
+
+        hideEquipmentPopup()
+        updateEquipmentTable()
     }
 
     private fun showEquipmentPopup(itemName: String, statsText: String, index: Int, nameColor: Color = Color.BLACK) {
@@ -966,11 +1104,64 @@ class BattleScreen(val game: Main) : KtxScreen {
     private fun showGameOverPopup() {
         isGameOver = true
         gameOverTable.isVisible = true
+
+        // Delete save file if session is active
+        currentSession?.let {
+            Gdx.app.log("GAME_OVER", "Deleting save for slot ${it.slotId}")
+            SaveGame.delete(it.slotId)
+        }
     }
+
 
     private fun spawnRandomEnemy() {
         enemyKind = EnemyFactory.randomKind()
         enemy = EnemyFactory.create(enemyKind)
+
+        // --- BALANCED SCALING ALGORITHM ---
+        // Scale enemy stats to match Player growth formula:
+        // HP: 10 + (Lvl * 2)
+        // ATK: 2 + (Lvl / 2)
+        // DEF: 1 + (Lvl / 3)
+        // Enemies start at Lvl 1 equivalent (Round 1).
+
+        // Simulating level growth based on rounds.
+        // Round 1 = 0 extra levels. Round 2 = 1 extra level.
+        // CAP: Enemy level should never exceed Player level.
+        // Since Enemy starts at Level 1, max added levels = Player.Level - 1.
+
+        val potentialLevels = roundNumber.coerceAtLeast(1) - 1
+        val maxLevels = (player.level - 1).coerceAtLeast(0)
+
+        val levelsGained = potentialLevels.coerceAtMost(maxLevels)
+
+        var addedHp = 0
+        var addedAtk = 0
+        var addedDef = 0
+
+        for (i in 1..levelsGained) {
+             // Use "current level" i for scaling calc if needed, or just linear cumulative
+             // Player gain is constant per level up:
+             // HP: +10 + (level*2) <- This is cumulative? No, Player.kt applyLevelUpStatGains uses 'level'
+             // Player.kt: hpGain = 10 + level * 2.
+             // Variable growth! Higher levels give MORE stats per level.
+             // We need to simulate the level up loop.
+
+             // Current simulated level for the enemy
+             val simLevel = enemy.level + i
+
+             // Medium scaling (Slightly faster than before, but still below Player)
+             addedHp += (8 + (simLevel * 1.3)).toInt()
+             addedAtk += 1 + (simLevel / 3)
+             addedDef += 1 + (simLevel / 4)
+        }
+
+        enemy.maxHealth += addedHp
+        enemy.health = enemy.maxHealth // Heal to full
+        enemy.attackStat += addedAtk
+        enemy.defenseStat += addedDef
+
+        // Update visual level
+        enemy.level += levelsGained
 
         if (this::enemySprite.isInitialized) {
             enemySprite.dispose()
@@ -979,7 +1170,8 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         setupCombat()
 
-        Gdx.app.log("ENEMY", "Spawned ${enemy.name} of kind $enemyKind")
+        Gdx.app.log("ENEMY", "Spawned ${enemy.name} (Lvl: ${enemy.level}) - HP:${enemy.maxHealth} ATK:${enemy.attackStat} DEF:${enemy.defenseStat}")
+        saveGame()
     }
 
     private fun setupCombat() {
@@ -999,35 +1191,56 @@ class BattleScreen(val game: Main) : KtxScreen {
                             combat.resolveDelay = enemySprite.attackDuration()
                         }
                     }
+                    is Action.Defend -> {
+                         combat.resolveDelay = 1.5f
+                         showToast("${action.target.name} Braces!", 1.5f)
+                    }
+                    is Action.ApplyBurn -> {
+                         combat.resolveDelay = 1.5f
+                         showToast("${action.applier.name} casts Burn!", 1.5f)
+                    }
                     else -> { /***/ }
                 }
             },
 
             onActionEnd = { action ->
-                when (action) {
-                    is Action.Attack -> {
-                        if (action.attacker === player) {
-                            if (enemy.isAlive()) {
-                                enemySprite.playHurt()
-                                combat.pauseNextTurnFor(max(1.5f, enemySprite.hurtDuration()))
-                                playerIcon.remove()
-                                enemyIcon_NotTurn.remove()
-                                uiStage.addActor(playerIcon_NotTurn)
-                                uiStage.addActor(enemyIcon)
-                            } else {
-                                enemySprite.playDeath()
-                                combat.pauseNextTurnFor(enemySprite.deathDuration())
-                            }
-                        } else if (action.attacker === enemy) {
-                            playerSprite.playHurt()
-                            combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
-                            playerIcon_NotTurn.remove()
-                            enemyIcon.remove()
-                            uiStage.addActor(playerIcon)
-                            uiStage.addActor(enemyIcon_NotTurn)
+
+                // Determine who just acted
+                val attacker = when(action) {
+                    is Action.Attack -> action.attacker
+                    is Action.ApplyBurn -> action.applier
+                    is Action.Defend -> action.target // Self-target
+                }
+
+                // 1. Play hurt animations/Death logic ONLY on Attack
+                if (action is Action.Attack) {
+                    if (action.attacker === player) {
+                        if (enemy.isAlive()) {
+                            enemySprite.playHurt()
+                            combat.pauseNextTurnFor(max(1.5f, enemySprite.hurtDuration()))
+                        } else {
+                            enemySprite.playDeath()
+                            combat.pauseNextTurnFor(enemySprite.deathDuration())
                         }
+                    } else if (action.attacker === enemy) {
+                        playerSprite.playHurt()
+                        combat.pauseNextTurnFor(max(1.5f, playerSprite.hurtDuration()))
                     }
-                    else -> { /***/ }
+                }
+
+                // 2. SWAP Turn Icons (Using attacker to determine who finished turn)
+                if (attacker === player) {
+                     // Player finished acting -> Enemy Turn
+                     playerIcon.remove()
+                     enemyIcon_NotTurn.remove()
+                     uiStage.addActor(playerIcon_NotTurn)
+                     uiStage.addActor(enemyIcon)
+                } else {
+                     // Enemy finished acting -> Player Turn
+                     playerIcon_NotTurn.remove()
+                     enemyIcon.remove()
+                     uiStage.addActor(playerIcon)
+                     uiStage.addActor(enemyIcon_NotTurn)
                 }
             },
 
@@ -1050,8 +1263,11 @@ class BattleScreen(val game: Main) : KtxScreen {
                     roundNumber += 1  // increment round when enemy is defeated
                     Gdx.app.log("REWARD", "+$coins Gold. Total: ${player.currency} | Round $roundNumber")
                     showToast("+10 XP, +$$coins\nRound: $roundNumber", 1.5f)
+
+                    // Attempt Drop
+                    rollForDrop(roundNumber)
+
                     scheduleNextEnemy(delaySeconds = 2f)
-                    saveGame() // Auto-save after round
                 }
                 if (defeated === player) {
                     playerSprite.playDeath()
@@ -1077,8 +1293,144 @@ class BattleScreen(val game: Main) : KtxScreen {
         )
     }
 
+    private fun rollForDrop(round: Int) {
+        // --- 1. POTION DROP (Indepedent) ---
+        // 70% Chance
+        if (kotlin.random.Random.nextFloat() <= 0.70f) {
+
+             // Dynamic Rarity Weights (Same as Equipment)
+             val wCommon = 100
+             val wUncommon = (round - 3).coerceAtLeast(0) * 1
+             val wRare = (round - 9).coerceAtLeast(0) * 1
+             val wEpic = (round - 19).coerceAtLeast(0) * 1
+
+             val totalWeight = wCommon + wUncommon + wRare + wEpic
+             val rollRarity = kotlin.random.Random.nextInt(totalWeight)
+
+             var current = 0
+             var selectedRarity = PotionRarity.COMMON
+
+             if (rollRarity < (current + wCommon)) { selectedRarity = PotionRarity.COMMON }
+             else {
+                 current += wCommon
+                 if (rollRarity < (current + wUncommon)) {
+                     // PotionRarity doesn't have Uncommon, mapping to Rare for now?
+                     // Wait, PotionRarity enum only has COMMON, RARE, EPIC.
+                     // Mapping "Uncommon" weight to "Rare" or skipping?
+                     // Let's check PotionRarity enum.
+                     // It is: COMMON, RARE, EPIC.
+                     // I will map the "Uncommon" weight to RARE for potions, or just use 3 tiers.
+                     // Let's just use 3 tiers for simplicity: Common, Rare (starts round 5), Epic (starts round 15).
+                     // Adjusted formula for 3 tiers:
+                     selectedRarity = PotionRarity.RARE // Placeholder if logic falls through, fix below
+                 }
+             }
+
+             // Common: 100
+             // Rare: (Round - 4) * 1
+             // Epic: (Round - 14) * 1
+
+             val wRare3 = (round - 4).coerceAtLeast(0) * 1
+             val wEpic3 = (round - 14).coerceAtLeast(0) * 1
+             val total3 = 100 + wRare3 + wEpic3
+             val roll3 = kotlin.random.Random.nextInt(total3)
+
+             val finalRarity = if (roll3 < 100) PotionRarity.COMMON
+                               else if (roll3 < 100 + wRare3) PotionRarity.RARE
+                               else PotionRarity.EPIC
+
+             val rollType = kotlin.random.Random.nextFloat()
+             val potion = when {
+                 rollType < 0.60f -> inventory.createHealthPotion(finalRarity)
+                 rollType < 0.80f -> inventory.createDefensivePotion(finalRarity)
+                 else -> inventory.createFirePotion(finalRarity)
+             }
+             inventory.addItem(potion)
+             showToast("Found ${potion.name}!", 2f)
+        }
+
+        // --- 2. EQUIPMENT DROP (Indepedent) ---
+        if (kotlin.random.Random.nextFloat() <= 0.70f) {
+
+            // Dynamic Rarity Weights based on Round
+            // Formula: Weight = (Round - StartThreshold) * Multiplier
+
+            val wCommon = 100
+
+            // Start Round 4. At Round 5, weight is (5-3)=2. 2/102 ≈ 2%.
+            val wUncommon = (round - 3).coerceAtLeast(0) * 1
+
+            // Start Round 10.
+            val wRare = (round - 9).coerceAtLeast(0) * 1
+
+            // Start Round 20.
+            val wEpic = (round - 19).coerceAtLeast(0) * 1
+
+            // Start Round 30.
+            val wLegendary = (round - 29).coerceAtLeast(0) * 1
+
+            val totalWeight = wCommon + wUncommon + wRare + wEpic + wLegendary
+            val roll = kotlin.random.Random.nextInt(totalWeight)
+
+            var current = 0
+            var selectedRarity = "Common"
+
+            if (roll < (current + wCommon)) { selectedRarity = "Common" }
+            else {
+                current += wCommon
+                if (roll < (current + wUncommon)) { selectedRarity = "Uncommon" }
+                else {
+                    current += wUncommon
+                    if (roll < (current + wRare)) { selectedRarity = "Rare" }
+                    else {
+                        current += wRare
+                        if (roll < (current + wEpic)) { selectedRarity = "Epic" }
+                        else { selectedRarity = "Legendary" }
+                    }
+                }
+            }
+
+            // Pick Item Type (50/50 Armor/Weapon)
+            if (kotlin.random.Random.nextBoolean()) {
+                // ARMOR
+                val validArmor = DEFAULT_ARMOR_BLUEPRINTS.filter { it.rarity == selectedRarity }
+                if (validArmor.isNotEmpty()) {
+                    val blueprint = validArmor.random()
+                    val region = itemIcons[blueprint.sprite.row][blueprint.sprite.col]
+                    val piece = ArmorPiece(
+                        name = blueprint.name,
+                        slot = blueprint.slot,
+                        icon = region,
+                        rarity = blueprint.rarity,
+                        defense = blueprint.defense,
+                        health = blueprint.health
+                    )
+                    armorInventory.add(piece)
+                    showToast("Found ${piece.name}!", 2f)
+                }
+            } else {
+                // WEAPON
+                val validWeapons = DEFAULT_WEAPON_BLUEPRINTS.filter { it.rarity == selectedRarity }
+                if (validWeapons.isNotEmpty()) {
+                    val blueprint = validWeapons.random()
+                    val region = itemIcons[blueprint.sprite.row][blueprint.sprite.col]
+                    val weapon = Weapon(
+                        name = blueprint.name,
+                        type = blueprint.type,
+                        icon = region,
+                        rarity = blueprint.rarity,
+                        attack = blueprint.attack
+                    )
+                    weaponInventory.add(weapon)
+                    showToast("Found ${weapon.name}!", 2f)
+                }
+            }
+        }
+    }
+
     override fun show() {
         updateFont()
+        uiStage.clear()
 
         pauseUI.updateFont(font)
         GameLogic.gameState = GameLogic.GameState.BATTLE
@@ -1106,6 +1458,10 @@ class BattleScreen(val game: Main) : KtxScreen {
             spawnRandomEnemy()
         }
 
+        if (!this::enemy.isInitialized) {
+            spawnRandomEnemy()
+        }
+
         pauseUI.updateFont(font)
         pauseUI.onResize()
 
@@ -1127,13 +1483,15 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(playerIcon)
         uiStage.addActor(enemyIcon_NotTurn)
         GameLogic.screen = this
+
+        // Labels for Levels
         playerLevelLabel = Label("Lvl: ${player.level}", Label.LabelStyle(font, Color.WHITE))
         playerLevelLabel.setFontScale(0.75f)
         uiStage.addActor(playerLevelLabel)
-        playerLevelLabel.setPosition(
-            playerHealthLabel.x + 40f,
-            playerHealthLabel.y - 975f
-        )
+
+        enemyLevelLabel = Label("Lvl: ${enemy.level}", Label.LabelStyle(font, Color.WHITE))
+        enemyLevelLabel.setFontScale(0.75f)
+        uiStage.addActor(enemyLevelLabel)
 
         playerHealthLabel.setSize(300f, 200f)
 
@@ -1173,11 +1531,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         val labelStyle = Label.LabelStyle(font, color)
         val popup = Label(text, labelStyle)
 
-        // Position roughly above the sprite
-        // We need to project world coordinates to UI stage coordinates or just estimate
-        // The sprites are drawn in world coordinates (projectionMatrix = worldViewport.camera.combined)
-        // The UI is drawn in UI coordinates.
-        // Simple map:
         val x = if (character === player) Gdx.graphics.width * 0.25f else Gdx.graphics.width * 0.75f
         val y = Gdx.graphics.height * 0.6f
 
@@ -1221,10 +1574,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         playerHealthLabel.setPosition(225f, iconY)
 
         // Player: XP Label
-        playerLevelLabel.setPosition(
-            playerHealthLabel.x + 40f,
-            playerHealthLabel.y - 975f
-        )
+        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
 
         // Enemy: Icon (Width-500) -> Label (Width-300)
         enemyIcon.setPosition(Gdx.graphics.width - 525f, iconY)
@@ -1333,6 +1683,14 @@ class BattleScreen(val game: Main) : KtxScreen {
             playerIcon_NotTurn.isVisible = false
             enemyIcon_NotTurn.isVisible = false
 
+            // Game Over state - only show game over table
+             if (this::playerLevelLabel.isInitialized) {
+                playerLevelLabel.isVisible = false
+             }
+             if (this::enemyLevelLabel.isInitialized) {
+                enemyLevelLabel.isVisible = false
+             }
+
             uiStage.draw()
             return
         }
@@ -1346,6 +1704,27 @@ class BattleScreen(val game: Main) : KtxScreen {
             enemyIcon.isVisible = !showingOverlay
             playerIcon_NotTurn.isVisible = !showingOverlay
             enemyIcon_NotTurn.isVisible = !showingOverlay
+
+        if (this::playerLevelLabel.isInitialized) {
+             playerLevelLabel.isVisible = !showingOverlay
+             // Position above player sprite
+             if (this::playerSprite.isInitialized) {
+                 val topY = playerSprite.y + playerSprite.cfg.drawHeight
+                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(playerSprite.x + 0.5f, topY + 0.5f, 0f))
+                 playerLevelLabel.setPosition(screenPos.x - playerLevelLabel.prefWidth / 2, screenPos.y)
+             }
+        }
+
+        if (this::enemyLevelLabel.isInitialized) {
+             enemyLevelLabel.isVisible = !showingOverlay
+             enemyLevelLabel.setText("Lvl: ${enemy.level}") // Update text just in case
+             // Position above enemy sprite
+             if (this::enemySprite.isInitialized) {
+                 val topY = enemySprite.y + enemySprite.cfg.drawHeight
+                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(enemySprite.x + 0.5f, topY + 0.5f, 0f))
+                 enemyLevelLabel.setPosition(screenPos.x - enemyLevelLabel.prefWidth / 2 + 180f, screenPos.y)
+             }
+        }
 
             itemsTable.isVisible = isShowingItems
             equipmentTable.isVisible = isShowingEquipment
@@ -1432,9 +1811,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     private fun restoreArmor(data: ArmorData): ArmorPiece? {
         val bp = DEFAULT_ARMOR_BLUEPRINTS.find { it.name == data.name } ?: return null
         return ArmorPiece(
-            name = bp.name, slot = bp.slot,
-            icon = itemIcons[bp.sprite.row][bp.sprite.col],
-            rarity = data.rarity, defense = data.defense, health = data.health
+             name = bp.name, slot = bp.slot,
+             icon = itemIcons[bp.sprite.row][bp.sprite.col],
+             rarity = data.rarity, defense = data.defense, health = data.health
         )
     }
 
@@ -1446,9 +1825,9 @@ class BattleScreen(val game: Main) : KtxScreen {
     private fun restoreWeapon(data: WeaponData): Weapon? {
         val bp = DEFAULT_WEAPON_BLUEPRINTS.find { it.name == data.name } ?: return null
         return Weapon(
-            name = bp.name, type = bp.type,
-            icon = itemIcons[bp.sprite.row][bp.sprite.col],
-            rarity = data.rarity, attack = data.attack
+             name = bp.name, type = bp.type,
+             icon = itemIcons[bp.sprite.row][bp.sprite.col],
+             rarity = data.rarity, attack = data.attack
         )
     }
 }

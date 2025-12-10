@@ -124,7 +124,7 @@ class CombatManager(
         }
 
         if (totalBurnDamage > 0) {
-            character.takeDamage(totalBurnDamage)
+            character.takeTrueDamage(totalBurnDamage)
             onDamage(character, totalBurnDamage) // <--- ADDED
             onLog("${character.name} takes $totalBurnDamage burn damage!")
             // Check for death from burn
