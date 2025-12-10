@@ -1066,11 +1066,11 @@ class BattleScreen(val game: Main) : KtxScreen {
             },
             onLevelUp = { newLevel, PlayerRef ->
                 if (this::playerLevelLabel.isInitialized) {
-                    playerLevelLabel.setText("Lvl $newLevel")
+                    playerLevelLabel.setText("Lvl: $newLevel")
                 }
                 playerHealthLabel.setText("${PlayerRef.health}/${PlayerRef.maxHealth}")
 
-                showToast("Level up! You are now Lvl $newLevel", 2.0f)
+                showToast("Level up! Level: $newLevel", 2.0f)
                 sfxLevelUp.play(0.9f)
             },
             resolveDelay = 0f
@@ -1127,9 +1127,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(playerIcon)
         uiStage.addActor(enemyIcon_NotTurn)
         GameLogic.screen = this
-        playerLevelLabel = Label("Lvl ${player.level}", Label.LabelStyle(font, Color.WHITE))
+        playerLevelLabel = Label("Lvl: ${player.level}", Label.LabelStyle(font, Color.WHITE))
+        playerLevelLabel.setFontScale(0.75f)
         uiStage.addActor(playerLevelLabel)
-        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
+        playerLevelLabel.setPosition(
+            playerHealthLabel.x + 40f,
+            playerHealthLabel.y - 975f
+        )
 
         playerHealthLabel.setSize(300f, 200f)
 
@@ -1217,7 +1221,10 @@ class BattleScreen(val game: Main) : KtxScreen {
         playerHealthLabel.setPosition(225f, iconY)
 
         // Player: XP Label
-        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
+        playerLevelLabel.setPosition(
+            playerHealthLabel.x + 40f,
+            playerHealthLabel.y - 975f
+        )
 
         // Enemy: Icon (Width-500) -> Label (Width-300)
         enemyIcon.setPosition(Gdx.graphics.width - 525f, iconY)
