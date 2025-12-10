@@ -708,6 +708,7 @@ class BattleScreen(val game: Main) : KtxScreen {
             setFontScale(0.9f)
         }
         
+
         // Equip button
         equipmentEquipButton = TextButton("Equip", buttonStyle)
         equipmentEquipButton.label.setFontScale(0.8f) // slightly smaller text
@@ -715,6 +716,18 @@ class BattleScreen(val game: Main) : KtxScreen {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 selectedEquipmentIndex?.let { index ->
                     onEquipItem(index)
+                }
+            }
+        })
+
+        // Discard button
+        val discardButton = TextButton("Discard", buttonStyle)
+        discardButton.label.setFontScale(0.8f)
+        discardButton.label.color = Color.RED
+        discardButton.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                selectedEquipmentIndex?.let { index ->
+                    onDiscardItem(index)
                 }
             }
         })
@@ -732,8 +745,12 @@ class BattleScreen(val game: Main) : KtxScreen {
             .left()
             .row()
             
-        popupInner.add(equipmentEquipButton)
-            .width(300f).height(120f)
+        // Buttons row
+        val buttonTable = Table()
+        buttonTable.add(equipmentEquipButton).width(250f).height(100f).padRight(20f)
+        buttonTable.add(discardButton).width(250f).height(100f)
+        
+        popupInner.add(buttonTable)
             .padTop(20f)
             .center()
 
@@ -798,6 +815,25 @@ class BattleScreen(val game: Main) : KtxScreen {
         updateEquipmentTable()
         playerHealthLabel.setText("${player.health}/${player.maxHealth}")
         showToast("Equipped: ${if (itemToEquip is ArmorPiece) itemToEquip.name else (itemToEquip as Weapon).name}")
+    }
+
+    private fun onDiscardItem(index: Int) {
+        val combined = mutableListOf<Any>()
+        combined.addAll(armorInventory)
+        combined.addAll(weaponInventory)
+        
+        val item = combined.getOrNull(index) ?: return
+        
+        if (item is ArmorPiece) {
+            armorInventory.remove(item)
+            showToast("Discarded ${item.name}")
+        } else if (item is Weapon) {
+            weaponInventory.remove(item)
+            showToast("Discarded ${item.name}")
+        }
+        
+        hideEquipmentPopup()
+        updateEquipmentTable()
     }
 
     private fun showEquipmentPopup(itemName: String, statsText: String, index: Int, nameColor: Color = Color.BLACK) {
