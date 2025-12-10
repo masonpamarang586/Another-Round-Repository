@@ -233,6 +233,11 @@ class BattleScreen(val game: Main) : KtxScreen {
         }
 
         setupCombat()
+        
+        if (this::playerLevelLabel.isInitialized) {
+            playerLevelLabel.setText("Lvl ${player.level}")
+        }
+        
         showToast("Loaded Game: round $roundNumber")
     }
 
@@ -1575,6 +1580,10 @@ class BattleScreen(val game: Main) : KtxScreen {
             enemyIcon.isVisible = !showingOverlay
             playerIcon_NotTurn.isVisible = !showingOverlay
             enemyIcon_NotTurn.isVisible = !showingOverlay
+            
+            if (this::playerLevelLabel.isInitialized) {
+                playerLevelLabel.isVisible = !showingOverlay
+            }
 
             itemsTable.isVisible = isShowingItems
             equipmentTable.isVisible = isShowingEquipment
