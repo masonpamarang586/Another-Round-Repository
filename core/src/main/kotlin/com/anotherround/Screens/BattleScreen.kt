@@ -1274,8 +1274,8 @@ class BattleScreen(val game: Main) : KtxScreen {
              val roll = kotlin.random.Random.nextFloat()
              val potion = when {
                  roll < 0.60f -> inventory.createHealthPotion()
-                 roll < 0.80f -> DefensePotion()
-                 else -> FirePotion()
+                 roll < 0.80f -> inventory.createDefensivePotion()
+                 else -> inventory.createFirePotion()
              }
              inventory.addItem(potion)
              showToast("Found ${potion.name}!", 2f)
@@ -1329,16 +1329,32 @@ class BattleScreen(val game: Main) : KtxScreen {
                 val validArmor = DEFAULT_ARMOR_BLUEPRINTS.filter { it.rarity == selectedRarity }
                 if (validArmor.isNotEmpty()) {
                     val blueprint = validArmor.random()
-                    val piece = buildDefaultArmor(blueprint, itemIcons)
+                    // Manually build the item since buildDefaultArmor builds ALL items
+                    val region = itemIcons[blueprint.sprite.row][blueprint.sprite.col]
+                    val piece = ArmorPiece(
+                        name = blueprint.name,
+                        slot = blueprint.slot,
+                        icon = region,
+                        rarity = blueprint.rarity,
+                        defense = blueprint.defense,
+                        health = blueprint.health
+                    )
                     armorInventory.add(piece)
-                    showToast("Found ${piece.name}!", 2f) // Queue toasts? might overlap
+                    showToast("Found ${piece.name}!", 2f)
                 }
             } else {
                 // WEAPON
                 val validWeapons = DEFAULT_WEAPON_BLUEPRINTS.filter { it.rarity == selectedRarity }
                 if (validWeapons.isNotEmpty()) {
                     val blueprint = validWeapons.random()
-                    val weapon = buildDefaultWeapons(blueprint, itemIcons)
+                    val region = itemIcons[blueprint.sprite.row][blueprint.sprite.col]
+                    val weapon = Weapon(
+                        name = blueprint.name,
+                        type = blueprint.type,
+                        icon = region,
+                        rarity = blueprint.rarity,
+                        attack = blueprint.attack
+                    )
                     weaponInventory.add(weapon)
                     showToast("Found ${weapon.name}!", 2f)
                 }
