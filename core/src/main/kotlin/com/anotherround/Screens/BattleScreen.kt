@@ -238,6 +238,16 @@ class BattleScreen(val game: Main) : KtxScreen {
             playerLevelLabel.setText("Lvl ${player.level}")
         }
         
+        if (this::enemyLevelLabel.isInitialized) {
+             enemyLevelLabel.isVisible = !showingOverlay
+             enemyLevelLabel.setText("Lvl ${enemy.level}") // Update text just in case
+             // Position above enemy sprite
+             if (this::enemySprite.isInitialized) {
+                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(enemySprite.x + 0.5f, enemySprite.y + 1.2f, 0f))
+                 enemyLevelLabel.setPosition(screenPos.x - enemyLevelLabel.prefWidth / 2, screenPos.y)
+             }
+        }
+        
         showToast("Loaded Game: round $roundNumber")
     }
 
@@ -314,6 +324,10 @@ class BattleScreen(val game: Main) : KtxScreen {
     lateinit var attackButton: TextButton
     lateinit var itemsButton: TextButton
     lateinit var equipmentButton: TextButton
+    
+    // Level Labels
+    lateinit var playerLevelLabel: Label
+    lateinit var enemyLevelLabel: Label
 
     private val menuTable by lazy {
         val table = Table()
@@ -1104,26 +1118,43 @@ class BattleScreen(val game: Main) : KtxScreen {
         enemy = EnemyFactory.create(enemyKind)
 
         // --- BALANCED SCALING ALGORITHM ---
-        // Scale enemy based on round number.
-        // Formula: Base + (Curve * Round)
-        // We ensure a minimum round of 1 to avoid negative scaling glitches.
-        val r = roundNumber.coerceAtLeast(1) - 1
-
-        val hpScale = 3         // +3 HP per round
-        val atkScale = 0.75f    // +0.75 Atk per round (3 Atk every 4 rounds)
-        val defScale = 0.2f     // +0.2 Def per round (1 Def every 5 rounds)
+        // Scale enemy stats to match Player growth formula:
+        // HP: 10 + (Lvl * 2)
+        // ATK: 2 + (Lvl / 2)
+        // DEF: 1 + (Lvl / 3)
+        // Enemies start at Lvl 1 equivalent (Round 1).
         
-        val extraHp = (r * hpScale)
-        val extraAtk = (r * atkScale).toInt()
-        val extraDef = (r * defScale).toInt()
-
-        enemy.maxHealth += extraHp
+        // Simulating level growth based on rounds.
+        // Round 1 = 0 extra levels. Round 2 = 1 extra level.
+        val levelsGained = roundNumber.coerceAtLeast(1) - 1
+        
+        var addedHp = 0
+        var addedAtk = 0
+        var addedDef = 0
+        
+        for (i in 1..levelsGained) {
+             // Use "current level" i for scaling calc if needed, or just linear cumulative
+             // Player gain is constant per level up:
+             // HP: +10 + (level*2) <- This is cumulative? No, Player.kt applyLevelUpStatGains uses 'level'
+             // Player.kt: hpGain = 10 + level * 2. 
+             // Variable growth! Higher levels give MORE stats per level.
+             // We need to simulate the level up loop.
+             
+             // Current simulated level for the enemy
+             val simLevel = enemy.level + i 
+             
+             addedHp += 10 + (simLevel * 2)
+             addedAtk += 2 + (simLevel / 2)
+             addedDef += 1 + (simLevel / 3)
+        }
+        
+        enemy.maxHealth += addedHp
         enemy.health = enemy.maxHealth // Heal to full
-        enemy.attackStat += extraAtk
-        enemy.defenseStat += extraDef
+        enemy.attackStat += addedAtk
+        enemy.defenseStat += addedDef
         
-        // Scale Level (cosmetic/info)
-        enemy.level += (r / 5)
+        // Update visual level
+        enemy.level += levelsGained
 
         if (this::enemySprite.isInitialized) {
             enemySprite.dispose()
@@ -1344,7 +1375,8 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     override fun show() {
         updateFont()
-
+        uiStage.clear() // Clear previous actors (labels, buttons) to prevent overlaps/duplicates
+        
         pauseUI.updateFont(font)
         GameLogic.gameState = GameLogic.GameState.BATTLE
 
@@ -1396,9 +1428,13 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(playerIcon)
         uiStage.addActor(enemyIcon_NotTurn)
         GameLogic.screen = this
+        
+        // Labels for Levels (Dynamic Position)
         playerLevelLabel = Label("Lvl ${player.level}", Label.LabelStyle(font, Color.WHITE))
         uiStage.addActor(playerLevelLabel)
-        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
+        
+        enemyLevelLabel = Label("Lvl ${enemy.level}", Label.LabelStyle(font, Color.WHITE))
+        uiStage.addActor(enemyLevelLabel)
 
         playerHealthLabel.setSize(300f, 200f)
 
@@ -1484,9 +1520,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         playerIcon.setPosition(25f, iconY)
         playerIcon_NotTurn.setPosition(25f, iconY)
         playerHealthLabel.setPosition(225f, iconY)
-
-        // Player: XP Label
-        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
 
         // Enemy: Icon (Width-500) -> Label (Width-300)
         enemyIcon.setPosition(Gdx.graphics.width - 525f, iconY)
@@ -1599,6 +1632,9 @@ class BattleScreen(val game: Main) : KtxScreen {
              if (this::playerLevelLabel.isInitialized) {
                 playerLevelLabel.isVisible = true
              }
+             if (this::enemyLevelLabel.isInitialized) {
+                enemyLevelLabel.isVisible = true
+             }
 
             uiStage.draw()
             return
@@ -1614,9 +1650,24 @@ class BattleScreen(val game: Main) : KtxScreen {
             playerIcon_NotTurn.isVisible = !showingOverlay
             enemyIcon_NotTurn.isVisible = !showingOverlay
             
-            if (this::playerLevelLabel.isInitialized) {
-                playerLevelLabel.isVisible = !showingOverlay
-            }
+        if (this::playerLevelLabel.isInitialized) {
+             playerLevelLabel.isVisible = !showingOverlay
+             // Position above player sprite
+             if (this::playerSprite.isInitialized) {
+                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(playerSprite.x + 0.5f, playerSprite.y + 1.2f, 0f))
+                 playerLevelLabel.setPosition(screenPos.x - playerLevelLabel.prefWidth / 2, screenPos.y)
+             }
+        }
+        
+        if (this::enemyLevelLabel.isInitialized) {
+             enemyLevelLabel.isVisible = !showingOverlay
+             enemyLevelLabel.setText("Lvl ${enemy.level}") // Update text just in case
+             // Position above enemy sprite
+             if (this::enemySprite.isInitialized) {
+                 val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(enemySprite.x + 0.5f, enemySprite.y + 1.2f, 0f))
+                 enemyLevelLabel.setPosition(screenPos.x - enemyLevelLabel.prefWidth / 2, screenPos.y)
+             }
+        }
 
             itemsTable.isVisible = isShowingItems
             equipmentTable.isVisible = isShowingEquipment
