@@ -392,7 +392,6 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
             return if (playerName != null) {
                 playerName.take(10)
             } else {
-            } else {
                 "Slot $slot"
             }
         }
