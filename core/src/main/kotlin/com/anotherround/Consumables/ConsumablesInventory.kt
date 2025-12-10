@@ -32,18 +32,9 @@ class ConsumablesInventory {
 
     fun loadDefaultPotions() {
         items.clear()
-        // Add one of each for testing/gameplay start
+        // Add two health potions for gameplay start
         items.add(createHealthPotion(PotionRarity.COMMON))
-        items.add(createHealthPotion(PotionRarity.RARE))
-        items.add(createHealthPotion(PotionRarity.EPIC))
-
-        items.add(createDefensivePotion(PotionRarity.COMMON))
-        // items.add(createDefensivePotion(PotionRarity.RARE))
-        // items.add(createDefensivePotion(PotionRarity.EPIC))
-
-        items.add(createFirePotion(PotionRarity.COMMON))
-        // items.add(createFirePotion(PotionRarity.RARE))
-        // items.add(createFirePotion(PotionRarity.EPIC))
+        items.add(createHealthPotion(PotionRarity.COMMON))
     }
 
     fun loadFromSaveState(data: List<PotionData>) {

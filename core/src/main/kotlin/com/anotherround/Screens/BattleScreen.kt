@@ -131,6 +131,16 @@ class BattleScreen(val game: Main) : KtxScreen {
         player.currency = basePlayer.currency
 
         inventory.loadDefaultPotions()
+        
+        // Clear equipment for new game
+        armorInventory.clear()
+        weaponInventory.clear()
+        equipmentSlots.helmet = null
+        equipmentSlots.chest = null
+        equipmentSlots.boots = null
+        equipmentSlots.weapon = null
+        recalculateStats()
+        
         roundNumber = 0
 
         if (this::playerSprite.isInitialized) {
@@ -591,22 +601,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         armorTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
 
         itemIcons = TextureRegion.split(armorTexture, 64, 64)
-
-        armorInventory.clear()
-        armorInventory.addAll(buildDefaultArmor(itemIcons))
-
-        weaponInventory.clear()
-        weaponInventory.addAll(buildDefaultWeapons(itemIcons))
-
-        // Default equipped items:
-        equipmentSlots.weapon = weaponInventory.firstOrNull() // first weapon
-        equipmentSlots.helmet = armorInventory.firstOrNull { it.slot == ArmorSlot.HELMET }
-        equipmentSlots.chest  = armorInventory.firstOrNull { it.slot == ArmorSlot.CHEST }
-        equipmentSlots.boots  = armorInventory.firstOrNull { it.slot == ArmorSlot.BOOTS }
-
-        recalculateStats()
-        // Start full health
-        player.health = player.maxHealth
     }
 
     private fun recalculateStats() {
