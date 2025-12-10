@@ -58,18 +58,54 @@ class DictionaryScreen(val game: Main) : KtxScreen {
             over = skin.getDrawable("button-normal-over")
         }
 
+        // UI elements
         val backgroundColor = Image(Texture((Gdx.files.internal("ui/dictionary_bgColor.png"))))
+        val pageColor = Image(Texture((Gdx.files.internal("ui/dictionary_pageColor.png"))))
+        val pageTitle = Image(Texture((Gdx.files.internal("ui/dictionary_Title.png"))))
 
         stage.addActor(backgroundColor)
-        backgroundColor.setSize(2000f, 5000f)
         backgroundColor.setPosition(0f, 0f)
 
-        /*val dictionaryLabel = Label("Dictionary", skin)
-        dictionaryLabel.setPosition(500f, 2000f)
-        dictionaryLabel.color = Color.BROWN
-        dictionaryLabel.setFontScale(10f)
-        dictionaryLabel.setAlignment(Align.center)
-        stage.addActor(dictionaryLabel)*/
+        stage.addActor(pageColor)
+        pageColor.setSize(900f, 2000f)
+        pageColor.setPosition(100f, 130f)
+
+        stage.addActor(pageTitle)
+        pageTitle.setSize(1000f, 500f)
+        pageTitle.setPosition(40f, 2000f)
+
+
+        // Enemy descriptions
+
+        //Grunt
+        val entry_Grunt = Image(Texture((Gdx.files.internal("generic_char_v0.2/png/red/char_red_1_index10.png"))))
+        stage.addActor(entry_Grunt)
+        entry_Grunt.setSize(500f, 500f)
+        entry_Grunt.setPosition(50f, 1300f)
+
+        //Phantom
+        val entry_Phantom = Image(Texture((Gdx.files.internal("phantom/phantomIdleFrame1.png"))))
+        stage.addActor(entry_Phantom)
+        entry_Phantom.setSize(500f, 500f)
+        entry_Phantom.setPosition(500f, 1350f)
+
+        //Evil Wizard
+        val entry_EvilWizard = Image(Texture((Gdx.files.internal("evil_wizard/evilWizardIdleFrame1.png"))))
+        stage.addActor(entry_EvilWizard)
+        entry_EvilWizard.setSize(500f, 500f)
+        entry_EvilWizard.setPosition(120f, 570f)
+
+
+        //Night Borne
+        val entry_NightBorne = Image(Texture((Gdx.files.internal("nightborne/NightBorneIdleFrame1.png"))))
+        stage.addActor(entry_NightBorne)
+        entry_NightBorne.setSize(500f, 500f)
+        entry_NightBorne.setPosition(490f, 450f)
+
+
+
+
+
     }
 
     override fun render(delta: Float) {
