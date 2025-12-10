@@ -1143,9 +1143,10 @@ class BattleScreen(val game: Main) : KtxScreen {
              // Current simulated level for the enemy
              val simLevel = enemy.level + i 
              
-             addedHp += 10 + (simLevel * 2)
-             addedAtk += 2 + (simLevel / 2)
-             addedDef += 1 + (simLevel / 3)
+             // Scaled down slightly from Player (Player is 10 + 2*lvl)
+             addedHp += (8 + (simLevel * 1.5)).toInt()
+             addedAtk += 1 + (simLevel / 3)
+             addedDef += 1 + (simLevel / 4)
         }
         
         enemy.maxHealth += addedHp
@@ -1638,12 +1639,12 @@ class BattleScreen(val game: Main) : KtxScreen {
             playerIcon_NotTurn.isVisible = false
             enemyIcon_NotTurn.isVisible = false
 
-            // Game Over state - only show level label or game over table
+            // Game Over state - only show game over table
              if (this::playerLevelLabel.isInitialized) {
-                playerLevelLabel.isVisible = true
+                playerLevelLabel.isVisible = false
              }
              if (this::enemyLevelLabel.isInitialized) {
-                enemyLevelLabel.isVisible = true
+                enemyLevelLabel.isVisible = false
              }
 
             uiStage.draw()
