@@ -1311,24 +1311,25 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         // --- 2. EQUIPMENT DROP (Indepedent) ---
         // 100% Chance (Guaranteed)
-        if (kotlin.random.Random.nextFloat() <= 1.00f) {
+        if (kotlin.random.Random.nextFloat() <= 0.80f) {
+
+            // Dynamic Rarity Weights based on Round
+            // User Request: Start very small (e.g. 1%) and grow as rounds progress.
+            // Formula: Weight = (Round - StartThreshold) * Multiplier
             
-            // Rarity Gating based on Round Number
-            // Round 1-3: Common
-            // Round 4-9: +Uncommon
-            // Round 10-19: +Rare
-            // Round 20+: +Epic/Legendary
+            val wCommon = 100
             
-            val canUncommon = round >= 4
-            val canRare = round >= 10
-            val canEpic = round >= 20
+            // Start Round 4. At Round 5, weight is (5-3)=2. 2/102 ≈ 2%. 
+            val wUncommon = (round - 3).coerceAtLeast(0) * 1 
             
-            // Weights (Harder High Rarity)
-            val wCommon = 150
-            val wUncommon = if (canUncommon) 40 else 0
-            val wRare = if (canRare) 15 else 0
-            val wEpic = if (canEpic) 5 else 0
-            val wLegendary = if (canEpic) 2 else 0 // Unlocks with Epic for now
+            // Start Round 10.
+            val wRare = (round - 9).coerceAtLeast(0) * 1
+            
+            // Start Round 20.
+            val wEpic = (round - 19).coerceAtLeast(0) * 1
+            
+            // Start Round 30.
+            val wLegendary = (round - 29).coerceAtLeast(0) * 1
             
             val totalWeight = wCommon + wUncommon + wRare + wEpic + wLegendary
             val roll = kotlin.random.Random.nextInt(totalWeight)
