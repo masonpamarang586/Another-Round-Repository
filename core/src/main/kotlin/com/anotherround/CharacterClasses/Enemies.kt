@@ -16,7 +16,7 @@ class Phantom(
     override var maxHealth: Int = 45,
     override var health: Int = maxHealth,
     override var defenseStat: Int = 8,
-    override var attackStat: Int = 20,
+    override var attackStat: Int = 18,
     val xpReward: Int = (11..19).random()
 ) : Character
 
@@ -26,16 +26,16 @@ class EvilWizard(
     override var maxHealth: Int = 45,
     override var health: Int = maxHealth,
     override var defenseStat: Int = 5,
-    override var attackStat: Int = 25,
+    override var attackStat: Int = 20,
     val xpReward: Int = (11..19).random()
 ) : Character
 
 class NightBorne(
     override val name: String = "NightBorne",
     override var level: Int = 1,
-    override var maxHealth: Int = 60,
+    override var maxHealth: Int = 50,
     override var health: Int = maxHealth,
-    override var defenseStat: Int = 15,
-    override var attackStat: Int = 25,
+    override var defenseStat: Int = 10,
+    override var attackStat: Int = 20,
     val xpReward: Int = (11..19).random()
 ) : Character

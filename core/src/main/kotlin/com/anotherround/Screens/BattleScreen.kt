@@ -1684,7 +1684,7 @@ class BattleScreen(val game: Main) : KtxScreen {
              if (this::enemySprite.isInitialized) {
                  val topY = enemySprite.y + enemySprite.cfg.drawHeight
                  val screenPos = game.worldViewport.project(com.badlogic.gdx.math.Vector3(enemySprite.x + 0.5f, topY + 0.5f, 0f))
-                 enemyLevelLabel.setPosition(screenPos.x - enemyLevelLabel.prefWidth / 2, screenPos.y)
+                 enemyLevelLabel.setPosition(screenPos.x - enemyLevelLabel.prefWidth / 2 + 50f, screenPos.y)
              }
         }
 
