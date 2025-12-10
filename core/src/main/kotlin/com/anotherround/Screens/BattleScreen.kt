@@ -236,11 +236,11 @@ class BattleScreen(val game: Main) : KtxScreen {
         setupCombat()
 
         if (this::playerLevelLabel.isInitialized) {
-            playerLevelLabel.setText("Lvl ${player.level}")
+            playerLevelLabel.setText("Lvl: ${player.level}")
         }
 
         if (this::enemyLevelLabel.isInitialized) {
-             enemyLevelLabel.setText("Lvl ${enemy.level}")
+             enemyLevelLabel.setText("Lvl: ${enemy.level}")
 
              if (this::enemySprite.isInitialized) {
                  val topY = enemySprite.y + enemySprite.cfg.drawHeight
@@ -1170,7 +1170,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         setupCombat()
 
-        Gdx.app.log("ENEMY", "Spawned ${enemy.name} (Lvl ${enemy.level}) - HP:${enemy.maxHealth} ATK:${enemy.attackStat} DEF:${enemy.defenseStat}")
+        Gdx.app.log("ENEMY", "Spawned ${enemy.name} (Lvl: ${enemy.level}) - HP:${enemy.maxHealth} ATK:${enemy.attackStat} DEF:${enemy.defenseStat}")
         saveGame()
     }
 
@@ -1268,7 +1268,6 @@ class BattleScreen(val game: Main) : KtxScreen {
                     rollForDrop(roundNumber)
 
                     scheduleNextEnemy(delaySeconds = 2f)
-                    saveGame() // Auto-save after round
                 }
                 if (defeated === player) {
                     playerSprite.playDeath()
@@ -1327,7 +1326,6 @@ class BattleScreen(val game: Main) : KtxScreen {
                  }
              }
 
-             // RE-DOING LOGIC FOR 3 TIERS (Common, Rare, Epic)
              // Common: 100
              // Rare: (Round - 4) * 1
              // Epic: (Round - 14) * 1
@@ -1352,11 +1350,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         }
 
         // --- 2. EQUIPMENT DROP (Indepedent) ---
-        // 100% Chance (Guaranteed)
         if (kotlin.random.Random.nextFloat() <= 0.70f) {
 
             // Dynamic Rarity Weights based on Round
-            // User Request: Start very small (e.g. 1%) and grow as rounds progress.
             // Formula: Weight = (Round - StartThreshold) * Multiplier
 
             val wCommon = 100
@@ -1400,7 +1396,6 @@ class BattleScreen(val game: Main) : KtxScreen {
                 val validArmor = DEFAULT_ARMOR_BLUEPRINTS.filter { it.rarity == selectedRarity }
                 if (validArmor.isNotEmpty()) {
                     val blueprint = validArmor.random()
-                    // Manually build the item since buildDefaultArmor builds ALL items
                     val region = itemIcons[blueprint.sprite.row][blueprint.sprite.col]
                     val piece = ArmorPiece(
                         name = blueprint.name,
@@ -1435,7 +1430,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
     override fun show() {
         updateFont()
-        uiStage.clear() // Clear previous actors (labels, buttons) to prevent overlaps/duplicates
+        uiStage.clear()
 
         pauseUI.updateFont(font)
         GameLogic.gameState = GameLogic.GameState.BATTLE
@@ -1489,7 +1484,7 @@ class BattleScreen(val game: Main) : KtxScreen {
         uiStage.addActor(enemyIcon_NotTurn)
         GameLogic.screen = this
 
-        // Labels for Levels (Dynamic Position)
+        // Labels for Levels
         playerLevelLabel = Label("Lvl: ${player.level}", Label.LabelStyle(font, Color.WHITE))
         playerLevelLabel.setFontScale(0.75f)
         uiStage.addActor(playerLevelLabel)
@@ -1536,11 +1531,6 @@ class BattleScreen(val game: Main) : KtxScreen {
         val labelStyle = Label.LabelStyle(font, color)
         val popup = Label(text, labelStyle)
 
-        // Position roughly above the sprite
-        // We need to project world coordinates to UI stage coordinates or just estimate
-        // The sprites are drawn in world coordinates (projectionMatrix = worldViewport.camera.combined)
-        // The UI is drawn in UI coordinates.
-        // Simple map:
         val x = if (character === player) Gdx.graphics.width * 0.25f else Gdx.graphics.width * 0.75f
         val y = Gdx.graphics.height * 0.6f
 
@@ -1727,7 +1717,7 @@ class BattleScreen(val game: Main) : KtxScreen {
 
         if (this::enemyLevelLabel.isInitialized) {
              enemyLevelLabel.isVisible = !showingOverlay
-             enemyLevelLabel.setText("Lvl ${enemy.level}") // Update text just in case
+             enemyLevelLabel.setText("Lvl: ${enemy.level}") // Update text just in case
              // Position above enemy sprite
              if (this::enemySprite.isInitialized) {
                  val topY = enemySprite.y + enemySprite.cfg.drawHeight
