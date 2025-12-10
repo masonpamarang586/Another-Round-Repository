@@ -1149,10 +1149,10 @@ class BattleScreen(val game: Main) : KtxScreen {
              // Current simulated level for the enemy
              val simLevel = enemy.level + i 
              
-             // Scaled down slightly from Player (Player is 10 + 2*lvl)
-             addedHp += (8 + (simLevel * 1.5)).toInt()
-             addedAtk += 1 + (simLevel / 3)
-             addedDef += 1 + (simLevel / 4)
+             // Heavily scaled down to make enemies easier
+             addedHp += (6 + (simLevel * 1.2)).toInt()
+             addedAtk += 1 + (simLevel / 4)
+             addedDef += 1 + (simLevel / 5)
         }
         
         enemy.maxHealth += addedHp
