@@ -80,6 +80,10 @@ ui/dictionary_bgColor.png
 ui/dictionary_pageColor.png
 ui/enemyIcon.png
 ui/enemyIcon_noTurn.png
+ui/entryStats_EvilWizard.png
+ui/entryStats_Grunt.png
+ui/entryStats_Nightborne.png
+ui/entryStats_Phantom.png
 ui/entryTitle_EvilWizard.png
 ui/entryTitle_Grunt.png
 ui/entryTitle_Nightborne.png
