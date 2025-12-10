@@ -80,6 +80,10 @@ ui/dictionary_bgColor.png
 ui/dictionary_pageColor.png
 ui/enemyIcon.png
 ui/enemyIcon_noTurn.png
+ui/entryTitle_EvilWizard.png
+ui/entryTitle_Grunt.png
+ui/entryTitle_Nightborne.png
+ui/entryTitle_Phantom.png
 ui/font-list.fnt
 ui/font-subtitle.fnt
 ui/font-window.fnt
