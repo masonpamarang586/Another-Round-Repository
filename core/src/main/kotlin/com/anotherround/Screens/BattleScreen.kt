@@ -118,6 +118,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         isShowingItems = false
         toastText = null
 
+        if (this::gameOverTable.isInitialized) {
+            gameOverTable.isVisible = false
+        }
         val basePlayer = Player(name = session.playerName)
         player.name = basePlayer.name
         player.level = basePlayer.level
@@ -142,6 +145,13 @@ class BattleScreen(val game: Main) : KtxScreen {
     fun loadSavedGame(state: GameState, slot: Int) {
         this.currentSession = GameSession(slot, state.player.name)
         Gdx.app.log("BattleScreen", "Loading game for ${state.player.name} from slot $slot")
+
+        isGameOver = false
+        pendingGameOver = false
+        gameOverDelay = 0f
+        if (this::gameOverTable.isInitialized) {
+            gameOverTable.isVisible = false
+        }
 
         player.name = state.player.name
         player.health = state.player.health
