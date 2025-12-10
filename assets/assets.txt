@@ -7,6 +7,7 @@ audio/item-use.mp3
 audio/level-up-06-370051.mp3
 audio/magical-hit-45356.mp3
 audio/male_hurt7-48124.mp3
+audio/mystic-fantasy-ambience-441255.mp3
 audio/sword-clattering-to-the-ground-393838.mp3
 audio/violent-sword-slice-393839.mp3
 backgrounds/mainmenu_sheet.png
@@ -76,8 +77,19 @@ phantom/png/summonDeath.png
 phantom/png/summonIdle.png
 phantom/summons1.aseprite
 test.tpproj
+ui/dictionary_Title.png
+ui/dictionary_bgColor.png
+ui/dictionary_pageColor.png
 ui/enemyIcon.png
 ui/enemyIcon_noTurn.png
+ui/entryStats_EvilWizard.png
+ui/entryStats_Grunt.png
+ui/entryStats_Nightborne.png
+ui/entryStats_Phantom.png
+ui/entryTitle_EvilWizard.png
+ui/entryTitle_Grunt.png
+ui/entryTitle_Nightborne.png
+ui/entryTitle_Phantom.png
 ui/font-list.fnt
 ui/font-subtitle.fnt
 ui/font-window.fnt

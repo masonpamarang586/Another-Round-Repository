@@ -1283,11 +1283,11 @@ class BattleScreen(val game: Main) : KtxScreen {
             },
             onLevelUp = { newLevel, PlayerRef ->
                 if (this::playerLevelLabel.isInitialized) {
-                    playerLevelLabel.setText("Lvl $newLevel")
+                    playerLevelLabel.setText("Lvl: $newLevel")
                 }
                 playerHealthLabel.setText("${PlayerRef.health}/${PlayerRef.maxHealth}")
 
-                showToast("Level up! You are now Lvl $newLevel", 2.0f)
+                showToast("Level up! Level: $newLevel", 2.0f)
                 sfxLevelUp.play(0.9f)
             },
             resolveDelay = 0f
@@ -1298,24 +1298,24 @@ class BattleScreen(val game: Main) : KtxScreen {
         // --- 1. POTION DROP (Indepedent) ---
         // 70% Chance
         if (kotlin.random.Random.nextFloat() <= 0.70f) {
-             
+
              // Dynamic Rarity Weights (Same as Equipment)
              val wCommon = 100
-             val wUncommon = (round - 3).coerceAtLeast(0) * 1 
+             val wUncommon = (round - 3).coerceAtLeast(0) * 1
              val wRare = (round - 9).coerceAtLeast(0) * 1
              val wEpic = (round - 19).coerceAtLeast(0) * 1
-             
+
              val totalWeight = wCommon + wUncommon + wRare + wEpic
              val rollRarity = kotlin.random.Random.nextInt(totalWeight)
-             
+
              var current = 0
              var selectedRarity = PotionRarity.COMMON
-             
+
              if (rollRarity < (current + wCommon)) { selectedRarity = PotionRarity.COMMON }
              else {
                  current += wCommon
-                 if (rollRarity < (current + wUncommon)) { 
-                     // PotionRarity doesn't have Uncommon, mapping to Rare for now? 
+                 if (rollRarity < (current + wUncommon)) {
+                     // PotionRarity doesn't have Uncommon, mapping to Rare for now?
                      // Wait, PotionRarity enum only has COMMON, RARE, EPIC.
                      // Mapping "Uncommon" weight to "Rare" or skipping?
                      // Let's check PotionRarity enum.
@@ -1326,17 +1326,17 @@ class BattleScreen(val game: Main) : KtxScreen {
                      selectedRarity = PotionRarity.RARE // Placeholder if logic falls through, fix below
                  }
              }
-             
+
              // RE-DOING LOGIC FOR 3 TIERS (Common, Rare, Epic)
              // Common: 100
              // Rare: (Round - 4) * 1
              // Epic: (Round - 14) * 1
-             
+
              val wRare3 = (round - 4).coerceAtLeast(0) * 1
              val wEpic3 = (round - 14).coerceAtLeast(0) * 1
              val total3 = 100 + wRare3 + wEpic3
              val roll3 = kotlin.random.Random.nextInt(total3)
-             
+
              val finalRarity = if (roll3 < 100) PotionRarity.COMMON
                                else if (roll3 < 100 + wRare3) PotionRarity.RARE
                                else PotionRarity.EPIC
@@ -1490,10 +1490,12 @@ class BattleScreen(val game: Main) : KtxScreen {
         GameLogic.screen = this
 
         // Labels for Levels (Dynamic Position)
-        playerLevelLabel = Label("Lvl ${player.level}", Label.LabelStyle(font, Color.WHITE))
+        playerLevelLabel = Label("Lvl: ${player.level}", Label.LabelStyle(font, Color.WHITE))
+        playerLevelLabel.setFontScale(0.75f)
         uiStage.addActor(playerLevelLabel)
 
-        enemyLevelLabel = Label("Lvl ${enemy.level}", Label.LabelStyle(font, Color.WHITE))
+        enemyLevelLabel = Label("Lvl: ${enemy.level}", Label.LabelStyle(font, Color.WHITE))
+        enemyLevelLabel.setFontScale(0.75f)
         uiStage.addActor(enemyLevelLabel)
 
         playerHealthLabel.setSize(300f, 200f)
@@ -1580,6 +1582,9 @@ class BattleScreen(val game: Main) : KtxScreen {
         playerIcon.setPosition(25f, iconY)
         playerIcon_NotTurn.setPosition(25f, iconY)
         playerHealthLabel.setPosition(225f, iconY)
+
+        // Player: XP Label
+        playerLevelLabel.setPosition(225f, Gdx.graphics.height - 450f)
 
         // Enemy: Icon (Width-500) -> Label (Width-300)
         enemyIcon.setPosition(Gdx.graphics.width - 525f, iconY)
