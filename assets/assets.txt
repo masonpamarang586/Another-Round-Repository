@@ -4,6 +4,7 @@ atlas/ui.png
 audio/battle-fighting-warrior-drums-372078.mp3
 audio/item-fail.mp3
 audio/item-use.mp3
+audio/level-up-06-370051.mp3
 audio/magical-hit-45356.mp3
 audio/male_hurt7-48124.mp3
 audio/sword-clattering-to-the-ground-393838.mp3
