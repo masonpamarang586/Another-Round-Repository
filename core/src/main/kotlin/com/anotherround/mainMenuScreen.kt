@@ -254,9 +254,9 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
             font.data.setScale(3.0f)
         }
 
-        slot1 = TextButton("Game 1", s).apply { addListener(click { selectSlot(1) }) }
-        slot2 = TextButton("Game 2", s).apply { addListener(click { selectSlot(2) }) }
-        slot3 = TextButton("Game 3", s).apply { addListener(click { selectSlot(3) }) }
+        slot1 = TextButton("Slot 1", s).apply { addListener(click { selectSlot(1) }) }
+        slot2 = TextButton("Slot 2", s).apply { addListener(click { selectSlot(2) }) }
+        slot3 = TextButton("Slot 3", s).apply { addListener(click { selectSlot(3) }) }
 
         val textFieldStyle = TextField.TextFieldStyle().apply {
             this.font = this@MainMenuScreen.font
@@ -392,7 +392,8 @@ class MainMenuScreen(private val game: Main) : KtxScreen {
             return if (playerName != null) {
                 playerName.take(10)
             } else {
-                "Game $slot"
+            } else {
+                "Slot $slot"
             }
         }
 

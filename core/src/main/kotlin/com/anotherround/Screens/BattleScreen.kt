@@ -1090,6 +1090,12 @@ class BattleScreen(val game: Main) : KtxScreen {
     private fun showGameOverPopup() {
         isGameOver = true
         gameOverTable.isVisible = true
+        
+        // Delete save file if session is active
+        currentSession?.let {
+            Gdx.app.log("GAME_OVER", "Deleting save for slot ${it.slotId}")
+            SaveGame.delete(it.slotId)
+        }
     }
 
 
@@ -1566,6 +1572,11 @@ class BattleScreen(val game: Main) : KtxScreen {
             enemyIcon.isVisible = false
             playerIcon_NotTurn.isVisible = false
             enemyIcon_NotTurn.isVisible = false
+
+            // Game Over state - only show level label or game over table
+             if (this::playerLevelLabel.isInitialized) {
+                playerLevelLabel.isVisible = true
+             }
 
             uiStage.draw()
             return
